@@ -29,3 +29,8 @@ export interface Invitation {
   inviter_username: string;
 }
 
+export interface Assignment {
+  receiver_id: number;
+  receiver_username: string;
+}
+

@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { groupService } from '../services/groupService';
-import { Group } from '../types/group';
+import { Group, Assignment } from '../types/group';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 
@@ -35,6 +35,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [assigning, setAssigning] = useState(false);
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -46,6 +48,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     try {
       const groupData = await groupService.getGroupById(groupId);
       setGroup(groupData);
+      
+      // Load assignment if user is a member
+      if (groupData && userId) {
+        const isOwner = userId === groupData.created_by;
+        const isMember = isOwner || groupData.members?.some(m => m.id === userId);
+        if (isMember) {
+          const assignmentData = await groupService.getAssignment(groupId);
+          setAssignment(assignmentData);
+        }
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load group');
       onBack();
@@ -163,6 +175,42 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const handleAssignSecretSanta = () => {
+    if (!group) return;
+
+    const totalMembers = (group.members?.length || 0) + 1; // +1 for owner
+    if (totalMembers < 2) {
+      Alert.alert('Error', 'Need at least 2 members to create Secret Santa assignments');
+      return;
+    }
+
+    Alert.alert(
+      'Assign Secret Santa',
+      `This will randomly assign each member to another member. Existing assignments will be replaced. Continue?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Assign',
+          onPress: async () => {
+            setAssigning(true);
+            try {
+              await groupService.assignSecretSanta(groupId);
+              Alert.alert('Success', 'Secret Santa assignments created successfully!');
+              await loadGroup();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to create assignments');
+            } finally {
+              setAssigning(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -258,6 +306,43 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           {isMember && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Secret Santa</Text>
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
+                    onPress={handleAssignSecretSanta}
+                    disabled={assigning}
+                  >
+                    {assigning ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.assignButtonText}>Assign</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {assignment ? (
+                <View style={styles.assignmentCard}>
+                  <Text style={styles.assignmentLabel}>You are assigned to:</Text>
+                  <Text style={styles.assignmentName}>@{assignment.receiver_username}</Text>
+                  <Text style={styles.assignmentHint}>🎁 Get a gift for this person!</Text>
+                </View>
+              ) : (
+                <View style={styles.noAssignmentCard}>
+                  <Text style={styles.noAssignmentText}>
+                    {isOwner 
+                      ? 'No assignments yet. Click "Assign" to create Secret Santa pairs.'
+                      : 'No assignments yet. The group owner needs to create assignments.'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {isMember && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Members</Text>
                 {isOwner && (
                   <TouchableOpacity
@@ -271,24 +356,34 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               
               {group.members && group.members.length > 0 ? (
                 <View style={styles.membersList}>
-                  {group.members.map((member) => (
-                    <View key={member.id} style={styles.memberItem}>
-                      <View style={styles.memberInfo}>
-                        <Text style={styles.memberUsername}>@{member.username}</Text>
-                        <Text style={styles.memberDate}>
-                          Joined {new Date(member.joined_at).toLocaleDateString()}
-                        </Text>
+                  {group.members.map((member) => {
+                    const isMemberOwner = member.id === group.created_by;
+                    return (
+                      <View key={member.id} style={styles.memberItem}>
+                        <View style={styles.memberInfo}>
+                          <View style={styles.memberNameRow}>
+                            <Text style={styles.memberUsername}>@{member.username}</Text>
+                            {isMemberOwner && (
+                              <View style={styles.ownerBadge}>
+                                <Text style={styles.ownerBadgeText}>Owner</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.memberDate}>
+                            {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        {isOwner && member.id !== userId && !isMemberOwner && (
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => handleRemoveMember(member.id, member.username)}
+                          >
+                            <Text style={styles.removeButtonText}>Remove</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
-                      {isOwner && member.id !== userId && (
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => handleRemoveMember(member.id, member.username)}
-                        >
-                          <Text style={styles.removeButtonText}>Remove</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No members yet</Text>
@@ -512,11 +607,28 @@ const styles = StyleSheet.create({
   memberInfo: {
     flex: 1,
   },
+  memberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   memberUsername: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    marginBottom: 4,
+    marginRight: 8,
+  },
+  ownerBadge: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  ownerBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   memberDate: {
     fontSize: 12,
@@ -626,6 +738,62 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  assignButton: {
+    backgroundColor: '#34C759',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  assignButtonDisabled: {
+    opacity: 0.6,
+  },
+  assignButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  assignmentCard: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#34C759',
+    alignItems: 'center',
+  },
+  assignmentLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  assignmentName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
+  },
+  assignmentHint: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  noAssignmentCard: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  noAssignmentText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

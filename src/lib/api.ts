@@ -131,6 +131,19 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Assignment endpoints
+  async assignSecretSanta(groupId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/assign`, {
+      method: 'POST',
+    });
+  }
+
+  async getAssignment(groupId: number) {
+    return this.request<{ assignment: { receiver_id: number; receiver_username: string } | null }>(
+      `/api/groups/${groupId}/assignment`
+    );
+  }
 }
 
 export const apiClient = new ApiClient(API_URL);

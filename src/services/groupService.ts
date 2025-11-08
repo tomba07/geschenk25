@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api';
-import { Group, Invitation } from '../types/group';
+import { Group, Invitation, Assignment } from '../types/group';
 
 export const groupService = {
   // Fetch all groups for the current user
@@ -122,5 +122,37 @@ export const groupService = {
       console.error('Error removing member:', response.error);
       throw new Error(response.error);
     }
+  },
+
+  // Assign Secret Santa pairs
+  async assignSecretSanta(groupId: string): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
+
+    const response = await apiClient.assignSecretSanta(id);
+    
+    if (response.error) {
+      console.error('Error assigning Secret Santa:', response.error);
+      throw new Error(response.error);
+    }
+  },
+
+  // Get current user's assignment
+  async getAssignment(groupId: string): Promise<Assignment | null> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
+
+    const response = await apiClient.getAssignment(id);
+    
+    if (response.error) {
+      console.error('Error fetching assignment:', response.error);
+      return null;
+    }
+
+    return response.data?.assignment || null;
   },
 };
