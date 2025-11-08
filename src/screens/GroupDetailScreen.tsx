@@ -10,6 +10,8 @@ import {
   Modal,
   TextInput,
   FlatList,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { groupService } from '../services/groupService';
 import { Group, Assignment } from '../types/group';
@@ -472,6 +474,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0,
   },
   centerContainer: {
     flex: 1,

@@ -9,6 +9,8 @@ import {
   Alert,
   TextInput,
   Modal,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { groupService } from '../services/groupService';
@@ -200,6 +202,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0,
   },
   centerContainer: {
     flex: 1,
