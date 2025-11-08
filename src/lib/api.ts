@@ -74,6 +74,12 @@ class ApiClient {
     return this.request<{ user: { id: number; username: string } }>('/api/auth/me');
   }
 
+  async searchUsers(query: string) {
+    return this.request<{ users: { id: number; username: string }[] }>(
+      `/api/auth/search?q=${encodeURIComponent(query)}`
+    );
+  }
+
   // Groups endpoints
   async getGroups() {
     return this.request<{ groups: any[] }>('/api/groups');
@@ -92,6 +98,36 @@ class ApiClient {
 
   async deleteGroup(id: number) {
     return this.request<{ message: string }>(`/api/groups/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Invitation endpoints
+  async inviteUserToGroup(groupId: number, username: string) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    });
+  }
+
+  async getPendingInvitations() {
+    return this.request<{ invitations: any[] }>('/api/groups/invitations/pending');
+  }
+
+  async acceptInvitation(invitationId: number) {
+    return this.request<{ message: string }>(`/api/groups/invitations/${invitationId}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectInvitation(invitationId: number) {
+    return this.request<{ message: string }>(`/api/groups/invitations/${invitationId}/reject`, {
+      method: 'POST',
+    });
+  }
+
+  async removeMember(groupId: number, userId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',
     });
   }

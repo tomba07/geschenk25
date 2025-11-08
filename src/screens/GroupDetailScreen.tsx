@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,19 +8,33 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  Modal,
+  TextInput,
+  FlatList,
 } from 'react-native';
 import { groupService } from '../services/groupService';
 import { Group } from '../types/group';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../lib/api';
 
 interface GroupDetailScreenProps {
   groupId: string;
   onBack: () => void;
 }
 
+interface SearchUser {
+  id: number;
+  username: string;
+}
+
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -67,6 +81,88 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const searchUsers = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await apiClient.searchUsers(query);
+      if (response.error) {
+        console.error('Error searching users:', response.error);
+        setSearchResults([]);
+      } else {
+        // Filter out current user and existing members
+        const memberIds = new Set(group?.members?.map(m => m.id) || []);
+        const ownerId = group?.created_by;
+        const filtered = (response.data?.users || []).filter(
+          (user) => user.id !== userId && user.id !== ownerId && !memberIds.has(user.id)
+        );
+        setSearchResults(filtered);
+      }
+    } catch (error: any) {
+      console.error('Error searching users:', error);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [group, userId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (inviteModalVisible) {
+        searchUsers(searchQuery);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, inviteModalVisible, searchUsers]);
+
+  const handleInvite = async (username: string) => {
+    setInviting(true);
+    try {
+      await groupService.inviteUser(groupId, username);
+      setInviteModalVisible(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      Alert.alert('Success', 'Invitation sent successfully');
+      await loadGroup();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send invitation');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveMember = (memberId: number, memberUsername: string) => {
+    if (!group) return;
+
+    Alert.alert(
+      'Remove Member',
+      `Are you sure you want to remove ${memberUsername} from this group?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await groupService.removeMember(groupId, memberId);
+              await loadGroup();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to remove member');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -105,6 +201,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   }
 
   const isOwner = userId !== null && userId === group.created_by;
+  const isMember = userId !== null && (isOwner || group.members?.some(m => m.id === userId));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -143,6 +240,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </Text>
           </View>
 
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Owner</Text>
+            <Text style={styles.sectionText}>
+              {group.owner?.username || 'Unknown'}
+            </Text>
+          </View>
+
           {isOwner && (
             <View style={styles.section}>
               <View style={styles.badgeContainer}>
@@ -150,8 +254,122 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </View>
             </View>
           )}
+
+          {isMember && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Members</Text>
+                {isOwner && (
+                  <TouchableOpacity
+                    style={styles.inviteButton}
+                    onPress={() => setInviteModalVisible(true)}
+                  >
+                    <Text style={styles.inviteButtonText}>+ Invite</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {group.members && group.members.length > 0 ? (
+                <View style={styles.membersList}>
+                  {group.members.map((member) => (
+                    <View key={member.id} style={styles.memberItem}>
+                      <View style={styles.memberInfo}>
+                        <Text style={styles.memberUsername}>@{member.username}</Text>
+                        <Text style={styles.memberDate}>
+                          Joined {new Date(member.joined_at).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      {isOwner && member.id !== userId && (
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => handleRemoveMember(member.id, member.username)}
+                        >
+                          <Text style={styles.removeButtonText}>Remove</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>No members yet</Text>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={inviteModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setInviteModalVisible(false);
+          setSearchQuery('');
+          setSearchResults([]);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Invite User</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Search for a user..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus={true}
+            />
+
+            {searching && (
+              <View style={styles.searchLoader}>
+                <ActivityIndicator size="small" color="#007AFF" />
+              </View>
+            )}
+
+            {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
+              <Text style={styles.noResultsText}>No users found</Text>
+            )}
+
+            {searchResults.length > 0 && (
+              <View style={styles.searchResultsContainer}>
+                <FlatList
+                  data={searchResults}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.searchResultItem}
+                      onPress={() => handleInvite(item.username)}
+                      disabled={inviting}
+                    >
+                      <Text style={styles.searchResultUsername}>@{item.username}</Text>
+                      {inviting && (
+                        <ActivityIndicator size="small" color="#007AFF" style={styles.inviteLoader} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  style={styles.searchResultsList}
+                />
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setInviteModalVisible(false);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+                disabled={inviting}
+              >
+                <Text style={styles.cancelButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -261,6 +479,153 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  inviteButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  inviteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  membersList: {
+    marginTop: 8,
+  },
+  memberItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  memberInfo: {
+    flex: 1,
+  },
+  memberUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  memberDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  removeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  removeButtonText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  modalButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  inviteModalButton: {
+    backgroundColor: '#007AFF',
+  },
+  inviteModalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  searchLoader: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  searchResultsContainer: {
+    maxHeight: 300,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  searchResultsList: {
+    maxHeight: 300,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  searchResultUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  inviteLoader: {
+    marginLeft: 8,
+  },
+  noResultsText: {
+    paddingVertical: 12,
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 

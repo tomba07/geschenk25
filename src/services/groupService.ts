@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api';
-import { Group } from '../types/group';
+import { Group, Invitation } from '../types/group';
 
 export const groupService = {
   // Fetch all groups for the current user
@@ -58,6 +58,68 @@ export const groupService = {
     
     if (response.error) {
       console.error('Error deleting group:', response.error);
+      throw new Error(response.error);
+    }
+  },
+
+  // Invite user to group
+  async inviteUser(groupId: string, username: string): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
+
+    const response = await apiClient.inviteUserToGroup(id, username);
+    
+    if (response.error) {
+      console.error('Error inviting user:', response.error);
+      throw new Error(response.error);
+    }
+  },
+
+  // Get pending invitations
+  async getPendingInvitations(): Promise<Invitation[]> {
+    const response = await apiClient.getPendingInvitations();
+    
+    if (response.error) {
+      console.error('Error fetching invitations:', response.error);
+      return [];
+    }
+
+    return response.data?.invitations || [];
+  },
+
+  // Accept invitation
+  async acceptInvitation(invitationId: number): Promise<void> {
+    const response = await apiClient.acceptInvitation(invitationId);
+    
+    if (response.error) {
+      console.error('Error accepting invitation:', response.error);
+      throw new Error(response.error);
+    }
+  },
+
+  // Reject invitation
+  async rejectInvitation(invitationId: number): Promise<void> {
+    const response = await apiClient.rejectInvitation(invitationId);
+    
+    if (response.error) {
+      console.error('Error rejecting invitation:', response.error);
+      throw new Error(response.error);
+    }
+  },
+
+  // Remove member from group
+  async removeMember(groupId: string, userId: number): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
+
+    const response = await apiClient.removeMember(id, userId);
+    
+    if (response.error) {
+      console.error('Error removing member:', response.error);
       throw new Error(response.error);
     }
   },
