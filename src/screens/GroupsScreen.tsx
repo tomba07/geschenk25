@@ -9,7 +9,6 @@ import {
   Alert,
   TextInput,
   Modal,
-  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { groupService } from '../services/groupService';
@@ -89,7 +88,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
 
   if (loading && groups.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
@@ -100,12 +99,12 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>← Back</Text>
@@ -128,7 +127,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
         <FlatList
           data={groups}
           renderItem={renderGroupItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
           refreshing={loading}
           onRefresh={loadGroups}
@@ -193,7 +192,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

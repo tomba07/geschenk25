@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
   Modal,
   TextInput,
   FlatList,
@@ -213,7 +212,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
@@ -224,13 +223,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!group) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
@@ -244,7 +243,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -252,7 +251,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const isMember = userId !== null && (isOwner || group.members?.some(m => m.id === userId));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>← Back</Text>
@@ -465,7 +464,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
