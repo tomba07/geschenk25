@@ -13,7 +13,7 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
-  const { userEmail, signOut } = useAuth();
+  const { username, signOut } = useAuth();
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -38,11 +38,18 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome!</Text>
+        <Text style={styles.title}>Welcome{username ? `, ${username}` : ''}!</Text>
         <Text style={styles.subtitle}>You are logged in</Text>
-        {userEmail && (
-          <Text style={styles.email}>{userEmail}</Text>
+        {username && (
+          <Text style={styles.username}>@{username}</Text>
         )}
+
+        <TouchableOpacity
+          style={styles.groupsButton}
+          onPress={onNavigateToGroups}
+        >
+          <Text style={styles.groupsButtonText}>My Groups</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -73,10 +80,25 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 16,
   },
-  email: {
-    fontSize: 14,
+  username: {
+    fontSize: 16,
     color: '#007AFF',
     marginTop: 8,
+    marginBottom: 32,
+    fontWeight: '600',
+  },
+  groupsButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    minWidth: 200,
+    marginTop: 16,
+  },
+  groupsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   signOutButton: {
     backgroundColor: '#FF3B30',

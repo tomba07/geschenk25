@@ -1,87 +1,64 @@
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/api';
 import { Group } from '../types/group';
 
 export const groupService = {
   // Fetch all groups for the current user
   async getGroups(): Promise<Group[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const response = await apiClient.getGroups();
     
-    if (!user) {
+    if (response.error) {
+      console.error('Error fetching groups:', response.error);
       return [];
     }
 
-    // Fetch groups where user is the creator
-    // This will work if you have Row Level Security (RLS) policies set up
-    const { data, error } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('created_by', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching groups:', error);
-      // If groups table doesn't exist or has RLS issues, return empty array
-      return [];
-    }
-
-    return data || [];
+    return response.data?.groups || [];
   },
 
   // Create a new group
   async createGroup(name: string, description?: string): Promise<Group> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const response = await apiClient.createGroup(name, description);
     
-    if (!user) {
-      throw new Error('User must be authenticated to create a group');
+    if (response.error) {
+      console.error('Error creating group:', response.error);
+      throw new Error(response.error);
     }
 
-    const { data, error } = await supabase
-      .from('groups')
-      .insert([
-        {
-          name,
-          description: description || null,
-          created_by: user.id,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating group:', error);
-      throw error;
+    if (!response.data?.group) {
+      throw new Error('Failed to create group');
     }
 
-    return data;
+    return response.data.group;
   },
 
   // Get a single group by ID
   async getGroupById(groupId: string): Promise<Group | null> {
-    const { data, error } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('id', groupId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching group:', error);
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
       return null;
     }
 
-    return data;
+    const response = await apiClient.getGroup(id);
+    
+    if (response.error) {
+      console.error('Error fetching group:', response.error);
+      return null;
+    }
+
+    return response.data?.group || null;
   },
 
   // Delete a group
   async deleteGroup(groupId: string): Promise<void> {
-    const { error } = await supabase
-      .from('groups')
-      .delete()
-      .eq('id', groupId);
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
 
-    if (error) {
-      console.error('Error deleting group:', error);
-      throw error;
+    const response = await apiClient.deleteGroup(id);
+    
+    if (response.error) {
+      console.error('Error deleting group:', response.error);
+      throw new Error(response.error);
     }
   },
 };
-

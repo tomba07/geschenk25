@@ -15,19 +15,19 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!username || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(username, password);
     setLoading(false);
 
     if (error) {
@@ -43,11 +43,11 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
+          placeholder="Username"
+          value={username}
+          onChangeText={setUsername}
           autoCapitalize="none"
-          keyboardType="email-address"
+          autoComplete="username"
           editable={!loading}
         />
 

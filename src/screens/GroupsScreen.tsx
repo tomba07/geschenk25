@@ -70,7 +70,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
   const renderGroupItem = ({ item }: { item: Group }) => (
     <TouchableOpacity
       style={styles.groupItem}
-      onPress={() => onGroupPress(item.id)}
+      onPress={() => onGroupPress(item.id.toString())}
       activeOpacity={0.7}
     >
       <View style={styles.groupContent}>

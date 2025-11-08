@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../lib/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  userId: string | null;
-  userEmail: string | null;
+  userId: number | null;
+  username: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (username: string, password: string) => Promise<{ error: any }>;
+  signUp: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const TOKEN_KEY = '@auth_token';
+const USER_KEY = '@auth_user';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -23,64 +26,104 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setIsAuthenticated(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email || null);
-      } else {
-        setIsAuthenticated(false);
-        setUserId(null);
-        setUserEmail(null);
-      }
-      setIsLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setIsAuthenticated(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email || null);
-      } else {
-        setIsAuthenticated(false);
-        setUserId(null);
-        setUserEmail(null);
-      }
-      setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    checkAuth();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+  const checkAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      const userStr = await AsyncStorage.getItem(USER_KEY);
+
+      if (token && userStr) {
+        apiClient.setToken(token);
+        const user = JSON.parse(userStr);
+        
+        // Verify token is still valid
+        const response = await apiClient.getMe();
+        if (response.data) {
+          setIsAuthenticated(true);
+          setUserId(user.id);
+          setUsername(user.username);
+        } else {
+          // Token invalid, clear storage
+          await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+          apiClient.setToken(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+      apiClient.setToken(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { error };
+  const signIn = async (username: string, password: string) => {
+    try {
+      const response = await apiClient.login(username, password);
+      
+      if (response.error) {
+        return { error: { message: response.error } };
+      }
+
+      if (response.data) {
+        const { token, user } = response.data;
+        
+        // Store token and user
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+        apiClient.setToken(token);
+
+        setIsAuthenticated(true);
+        setUserId(user.id);
+        setUsername(user.username);
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Login failed' } };
+    }
+  };
+
+  const signUp = async (username: string, password: string) => {
+    try {
+      const response = await apiClient.register(username, password);
+      
+      if (response.error) {
+        return { error: { message: response.error } };
+      }
+
+      if (response.data) {
+        const { token, user } = response.data;
+        
+        // Store token and user
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+        apiClient.setToken(token);
+
+        setIsAuthenticated(true);
+        setUserId(user.id);
+        setUsername(user.username);
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Registration failed' } };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+    apiClient.setToken(null);
+    setIsAuthenticated(false);
+    setUserId(null);
+    setUsername(null);
   };
 
   return (
@@ -88,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         isAuthenticated,
         userId,
-        userEmail,
+        username,
         isLoading,
         signIn,
         signUp,

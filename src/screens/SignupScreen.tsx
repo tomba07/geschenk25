@@ -16,15 +16,25 @@ interface SignupScreenProps {
 }
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
   const handleSignup = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (username.length < 3) {
+      Alert.alert('Error', 'Username must be at least 3 characters');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      Alert.alert('Error', 'Username can only contain letters, numbers, and underscores');
       return;
     }
 
@@ -39,7 +49,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(username, password);
     setLoading(false);
 
     if (error) {
@@ -47,7 +57,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     } else {
       Alert.alert(
         'Success',
-        'Account created! Please check your email to verify your account, then you can sign in.',
+        'Account created! You can now sign in with your username.',
         [
           {
             text: 'OK',
@@ -67,11 +77,11 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
 
           <TextInput
             style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
             autoCapitalize="none"
-            keyboardType="email-address"
+            autoComplete="username"
             editable={!loading}
           />
 
@@ -82,6 +92,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
+            autoComplete="password-new"
             editable={!loading}
           />
 

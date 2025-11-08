@@ -5,10 +5,16 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import GroupsScreen from './src/screens/GroupsScreen';
+import GroupDetailScreen from './src/screens/GroupDetailScreen';
+
+type Screen = 'home' | 'groups' | 'groupDetail';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [showSignup, setShowSignup] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -18,15 +24,40 @@ function AppContent() {
     );
   }
 
-  if (isAuthenticated) {
-    return <HomeScreen />;
+  if (!isAuthenticated) {
+    if (showSignup) {
+      return <SignupScreen onSwitchToLogin={() => setShowSignup(false)} />;
+    }
+    return <LoginScreen onSwitchToSignup={() => setShowSignup(true)} />;
   }
 
-  if (showSignup) {
-    return <SignupScreen onSwitchToLogin={() => setShowSignup(false)} />;
+  // Authenticated screens
+  if (currentScreen === 'groups') {
+    return (
+      <GroupsScreen
+        onGroupPress={(groupId) => {
+          setSelectedGroupId(groupId);
+          setCurrentScreen('groupDetail');
+        }}
+        onBack={() => setCurrentScreen('home')}
+      />
+    );
   }
 
-  return <LoginScreen onSwitchToSignup={() => setShowSignup(true)} />;
+  if (currentScreen === 'groupDetail' && selectedGroupId) {
+    return (
+      <GroupDetailScreen
+        groupId={selectedGroupId}
+        onBack={() => setCurrentScreen('groups')}
+      />
+    );
+  }
+
+  return (
+    <HomeScreen
+      onNavigateToGroups={() => setCurrentScreen('groups')}
+    />
+  );
 }
 
 export default function App() {
