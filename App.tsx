@@ -8,11 +8,10 @@ import { registerForPushNotifications, setupNotificationHandlers } from './src/s
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import GroupsScreen from './src/screens/GroupsScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
-type Screen = 'home' | 'groups' | 'groupDetail' | 'profile';
+type Screen = 'home' | 'groupDetail' | 'profile';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -36,9 +35,9 @@ function AppContent() {
           console.log('Notification tapped:', response);
           const data = response.notification.request.content.data;
           
-          // Navigate to groups screen if it's an invitation notification
+          // Navigate to home screen if it's an invitation notification
           if (data?.type === 'invitation') {
-            setCurrentScreen('groups');
+            setCurrentScreen('home');
           }
         }
       );
@@ -68,23 +67,11 @@ function AppContent() {
   }
 
   // Authenticated screens
-  if (currentScreen === 'groups') {
-    return (
-      <GroupsScreen
-        onGroupPress={(groupId) => {
-          setSelectedGroupId(groupId);
-          setCurrentScreen('groupDetail');
-        }}
-        onBack={() => setCurrentScreen('home')}
-      />
-    );
-  }
-
   if (currentScreen === 'groupDetail' && selectedGroupId) {
     return (
       <GroupDetailScreen
         groupId={selectedGroupId}
-        onBack={() => setCurrentScreen('groups')}
+        onBack={() => setCurrentScreen('home')}
       />
     );
   }
@@ -99,7 +86,10 @@ function AppContent() {
 
   return (
     <HomeScreen
-      onNavigateToGroups={() => setCurrentScreen('groups')}
+      onGroupPress={(groupId) => {
+        setSelectedGroupId(groupId);
+        setCurrentScreen('groupDetail');
+      }}
       onNavigateToProfile={() => setCurrentScreen('profile')}
     />
   );
