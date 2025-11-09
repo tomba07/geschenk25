@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.tomba07.geschenk25",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
