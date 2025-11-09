@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../lib/api';
+import { getErrorMessage, ErrorType } from '../utils/errors';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -73,7 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.login(username, password);
       
       if (response.error) {
-        return { error: { message: response.error } };
+        const errorMessage = response.appError?.userMessage || response.error;
+        return { error: { message: errorMessage } };
       }
 
       if (response.data) {
@@ -92,7 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Login failed' } };
+      const errorMessage = getErrorMessage(error);
+      return { error: { message: errorMessage } };
     }
   };
 
@@ -101,7 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.register(username, password, display_name);
       
       if (response.error) {
-        return { error: { message: response.error } };
+        const errorMessage = response.appError?.userMessage || response.error;
+        return { error: { message: errorMessage } };
       }
 
       if (response.data) {
@@ -120,7 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Registration failed' } };
+      const errorMessage = getErrorMessage(error);
+      return { error: { message: errorMessage } };
     }
   };
 
@@ -129,7 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.updateDisplayName(display_name);
       
       if (response.error) {
-        return { error: { message: response.error } };
+        const errorMessage = response.appError?.userMessage || response.error;
+        return { error: { message: errorMessage } };
       }
 
       if (response.data) {
@@ -147,7 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Failed to update display name' } };
+      const errorMessage = getErrorMessage(error);
+      return { error: { message: errorMessage } };
     }
   };
 

@@ -1,8 +1,11 @@
+import { parseError, logError, AppError, ErrorType } from '../utils/errors';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
+  appError?: AppError;
 }
 
 class ApiClient {
@@ -37,15 +40,75 @@ class ApiClient {
         headers,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data: any;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          // JSON parsing failed
+          const error: AppError = {
+            type: ErrorType.API,
+            message: 'Invalid response from server',
+            originalError: jsonError,
+            statusCode: response.status,
+            userMessage: 'The server returned an invalid response. Please try again.',
+          };
+          logError(error, `API.request(${endpoint})`);
+          return { error: error.userMessage, appError: error };
+        }
+      } else {
+        // Non-JSON response (e.g., HTML error page)
+        const text = await response.text();
+        const error: AppError = {
+          type: response.status >= 500 ? ErrorType.SERVER : ErrorType.API,
+          message: text || `HTTP ${response.status}`,
+          originalError: { status: response.status, text },
+          statusCode: response.status,
+          userMessage: response.status >= 500
+            ? 'The server encountered an error. Please try again later.'
+            : 'An error occurred. Please try again.',
+        };
+        logError(error, `API.request(${endpoint})`);
+        return { error: error.userMessage, appError: error };
+      }
 
       if (!response.ok) {
-        return { error: data.error || 'Request failed' };
+        const error: AppError = {
+          type: response.status >= 500 ? ErrorType.SERVER : ErrorType.API,
+          message: data.error || `HTTP ${response.status}`,
+          originalError: { status: response.status, data },
+          statusCode: response.status,
+          userMessage: data.error || 'An error occurred. Please try again.',
+        };
+        
+        // Override for specific status codes
+        if (response.status === 401) {
+          error.type = ErrorType.AUTHENTICATION;
+          error.userMessage = 'Your session has expired. Please log in again.';
+        } else if (response.status === 403) {
+          error.type = ErrorType.AUTHORIZATION;
+          error.userMessage = 'You do not have permission to perform this action.';
+        } else if (response.status === 404) {
+          error.type = ErrorType.NOT_FOUND;
+          error.userMessage = 'The requested resource was not found.';
+        } else if (response.status === 400) {
+          error.type = ErrorType.VALIDATION;
+          error.userMessage = data.error || 'Please check your input and try again.';
+        }
+        
+        logError(error, `API.request(${endpoint})`);
+        return { error: error.userMessage, appError: error };
       }
 
       return { data };
     } catch (error: any) {
-      return { error: error.message || 'Network error' };
+      // Network error or other fetch error
+      const appError = parseError(error);
+      logError(appError, `API.request(${endpoint})`);
+      return { error: appError.userMessage, appError };
     }
   }
 

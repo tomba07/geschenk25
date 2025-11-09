@@ -15,7 +15,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { groupService } from '../services/groupService';
+import { groupService, GroupServiceError } from '../services/groupService';
+import { getErrorMessage } from '../utils/errors';
 import { Group, Invitation } from '../types/group';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
@@ -42,7 +43,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       const userGroups = await groupService.getGroups();
       setGroups(userGroups);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to load groups');
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       setGroupDescription('');
       await loadGroups();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create group');
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
     } finally {
       setCreating(false);
     }
@@ -92,7 +99,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       await loadInvitations();
       await loadGroups();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to accept invitation');
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -113,7 +123,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
               await groupService.rejectInvitation(invitationId);
               await loadInvitations();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to reject invitation');
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
             }
           },
         },

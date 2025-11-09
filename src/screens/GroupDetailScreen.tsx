@@ -14,11 +14,12 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { groupService } from '../services/groupService';
+import { groupService, GroupServiceError } from '../services/groupService';
 import { Group, Assignment } from '../types/group';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
+import { getErrorMessage } from '../utils/errors';
 
 interface GroupDetailScreenProps {
   groupId: string;
@@ -66,7 +67,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
     } catch (error: any) {
       if (showLoading) {
-        Alert.alert('Error', error.message || 'Failed to load group');
+        const errorMessage = error instanceof GroupServiceError 
+          ? error.appError.userMessage 
+          : getErrorMessage(error);
+        Alert.alert('Error', errorMessage);
         onBack();
       }
     } finally {
@@ -107,7 +111,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               setDetailsModalVisible(false);
               onBack();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete group');
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
             } finally {
               setDeleting(false);
             }
@@ -171,7 +178,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       Alert.alert('Success', 'Invitation sent successfully');
       await loadGroup();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send invitation');
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
     } finally {
       setInviting(false);
     }
@@ -196,7 +206,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               await groupService.removeMember(groupId, memberId);
               await loadGroup();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to remove member');
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
             }
           },
         },
@@ -230,7 +243,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               Alert.alert('Success', 'Secret Santa assignments created successfully!');
               await loadGroup();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to create assignments');
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
             } finally {
               setAssigning(false);
             }
@@ -261,7 +277,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               Alert.alert('Success', 'Assignments undone successfully!');
               await loadGroup();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to undo assignments');
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
             } finally {
               setDeletingAssignments(false);
             }
