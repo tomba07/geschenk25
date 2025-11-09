@@ -328,7 +328,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           {isMember && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Secret Santa</Text>
+                <Text style={styles.sectionTitle}>Assignments</Text>
                 {isOwner && (
                   <View style={styles.assignButtonContainer}>
                     {hasAssignments ? (
