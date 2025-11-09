@@ -97,14 +97,19 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const searchUsers = useCallback(async (query: string) => {
-    if (query.trim().length < 2) {
+    // Strip "@" prefix if present
+    const cleanQuery = query.trim().startsWith('@') 
+      ? query.trim().substring(1).trim() 
+      : query.trim();
+    
+    if (cleanQuery.length < 2) {
       setSearchResults([]);
       return;
     }
 
     setSearching(true);
     try {
-      const response = await apiClient.searchUsers(query);
+      const response = await apiClient.searchUsers(cleanQuery);
       if (response.error) {
         console.error('Error searching users:', response.error);
         setSearchResults([]);
@@ -416,7 +421,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
             <TextInput
               style={commonStyles.input}
-              placeholder="Search for a user..."
+              placeholder="Search for a user (e.g., @username or username)..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
