@@ -11,6 +11,8 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { groupService } from '../services/groupService';
@@ -320,58 +322,73 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={commonStyles.modalOverlay}>
-          <View style={commonStyles.modalContent}>
-            <Text style={styles.modalTitle}>Create New Group</Text>
+        <KeyboardAvoidingView
+          style={commonStyles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
+          />
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.createGroupModalContent}>
+              <Text style={styles.modalTitle}>Create New Group</Text>
 
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Group Name"
-              value={groupName}
-              onChangeText={setGroupName}
-              autoCapitalize="words"
-              editable={!creating}
-            />
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Group Name"
+                value={groupName}
+                onChangeText={setGroupName}
+                autoCapitalize="words"
+                editable={!creating}
+              />
 
-            <TextInput
-              style={[commonStyles.input, styles.textArea]}
-              placeholder="Description (optional)"
-              value={groupDescription}
-              onChangeText={setGroupDescription}
-              multiline
-              numberOfLines={3}
-              autoCapitalize="sentences"
-              editable={!creating}
-              textAlignVertical="top"
-            />
+              <TextInput
+                style={[commonStyles.input, styles.textArea]}
+                placeholder="Description (optional)"
+                value={groupDescription}
+                onChangeText={setGroupDescription}
+                multiline
+                numberOfLines={3}
+                autoCapitalize="sentences"
+                editable={!creating}
+                textAlignVertical="top"
+              />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { marginRight: spacing.md }]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setGroupName('');
-                  setGroupDescription('');
-                }}
-                disabled={creating}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton, { marginRight: spacing.md }]}
+                  onPress={() => {
+                    setModalVisible(false);
+                    setGroupName('');
+                    setGroupDescription('');
+                  }}
+                  disabled={creating}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.modalButton, commonStyles.button]}
-                onPress={handleCreateGroup}
-                disabled={creating}
-              >
-                {creating ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={commonStyles.buttonText}>Create</Text>
-                )}
-      </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, commonStyles.button]}
+                  onPress={handleCreateGroup}
+                  disabled={creating}
+                >
+                  {creating ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={commonStyles.buttonText}>Create</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -527,6 +544,27 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  createGroupModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.xxl,
+    width: '95%',
+    maxWidth: 500,
   },
   menuContent: {
     backgroundColor: colors.background,
