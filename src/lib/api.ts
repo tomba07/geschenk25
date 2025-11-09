@@ -90,6 +90,16 @@ class ApiClient {
     );
   }
 
+  async registerDeviceToken(device_token: string, platform: string) {
+    return this.request<{ message: string }>(
+      '/api/auth/device-token',
+      {
+        method: 'POST',
+        body: JSON.stringify({ device_token, platform }),
+      }
+    );
+  }
+
   // Groups endpoints
   async getGroups() {
     return this.request<{ groups: any[] }>('/api/groups');
