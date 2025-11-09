@@ -46,16 +46,6 @@
             "badge": true,
             "defaultChannel": "default"
           }
-        ],
-        [
-          "expo-notifications",
-          {
-            "icon": "./assets/icon.png",
-            "color": "#007AFF",
-            "sound": true,
-            "badge": true,
-            "defaultChannel": "default"
-          }
         ]
       ],
       "package": "com.tomba07.geschenk25"
