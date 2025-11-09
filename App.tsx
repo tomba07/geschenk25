@@ -18,6 +18,7 @@ function AppContent() {
   const [showSignup, setShowSignup] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
@@ -38,6 +39,8 @@ function AppContent() {
           // Navigate to home screen if it's an invitation notification
           if (data?.type === 'invitation') {
             setCurrentScreen('home');
+            // Force refresh of home screen to reload invitations
+            setRefreshHomeKey(prev => prev + 1);
           }
         }
       );
@@ -86,6 +89,7 @@ function AppContent() {
 
   return (
     <HomeScreen
+      key={refreshHomeKey}
       onGroupPress={(groupId) => {
         setSelectedGroupId(groupId);
         setCurrentScreen('groupDetail');
