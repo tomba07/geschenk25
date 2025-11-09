@@ -27,6 +27,7 @@ interface GroupDetailScreenProps {
 interface SearchUser {
   id: number;
   username: string;
+  display_name: string;
 }
 
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
@@ -296,7 +297,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Owner</Text>
             <Text style={styles.sectionText}>
-              {group.owner?.username || 'Unknown'}
+              {group.owner?.display_name || group.owner?.username || 'Unknown'}
             </Text>
           </View>
 
@@ -330,8 +331,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               {assignment ? (
                 <View style={styles.assignmentCard}>
                   <Text style={styles.assignmentLabel}>You are assigned to:</Text>
-                  <Text style={styles.assignmentName}>@{assignment.receiver_username}</Text>
-                  <Text style={styles.assignmentHint}>🎁 Get a gift for this person!</Text>
+                  <Text style={styles.assignmentName}>{assignment.receiver_display_name}</Text>
+                  <Text style={styles.assignmentHint}>@{assignment.receiver_username} 🎁 Get a gift for this person!</Text>
                 </View>
               ) : (
                 <View style={styles.noAssignmentCard}>
@@ -367,13 +368,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       <View key={member.id} style={styles.memberItem}>
                         <View style={styles.memberInfo}>
                           <View style={styles.memberNameRow}>
-                            <Text style={styles.memberUsername}>@{member.username}</Text>
+                            <Text style={styles.memberUsername}>{member.display_name}</Text>
                             {isMemberOwner && (
                               <View style={styles.ownerBadge}>
                                 <Text style={styles.ownerBadgeText}>Owner</Text>
                               </View>
                             )}
                           </View>
+                          <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
                           <Text style={styles.memberDate}>
                             {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString()}
                           </Text>
@@ -443,7 +445,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       onPress={() => handleInvite(item.username)}
                       disabled={inviting}
                     >
-                      <Text style={styles.searchResultUsername}>@{item.username}</Text>
+                      <View>
+                        <Text style={styles.searchResultUsername}>{item.display_name}</Text>
+                        <Text style={styles.searchResultUsernameSecondary}>@{item.username}</Text>
+                      </View>
                       {inviting && (
                         <ActivityIndicator size="small" color={colors.primary} style={styles.inviteLoader} />
                       )}
@@ -598,6 +603,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginRight: spacing.sm,
   },
+  memberUsernameSecondary: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
   ownerBadge: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
@@ -677,6 +687,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
     color: colors.text,
+  },
+  searchResultUsernameSecondary: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   inviteLoader: {
     marginLeft: spacing.sm,

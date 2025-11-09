@@ -1,12 +1,14 @@
 export interface GroupMember {
   id: number;
   username: string;
+  display_name: string;
   joined_at: string;
 }
 
 export interface GroupOwner {
   id: number;
   username: string;
+  display_name: string;
 }
 
 export interface Group {
@@ -27,10 +29,12 @@ export interface Invitation {
   group_name: string;
   group_description?: string;
   inviter_username: string;
+  inviter_display_name: string;
 }
 
 export interface Assignment {
   receiver_id: number;
   receiver_username: string;
+  receiver_display_name: string;
 }
 

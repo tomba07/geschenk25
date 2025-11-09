@@ -20,6 +20,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -50,7 +51,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     }
 
     setLoading(true);
-    const { error } = await signUp(username, password);
+    const { error } = await signUp(username, password, displayName.trim() || undefined);
     setLoading(false);
 
     if (error) {
@@ -83,6 +84,15 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoComplete="username"
+            editable={!loading}
+          />
+
+          <TextInput
+            style={commonStyles.input}
+            placeholder="Display Name (optional)"
+            value={displayName}
+            onChangeText={setDisplayName}
+            autoCapitalize="words"
             editable={!loading}
           />
 

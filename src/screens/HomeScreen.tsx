@@ -17,10 +17,11 @@ import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
 interface HomeScreenProps {
   onNavigateToGroups: () => void;
+  onNavigateToProfile: () => void;
 }
 
-export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
-  const { username, signOut } = useAuth();
+export default function HomeScreen({ onNavigateToGroups, onNavigateToProfile }: HomeScreenProps) {
+  const { username, displayName, signOut } = useAuth();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
 
@@ -100,7 +101,7 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
     <View style={[commonStyles.container, { paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome{username ? `, ${username}` : ''}!</Text>
+          <Text style={styles.title}>Welcome{displayName || username ? `, ${displayName || username}` : ''}!</Text>
           <Text style={styles.subtitle}>You are logged in</Text>
           {username && (
             <Text style={styles.username}>@{username}</Text>
@@ -117,7 +118,7 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
                     <View style={styles.invitationContent}>
                       <Text style={styles.invitationGroupName}>{invitation.group_name}</Text>
                       <Text style={styles.invitationText}>
-                        Invited by @{invitation.inviter_username}
+                        Invited by {invitation.inviter_display_name} (@{invitation.inviter_username})
                       </Text>
                     </View>
                     <View style={styles.invitationActions}>
@@ -145,6 +146,13 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
             onPress={onNavigateToGroups}
           >
             <Text style={commonStyles.buttonText}>My Groups</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[commonStyles.button, styles.profileButton]}
+            onPress={onNavigateToProfile}
+          >
+            <Text style={styles.profileButtonText}>Profile</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -242,6 +250,16 @@ const styles = StyleSheet.create({
   groupsButton: {
     minWidth: 200,
     marginTop: spacing.lg,
+  },
+  profileButton: {
+    minWidth: 200,
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  profileButtonText: {
+    color: colors.text,
+    ...typography.body,
+    fontWeight: '600',
   },
   signOutButton: {
     backgroundColor: colors.danger,

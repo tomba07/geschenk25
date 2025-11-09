@@ -8,8 +8,9 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GroupsScreen from './src/screens/GroupsScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
-type Screen = 'home' | 'groups' | 'groupDetail';
+type Screen = 'home' | 'groups' | 'groupDetail' | 'profile';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,9 +55,18 @@ function AppContent() {
     );
   }
 
+  if (currentScreen === 'profile') {
+    return (
+      <ProfileScreen
+        onBack={() => setCurrentScreen('home')}
+      />
+    );
+  }
+
   return (
     <HomeScreen
       onNavigateToGroups={() => setCurrentScreen('groups')}
+      onNavigateToProfile={() => setCurrentScreen('profile')}
     />
   );
 }

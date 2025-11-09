@@ -50,18 +50,18 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(username: string, password: string) {
-    return this.request<{ token: string; user: { id: number; username: string } }>(
+  async register(username: string, password: string, display_name?: string) {
+    return this.request<{ token: string; user: { id: number; username: string; display_name: string } }>(
       '/api/auth/register',
       {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, display_name }),
       }
     );
   }
 
   async login(username: string, password: string) {
-    return this.request<{ token: string; user: { id: number; username: string } }>(
+    return this.request<{ token: string; user: { id: number; username: string; display_name: string } }>(
       '/api/auth/login',
       {
         method: 'POST',
@@ -71,12 +71,22 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request<{ user: { id: number; username: string } }>('/api/auth/me');
+    return this.request<{ user: { id: number; username: string; display_name: string } }>('/api/auth/me');
   }
 
   async searchUsers(query: string) {
-    return this.request<{ users: { id: number; username: string }[] }>(
+    return this.request<{ users: { id: number; username: string; display_name: string }[] }>(
       `/api/auth/search?q=${encodeURIComponent(query)}`
+    );
+  }
+
+  async updateDisplayName(display_name: string) {
+    return this.request<{ user: { id: number; username: string; display_name: string } }>(
+      '/api/auth/profile/display-name',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ display_name }),
+      }
     );
   }
 
@@ -140,7 +150,7 @@ class ApiClient {
   }
 
   async getAssignment(groupId: number) {
-    return this.request<{ assignment: { receiver_id: number; receiver_username: string } | null }>(
+    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_display_name: string } | null }>(
       `/api/groups/${groupId}/assignment`
     );
   }
