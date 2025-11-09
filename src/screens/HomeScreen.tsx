@@ -3,16 +3,17 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
   ActivityIndicator,
   Platform,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { groupService } from '../services/groupService';
 import { Invitation } from '../types/group';
+import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
 interface HomeScreenProps {
   onNavigateToGroups: () => void;
@@ -96,7 +97,7 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[commonStyles.container, { paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <Text style={styles.title}>Welcome{username ? `, ${username}` : ''}!</Text>
@@ -109,10 +110,10 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
             <View style={styles.invitationsSection}>
               <Text style={styles.sectionTitle}>Pending Invitations</Text>
               {loadingInvitations ? (
-                <ActivityIndicator size="small" color="#007AFF" style={styles.loader} />
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
               ) : (
                 invitations.map((invitation) => (
-                  <View key={invitation.id} style={styles.invitationCard}>
+                  <View key={invitation.id} style={commonStyles.card}>
                     <View style={styles.invitationContent}>
                       <Text style={styles.invitationGroupName}>{invitation.group_name}</Text>
                       <Text style={styles.invitationText}>
@@ -121,7 +122,7 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
                     </View>
                     <View style={styles.invitationActions}>
                       <TouchableOpacity
-                        style={styles.acceptButton}
+                        style={[styles.acceptButton, { marginRight: spacing.sm }]}
                         onPress={() => handleAcceptInvitation(invitation.id)}
                       >
                         <Text style={styles.acceptButtonText}>Accept</Text>
@@ -140,32 +141,27 @@ export default function HomeScreen({ onNavigateToGroups }: HomeScreenProps) {
           )}
 
           <TouchableOpacity
-            style={styles.groupsButton}
+            style={[commonStyles.button, styles.groupsButton]}
             onPress={onNavigateToGroups}
           >
-            <Text style={styles.groupsButtonText}>My Groups</Text>
+            <Text style={commonStyles.buttonText}>My Groups</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+      <TouchableOpacity style={[commonStyles.button, styles.signOutButton]} onPress={handleSignOut}>
+        <Text style={commonStyles.buttonText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing.xl,
   },
   content: {
     flex: 1,
@@ -173,111 +169,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...typography.h1,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 16,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
   },
   username: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginTop: 8,
-    marginBottom: 32,
-    fontWeight: '600',
-  },
-  groupsButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    minWidth: 200,
-    marginTop: 16,
-  },
-  groupsButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  signOutButton: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  signOutText: {
-    color: '#fff',
-    fontSize: 16,
+    ...typography.body,
+    color: colors.primary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxl * 1.5,
     fontWeight: '600',
   },
   invitationsSection: {
     width: '100%',
-    marginTop: 32,
-    marginBottom: 24,
+    marginTop: spacing.xxl * 1.5,
+    marginBottom: spacing.xxl,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#000',
+    ...typography.h3,
+    marginBottom: spacing.md,
+    color: colors.text,
   },
   loader: {
-    marginVertical: 20,
-  },
-  invitationCard: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    marginVertical: spacing.xl,
   },
   invitationContent: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   invitationGroupName: {
-    fontSize: 16,
+    ...typography.body,
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   invitationText: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   invitationActions: {
     flexDirection: 'row',
   },
   acceptButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     borderRadius: 8,
     alignItems: 'center',
-    marginRight: 8,
   },
   acceptButtonText: {
     color: '#fff',
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   rejectButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     borderRadius: 8,
     alignItems: 'center',
   },
   rejectButtonText: {
-    color: '#666',
-    fontSize: 14,
+    color: colors.textSecondary,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
+  groupsButton: {
+    minWidth: 200,
+    marginTop: spacing.lg,
+  },
+  signOutButton: {
+    backgroundColor: colors.danger,
+    marginBottom: spacing.xl,
+  },
 });
+
 

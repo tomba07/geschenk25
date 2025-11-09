@@ -4,17 +4,18 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   TextInput,
   Modal,
   Platform,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { groupService } from '../services/groupService';
 import { Group } from '../types/group';
+import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
 interface GroupsScreenProps {
   onGroupPress: (groupId: string) => void;
@@ -70,7 +71,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
 
   const renderGroupItem = ({ item }: { item: Group }) => (
     <TouchableOpacity
-      style={styles.groupItem}
+      style={commonStyles.card}
       onPress={() => onGroupPress(item.id.toString())}
       activeOpacity={0.7}
     >
@@ -88,10 +89,12 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
     </TouchableOpacity>
   );
 
+  const paddingTop = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0;
+
   if (loading && groups.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[commonStyles.container, { paddingTop }]}>
+        <View style={commonStyles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
@@ -99,15 +102,15 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
           <View style={styles.placeholder} />
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[commonStyles.container, { paddingTop }]}>
+      <View style={commonStyles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
@@ -142,12 +145,12 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={commonStyles.modalOverlay}>
+          <View style={commonStyles.modalContent}>
             <Text style={styles.modalTitle}>Create New Group</Text>
 
             <TextInput
-              style={styles.input}
+              style={commonStyles.input}
               placeholder="Group Name"
               value={groupName}
               onChangeText={setGroupName}
@@ -156,7 +159,7 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
             />
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[commonStyles.input, styles.textArea]}
               placeholder="Description (optional)"
               value={groupDescription}
               onChangeText={setGroupDescription}
@@ -164,11 +167,12 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
               numberOfLines={3}
               autoCapitalize="sentences"
               editable={!creating}
+              textAlignVertical="top"
             />
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { marginRight: 12 }]}
+                style={[styles.modalButton, styles.cancelButton, { marginRight: spacing.md }]}
                 onPress={() => {
                   setModalVisible(false);
                   setGroupName('');
@@ -180,14 +184,14 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.createModalButton]}
+                style={[styles.modalButton, commonStyles.button]}
                 onPress={handleCreateGroup}
                 disabled={creating}
               >
                 {creating ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.createModalButtonText}>Create</Text>
+                  <Text style={commonStyles.buttonText}>Create</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -199,36 +203,22 @@ export default function GroupsScreen({ onGroupPress, onBack }: GroupsScreenProps
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0,
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: colors.background,
   },
   backButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
+    ...typography.body,
+    color: colors.primary,
     fontWeight: '600',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...typography.h3,
     flex: 1,
     textAlign: 'center',
   },
@@ -236,119 +226,79 @@ const styles = StyleSheet.create({
     width: 60,
   },
   createButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs * 1.5,
     borderRadius: 8,
   },
   createButtonText: {
     color: '#fff',
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   list: {
-    padding: 16,
-  },
-  groupItem: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    padding: spacing.lg,
   },
   groupContent: {
     flex: 1,
   },
   groupName: {
+    ...typography.h3,
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
-    color: '#000',
+    marginBottom: spacing.xs,
+    color: colors.text,
   },
   groupDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   groupDate: {
-    fontSize: 12,
-    color: '#999',
+    ...typography.caption,
+    color: colors.textTertiary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.xl * 2,
   },
   emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    ...typography.h3,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#999',
+    ...typography.bodySmall,
+    color: colors.textTertiary,
     textAlign: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    ...typography.h2,
+    marginBottom: spacing.xl,
   },
   textArea: {
     height: 80,
-    textAlignVertical: 'top',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   modalButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
     borderRadius: 8,
     minWidth: 100,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  createModalButton: {
-    backgroundColor: '#007AFF',
-  },
-  createModalButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.textSecondary,
+    ...typography.body,
     fontWeight: '600',
   },
 });

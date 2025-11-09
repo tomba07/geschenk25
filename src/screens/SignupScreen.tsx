@@ -4,12 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
 interface SignupScreenProps {
   onSwitchToLogin: () => void;
@@ -76,7 +77,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           <Text style={styles.subtitle}>Create a new account</Text>
 
           <TextInput
-            style={styles.input}
+            style={commonStyles.input}
             placeholder="Username"
             value={username}
             onChangeText={setUsername}
@@ -86,7 +87,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           />
 
           <TextInput
-            style={styles.input}
+            style={commonStyles.input}
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
@@ -97,7 +98,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           />
 
           <TextInput
-            style={styles.input}
+            style={commonStyles.input}
             placeholder="Confirm Password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -107,14 +108,14 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[commonStyles.button, loading && styles.buttonDisabled]}
             onPress={handleSignup}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+              <Text style={commonStyles.buttonText}>Sign Up</Text>
             )}
           </TouchableOpacity>
 
@@ -136,61 +137,39 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...typography.h1,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 32,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.xxl * 1.5,
     textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: spacing.xxl,
   },
   footerText: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   footerLink: {
-    fontSize: 14,
-    color: '#007AFF',
+    ...typography.bodySmall,
+    color: colors.primary,
     fontWeight: '600',
   },
 });

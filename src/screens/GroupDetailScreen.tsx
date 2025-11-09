@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
@@ -12,11 +11,13 @@ import {
   FlatList,
   Platform,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { groupService } from '../services/groupService';
 import { Group, Assignment } from '../types/group';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
+import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
 interface GroupDetailScreenProps {
   groupId: string;
@@ -212,10 +213,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const paddingTop = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0;
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[commonStyles.container, { paddingTop }]}>
+        <View style={commonStyles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
@@ -223,7 +226,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <View style={styles.placeholder} />
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -231,8 +234,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   if (!group) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[commonStyles.container, { paddingTop }]}>
+        <View style={commonStyles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
@@ -241,8 +244,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         </View>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>Group not found</Text>
-          <TouchableOpacity style={styles.button} onPress={onBack}>
-            <Text style={styles.buttonText}>Go Back</Text>
+          <TouchableOpacity style={commonStyles.button} onPress={onBack}>
+            <Text style={commonStyles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -253,18 +256,19 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const isMember = userId !== null && (isOwner || group.members?.some(m => m.id === userId));
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[commonStyles.container, { paddingTop }]}>
+      <View style={commonStyles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Group Details</Text>
-        {isOwner && (
+        {isOwner ? (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholder} />
         )}
-        {!isOwner && <View style={styles.placeholder} />}
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -404,12 +408,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           setSearchResults([]);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={commonStyles.modalOverlay}>
+          <View style={commonStyles.modalContent}>
             <Text style={styles.modalTitle}>Invite User</Text>
 
             <TextInput
-              style={styles.input}
+              style={commonStyles.input}
               placeholder="Search for a user..."
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -420,7 +424,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
             {searching && (
               <View style={styles.searchLoader}>
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
             )}
 
@@ -441,7 +445,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     >
                       <Text style={styles.searchResultUsername}>@{item.username}</Text>
                       {inviting && (
-                        <ActivityIndicator size="small" color="#007AFF" style={styles.inviteLoader} />
+                        <ActivityIndicator size="small" color={colors.primary} style={styles.inviteLoader} />
                       )}
                     </TouchableOpacity>
                   )}
@@ -471,37 +475,23 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0,
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: colors.background,
+    padding: spacing.xl,
   },
   backButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
+    ...typography.body,
+    color: colors.primary,
     fontWeight: '600',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...typography.h3,
     flex: 1,
     textAlign: 'center',
   },
@@ -509,102 +499,90 @@ const styles = StyleSheet.create({
     width: 60,
   },
   deleteButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   deleteButtonText: {
-    fontSize: 16,
-    color: '#FF3B30',
+    ...typography.body,
+    color: colors.danger,
     fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: spacing.xl,
   },
   groupName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    color: '#000',
+    ...typography.h1,
+    marginBottom: spacing.xxl,
+    color: colors.text,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   sectionText: {
-    fontSize: 16,
-    color: '#000',
+    ...typography.body,
+    color: colors.text,
   },
   description: {
-    fontSize: 16,
-    color: '#333',
+    ...typography.body,
+    color: colors.text,
     lineHeight: 24,
   },
   badgeContainer: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs * 1.5,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
   badgeText: {
     color: '#fff',
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   errorText: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
+    ...typography.h3,
+    color: colors.textSecondary,
+    marginBottom: spacing.xl,
     textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   inviteButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs * 1.5,
     borderRadius: 8,
   },
   inviteButtonText: {
     color: '#fff',
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   membersList: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   memberItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 12,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   memberInfo: {
     flex: 1,
@@ -612,17 +590,17 @@ const styles = StyleSheet.create({
   memberNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   memberUsername: {
-    fontSize: 16,
+    ...typography.body,
     fontWeight: '600',
-    color: '#000',
-    marginRight: 8,
+    color: colors.text,
+    marginRight: spacing.sm,
   },
   ownerBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -633,86 +611,55 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   memberDate: {
-    fontSize: 12,
-    color: '#666',
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs * 1.5,
   },
   removeButtonText: {
-    color: '#FF3B30',
-    fontSize: 14,
+    color: colors.danger,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   emptyText: {
-    fontSize: 14,
-    color: '#999',
+    ...typography.bodySmall,
+    color: colors.textTertiary,
     fontStyle: 'italic',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    ...typography.h2,
+    marginBottom: spacing.xl,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   modalButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
     borderRadius: 8,
     minWidth: 100,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  inviteModalButton: {
-    backgroundColor: '#007AFF',
-  },
-  inviteModalButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.textSecondary,
+    ...typography.body,
     fontWeight: '600',
   },
   searchLoader: {
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   searchResultsContainer: {
     maxHeight: 300,
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   searchResultsList: {
     maxHeight: 300,
@@ -721,30 +668,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   searchResultUsername: {
-    fontSize: 16,
+    ...typography.body,
     fontWeight: '600',
-    color: '#000',
+    color: colors.text,
   },
   inviteLoader: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   noResultsText: {
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     textAlign: 'center',
-    color: '#999',
-    fontSize: 14,
+    color: colors.textTertiary,
+    ...typography.bodySmall,
     fontStyle: 'italic',
   },
   assignButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: 8,
     minWidth: 80,
     alignItems: 'center',
@@ -754,48 +701,46 @@ const styles = StyleSheet.create({
   },
   assignButtonText: {
     color: '#fff',
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
   },
   assignmentCard: {
     backgroundColor: '#E8F5E9',
     borderRadius: 12,
-    padding: 20,
-    marginTop: 12,
+    padding: spacing.xl,
+    marginTop: spacing.md,
     borderWidth: 2,
-    borderColor: '#34C759',
+    borderColor: colors.success,
     alignItems: 'center',
   },
   assignmentLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
     fontWeight: '600',
   },
   assignmentName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
+    ...typography.h2,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   assignmentHint: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   noAssignmentCard: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
     borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    padding: spacing.lg,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   noAssignmentText: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
 });
-
