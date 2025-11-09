@@ -34,6 +34,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
@@ -41,6 +42,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [assigning, setAssigning] = useState(false);
   const [deletingAssignments, setDeletingAssignments] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -85,11 +87,15 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setDeleting(true);
             try {
               await groupService.deleteGroup(groupId);
+              setDetailsModalVisible(false);
               onBack();
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to delete group');
+            } finally {
+              setDeleting(false);
             }
           },
         },
@@ -303,13 +309,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Group Details</Text>
-        {isOwner ? (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.placeholder} />
-        )}
+        <TouchableOpacity style={styles.infoButton} onPress={() => setDetailsModalVisible(true)}>
+          <Text style={styles.infoButtonText}>Details</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -320,32 +322,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Description</Text>
               <Text style={styles.description}>{group.description}</Text>
-            </View>
-          )}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Created</Text>
-            <Text style={styles.sectionText}>
-              {new Date(group.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Owner</Text>
-            <Text style={styles.sectionText}>
-              {group.owner?.display_name || group.owner?.username || 'Unknown'}
-            </Text>
-          </View>
-
-          {isOwner && (
-            <View style={styles.section}>
-              <View style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>You are the owner</Text>
-              </View>
             </View>
           )}
 
@@ -534,6 +510,96 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           </View>
         </View>
       </Modal>
+
+      {/* Group Details Modal */}
+      <Modal
+        visible={detailsModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setDetailsModalVisible(false);
+        }}
+      >
+        <View style={commonStyles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => {
+              setDetailsModalVisible(false);
+            }}
+          />
+          <View style={styles.detailsModalContent}>
+            {group && (
+              <>
+                <Text style={styles.detailsModalTitle}>{group.name}</Text>
+                
+                {group.description && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>Description</Text>
+                    <Text style={styles.detailsValue}>{group.description}</Text>
+                  </View>
+                )}
+
+                <View style={styles.detailsSection}>
+                  <Text style={styles.detailsLabel}>Created</Text>
+                  <Text style={styles.detailsValue}>
+                    {new Date(group.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                </View>
+
+                {group.owner && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>Owner</Text>
+                    <Text style={styles.detailsValue}>
+                      {group.owner.display_name || group.owner.username}
+                    </Text>
+                    <Text style={styles.detailsSubValue}>
+                      @{group.owner.username}
+                    </Text>
+                  </View>
+                )}
+
+                {userId !== null && userId === group.created_by && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>You are the owner</Text>
+                    </View>
+                  </View>
+                )}
+
+                {userId !== null && userId === group.created_by && (
+                  <View style={styles.detailsActions}>
+                    <TouchableOpacity
+                      style={styles.deleteButtonInModal}
+                      onPress={handleDelete}
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.deleteButtonTextInModal}>Delete Group</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setDetailsModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -562,12 +628,84 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 60,
   },
-  deleteButton: {
+  infoButton: {
     padding: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  deleteButtonText: {
+  infoButtonText: {
     ...typography.body,
-    color: colors.danger,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  detailsModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.xxl,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  detailsModalTitle: {
+    ...typography.h2,
+    marginBottom: spacing.xl,
+    color: colors.text,
+  },
+  detailsSection: {
+    marginBottom: spacing.xl,
+  },
+  detailsLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailsValue: {
+    ...typography.body,
+    color: colors.text,
+  },
+  detailsSubValue: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  detailsActions: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  deleteButtonInModal: {
+    backgroundColor: colors.danger,
+    padding: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  deleteButtonTextInModal: {
+    color: '#fff',
+    ...typography.body,
+    fontWeight: '600',
+  },
+  closeButton: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    ...typography.body,
+    color: colors.primary,
     fontWeight: '600',
   },
   scrollView: {
