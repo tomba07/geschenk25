@@ -40,6 +40,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviting, setInviting] = useState(false);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [deletingAssignments, setDeletingAssignments] = useState(false);
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -219,6 +220,40 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const handleDeleteAssignments = () => {
+    if (!group) return;
+
+    Alert.alert(
+      'Undo Assignments',
+      'Are you sure you want to undo all Secret Santa assignments? This will allow you to edit members again.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Undo',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAssignments(true);
+            try {
+              await groupService.deleteAssignments(groupId);
+              Alert.alert('Success', 'Assignments undone successfully!');
+              await loadGroup();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to undo assignments');
+            } finally {
+              setDeletingAssignments(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Check if assignments exist (if current user has an assignment, assignments have been made)
+  const hasAssignments = assignment !== null;
+
   const paddingTop = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0;
 
   if (loading) {
@@ -319,17 +354,33 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Secret Santa</Text>
                 {isOwner && (
-                  <TouchableOpacity
-                    style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
-                    onPress={handleAssignSecretSanta}
-                    disabled={assigning}
-                  >
-                    {assigning ? (
-                      <ActivityIndicator size="small" color="#fff" />
+                  <View style={styles.assignButtonContainer}>
+                    {hasAssignments ? (
+                      <TouchableOpacity
+                        style={[styles.undoButton, deletingAssignments && styles.assignButtonDisabled]}
+                        onPress={handleDeleteAssignments}
+                        disabled={deletingAssignments}
+                      >
+                        {deletingAssignments ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.undoButtonText}>Undo</Text>
+                        )}
+                      </TouchableOpacity>
                     ) : (
-                      <Text style={styles.assignButtonText}>Assign</Text>
+                      <TouchableOpacity
+                        style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
+                        onPress={handleAssignSecretSanta}
+                        disabled={assigning}
+                      >
+                        {assigning ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.assignButtonText}>Assign</Text>
+                        )}
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
+                  </View>
                 )}
               </View>
               
@@ -355,13 +406,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Members</Text>
-                {isOwner && (
+                {isOwner && !hasAssignments && (
                   <TouchableOpacity
                     style={styles.inviteButton}
                     onPress={() => setInviteModalVisible(true)}
                   >
                     <Text style={styles.inviteButtonText}>+ Invite</Text>
                   </TouchableOpacity>
+                )}
+                {isOwner && hasAssignments && (
+                  <Text style={styles.disabledHint}>Undo assignments to edit members</Text>
                 )}
               </View>
               
@@ -385,7 +439,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                             {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString()}
                           </Text>
                         </View>
-                        {isOwner && member.id !== userId && !isMemberOwner && (
+                        {isOwner && member.id !== userId && !isMemberOwner && !hasAssignments && (
                           <TouchableOpacity
                             style={styles.removeButton}
                             onPress={() => handleRemoveMember(member.id, member.username)}
@@ -707,6 +761,9 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontStyle: 'italic',
   },
+  assignButtonContainer: {
+    flexDirection: 'row',
+  },
   assignButton: {
     backgroundColor: colors.success,
     paddingHorizontal: spacing.lg,
@@ -722,6 +779,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     ...typography.bodySmall,
     fontWeight: '600',
+  },
+  undoButton: {
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  undoButtonText: {
+    color: '#fff',
+    ...typography.bodySmall,
+    fontWeight: '600',
+  },
+  disabledHint: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   assignmentCard: {
     backgroundColor: '#E8F5E9',

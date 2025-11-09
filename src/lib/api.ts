@@ -164,6 +164,12 @@ class ApiClient {
       `/api/groups/${groupId}/assignment`
     );
   }
+
+  async deleteAssignments(groupId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/assignments`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_URL);

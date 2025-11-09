@@ -155,4 +155,19 @@ export const groupService = {
 
     return response.data?.assignment || null;
   },
+
+  // Delete all assignments for a group (undo assignments)
+  async deleteAssignments(groupId: string): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      throw new Error('Invalid group ID');
+    }
+
+    const response = await apiClient.deleteAssignments(id);
+    
+    if (response.error) {
+      console.error('Error deleting assignments:', response.error);
+      throw new Error(response.error);
+    }
+  },
 };
