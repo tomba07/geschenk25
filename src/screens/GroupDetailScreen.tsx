@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { groupService } from '../services/groupService';
 import { Group, Assignment } from '../types/group';
@@ -33,6 +34,7 @@ interface SearchUser {
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,12 +47,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [deleting, setDeleting] = useState(false);
   const { userId } = useAuth();
 
-  useEffect(() => {
-    loadGroup();
-  }, [groupId]);
-
-  const loadGroup = async () => {
-    setLoading(true);
+  const loadGroup = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const groupData = await groupService.getGroupById(groupId);
       setGroup(groupData);
@@ -65,12 +65,26 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         }
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to load group');
-      onBack();
+      if (showLoading) {
+        Alert.alert('Error', error.message || 'Failed to load group');
+        onBack();
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, [groupId, userId, onBack]);
+
+  useEffect(() => {
+    loadGroup();
+  }, [loadGroup]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadGroup(false);
+    setRefreshing(false);
+  }, [loadGroup]);
 
   const handleDelete = () => {
     if (!group) return;
@@ -314,7 +328,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.content}>
           <Text style={styles.groupName}>{group.name}</Text>
           
