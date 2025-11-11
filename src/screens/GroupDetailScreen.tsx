@@ -314,7 +314,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     } else {
       setEditingGiftIdea(null);
       setGiftIdeaText('');
-      setSelectedForUserId(forUserId || null);
+      // Preselect current user if no forUserId is provided
+      setSelectedForUserId(forUserId || userId || null);
     }
     setGiftIdeaModalVisible(true);
   };
