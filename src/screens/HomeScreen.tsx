@@ -351,32 +351,48 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.createGroupModalContent}>
-              <Text style={styles.modalTitle}>Create New Group</Text>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIconContainer}>
+                  <Text style={styles.modalIcon}>🎁</Text>
+                </View>
+                <Text style={styles.modalTitle}>Create New Group</Text>
+                <Text style={styles.modalSubtitle}>Start organizing your Secret Santa exchange</Text>
+              </View>
 
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Group Name"
-                value={groupName}
-                onChangeText={setGroupName}
-                autoCapitalize="words"
-                editable={!creating}
-              />
+              <View style={styles.modalForm}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Group Name</Text>
+                  <TextInput
+                    style={commonStyles.input}
+                    placeholder="Enter group name..."
+                    value={groupName}
+                    onChangeText={setGroupName}
+                    autoCapitalize="words"
+                    editable={!creating}
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
 
-              <TextInput
-                style={[commonStyles.input, styles.textArea]}
-                placeholder="Description (optional)"
-                value={groupDescription}
-                onChangeText={setGroupDescription}
-                multiline
-                numberOfLines={3}
-                autoCapitalize="sentences"
-                editable={!creating}
-                textAlignVertical="top"
-              />
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Description <Text style={styles.optionalLabel}>(optional)</Text></Text>
+                  <TextInput
+                    style={[commonStyles.input, styles.textArea]}
+                    placeholder="Add a description for your group..."
+                    value={groupDescription}
+                    onChangeText={setGroupDescription}
+                    multiline
+                    numberOfLines={4}
+                    autoCapitalize="sentences"
+                    editable={!creating}
+                    textAlignVertical="top"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
+              </View>
 
-              <View style={styles.modalButtons}>
+              <View style={styles.modalActions}>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton, { marginRight: spacing.md }]}
+                  style={[commonStyles.button, styles.cancelButton]}
                   onPress={() => {
                     setModalVisible(false);
                     setGroupName('');
@@ -388,14 +404,14 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.modalButton, commonStyles.button]}
+                  style={[commonStyles.button, creating && styles.buttonDisabled]}
                   onPress={handleCreateGroup}
-                  disabled={creating}
+                  disabled={creating || !groupName.trim()}
                 >
                   {creating ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={commonStyles.buttonText}>Create</Text>
+                    <Text style={commonStyles.buttonText}>Create Group</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -574,10 +590,79 @@ const styles = StyleSheet.create({
   },
   createGroupModalContent: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: spacing.xxl,
     width: '95%',
     maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  modalIcon: {
+    fontSize: 32,
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.text,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalForm: {
+    marginBottom: spacing.xxl,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  optionalLabel: {
+    fontWeight: '400',
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  cancelButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flex: 1,
+  },
+  cancelButtonText: {
+    color: colors.text,
+    ...typography.body,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   menuContent: {
     backgroundColor: colors.background,
@@ -642,31 +727,7 @@ const styles = StyleSheet.create({
   signOutText: {
     color: colors.danger,
   },
-  modalTitle: {
-    ...typography.h2,
-    marginBottom: spacing.xl,
-  },
   textArea: {
-    height: 80,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.sm,
-  },
-  modalButton: {
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.surface,
-  },
-  cancelButtonText: {
-    color: colors.textSecondary,
-    ...typography.body,
-    fontWeight: '600',
+    minHeight: 100,
   },
 });
