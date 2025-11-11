@@ -14,6 +14,7 @@ import {
   StyleSheet,
   RefreshControl,
   KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Group, Assignment, GiftIdea } from '../types/group';
@@ -54,6 +55,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [loadingAssignedPersonGiftIdeas, setLoadingAssignedPersonGiftIdeas] = useState(false);
   const [editingGiftIdea, setEditingGiftIdea] = useState<GiftIdea | null>(null);
   const [giftIdeaText, setGiftIdeaText] = useState('');
+  const [giftIdeaLink, setGiftIdeaLink] = useState('');
   const [selectedForUserId, setSelectedForUserId] = useState<number | null>(null);
   const [savingGiftIdea, setSavingGiftIdea] = useState(false);
   const [deletingGiftIdea, setDeletingGiftIdea] = useState<number | null>(null);
@@ -342,10 +344,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     if (giftIdea) {
       setEditingGiftIdea(giftIdea);
       setGiftIdeaText(giftIdea.idea);
+      setGiftIdeaLink(giftIdea.link || '');
       setSelectedForUserId(giftIdea.for_user_id);
     } else {
       setEditingGiftIdea(null);
       setGiftIdeaText('');
+      setGiftIdeaLink('');
       // Preselect current user if no forUserId is provided
       setSelectedForUserId(forUserId || userId || null);
     }
@@ -356,6 +360,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setGiftIdeaModalVisible(false);
     setEditingGiftIdea(null);
     setGiftIdeaText('');
+    setGiftIdeaLink('');
     setSelectedForUserId(null);
   };
 
@@ -367,11 +372,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
     setSavingGiftIdea(true);
     try {
+      const linkValue = giftIdeaLink.trim() || undefined;
       if (editingGiftIdea) {
-        await groupService.updateGiftIdea(groupId, editingGiftIdea.id, giftIdeaText.trim());
+        await groupService.updateGiftIdea(groupId, editingGiftIdea.id, giftIdeaText.trim(), linkValue);
         Alert.alert('Success', 'Gift idea updated successfully');
       } else {
-        await groupService.createGiftIdea(groupId, selectedForUserId, giftIdeaText.trim());
+        await groupService.createGiftIdea(groupId, selectedForUserId, giftIdeaText.trim(), linkValue);
         Alert.alert('Success', 'Gift idea created successfully');
       }
       handleCloseGiftIdeaModal();
@@ -588,6 +594,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         <View style={styles.giftIdeaHeader}>
                           <View style={styles.giftIdeaInfo}>
                             <Text style={styles.giftIdeaText}>{idea.idea}</Text>
+                            {idea.link && (
+                              <TouchableOpacity
+                                style={styles.giftIdeaLink}
+                                onPress={() => {
+                                  const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
+                                    ? idea.link!
+                                    : `https://${idea.link!}`;
+                                  Linking.openURL(url).catch((err) => {
+                                    console.error('Failed to open URL:', err);
+                                    Alert.alert('Error', 'Could not open link');
+                                  });
+                                }}
+                              >
+                                <Text style={styles.giftIdeaLinkText}>🔗 Open Link</Text>
+                              </TouchableOpacity>
+                            )}
                             <View style={styles.giftIdeaMeta}>
                               <Text style={styles.giftIdeaMetaText}>
                                 For: {idea.for_user.display_name}
@@ -898,12 +920,28 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 {assignedPersonGiftIdeas.map((idea) => (
                   <View key={idea.id} style={styles.assignedPersonGiftIdeaCard}>
                     <Text style={styles.assignedPersonGiftIdeaText}>{idea.idea}</Text>
+                    {idea.link && (
+                      <TouchableOpacity
+                        style={styles.assignedPersonGiftIdeaLink}
+                        onPress={() => {
+                          const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
+                            ? idea.link!
+                            : `https://${idea.link!}`;
+                          Linking.openURL(url).catch((err) => {
+                            console.error('Failed to open URL:', err);
+                            Alert.alert('Error', 'Could not open link');
+                          });
+                        }}
+                      >
+                        <Text style={styles.assignedPersonGiftIdeaLinkText}>🔗 Open Link</Text>
+                      </TouchableOpacity>
+                    )}
                     <Text style={styles.assignedPersonGiftIdeaCreator}>
                       By: {idea.created_by.display_name}
                     </Text>
                   </View>
                 ))}
-      </ScrollView>
+              </ScrollView>
             ) : (
               <View style={styles.modalEmptyContainer}>
                 <Text style={styles.modalEmptyText}>
@@ -976,15 +1014,33 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </View>
               )}
 
-              <TextInput
-                style={[commonStyles.input, styles.giftIdeaTextInput]}
-                placeholder="Enter gift idea..."
-                value={giftIdeaText}
-                onChangeText={setGiftIdeaText}
-                multiline={true}
-                numberOfLines={4}
-                autoFocus={true}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Gift Idea</Text>
+                <TextInput
+                  style={[commonStyles.input, styles.giftIdeaTextInput]}
+                  placeholder="Enter gift idea..."
+                  value={giftIdeaText}
+                  onChangeText={setGiftIdeaText}
+                  multiline={true}
+                  numberOfLines={4}
+                  autoFocus={true}
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Link <Text style={styles.optionalLabel}>(optional)</Text></Text>
+                <TextInput
+                  style={commonStyles.input}
+                  placeholder="https://example.com/product"
+                  value={giftIdeaLink}
+                  onChangeText={setGiftIdeaLink}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  autoCorrect={false}
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -1408,7 +1464,29 @@ const styles = StyleSheet.create({
   giftIdeaTextInput: {
     minHeight: 100,
     textAlignVertical: 'top',
-    marginBottom: spacing.md,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  optionalLabel: {
+    fontWeight: '400',
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  giftIdeaLink: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  giftIdeaLinkText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
   modalActions: {
     flexDirection: 'row',
@@ -1456,6 +1534,16 @@ const styles = StyleSheet.create({
   assignedPersonGiftIdeaCreator: {
     ...typography.caption,
     color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  assignedPersonGiftIdeaLink: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  assignedPersonGiftIdeaLinkText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
   modalLoadingContainer: {
     padding: spacing.xxl,

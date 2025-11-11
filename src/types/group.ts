@@ -59,6 +59,7 @@ export interface GiftIdea {
   for_user_id: number;
   created_by_id: number;
   idea: string;
+  link?: string | null;
   created_at: string;
   updated_at: string;
   created_by: GiftIdeaUser;

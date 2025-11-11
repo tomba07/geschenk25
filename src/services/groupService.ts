@@ -274,7 +274,7 @@ export const groupService = {
   },
 
   // Create gift idea
-  async createGiftIdea(groupId: string, forUserId: number, idea: string): Promise<GiftIdea> {
+  async createGiftIdea(groupId: string, forUserId: number, idea: string, link?: string): Promise<GiftIdea> {
     const id = parseInt(groupId);
     if (isNaN(id)) {
       const appError: AppError = {
@@ -286,7 +286,7 @@ export const groupService = {
       throw new GroupServiceError(appError);
     }
 
-    const response = await apiClient.createGiftIdea(id, forUserId, idea);
+    const response = await apiClient.createGiftIdea(id, forUserId, idea, link);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);
@@ -332,7 +332,7 @@ export const groupService = {
   },
 
   // Update gift idea
-  async updateGiftIdea(groupId: string, ideaId: number, idea: string): Promise<GiftIdea> {
+  async updateGiftIdea(groupId: string, ideaId: number, idea: string, link?: string): Promise<GiftIdea> {
     const id = parseInt(groupId);
     if (isNaN(id)) {
       const appError: AppError = {
@@ -344,7 +344,7 @@ export const groupService = {
       throw new GroupServiceError(appError);
     }
 
-    const response = await apiClient.updateGiftIdea(id, ideaId, idea);
+    const response = await apiClient.updateGiftIdea(id, ideaId, idea, link);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);

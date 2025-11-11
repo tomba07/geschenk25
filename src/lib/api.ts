@@ -241,10 +241,10 @@ class ApiClient {
   }
 
   // Gift ideas endpoints
-  async createGiftIdea(groupId: number, forUserId: number, idea: string) {
+  async createGiftIdea(groupId: number, forUserId: number, idea: string, link?: string) {
     return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas`, {
       method: 'POST',
-      body: JSON.stringify({ for_user_id: forUserId, idea }),
+      body: JSON.stringify({ for_user_id: forUserId, idea, link }),
     });
   }
 
@@ -255,10 +255,10 @@ class ApiClient {
     return this.request<{ gift_ideas: any[] }>(url);
   }
 
-  async updateGiftIdea(groupId: number, ideaId: number, idea: string) {
+  async updateGiftIdea(groupId: number, ideaId: number, idea: string, link?: string) {
     return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
       method: 'PUT',
-      body: JSON.stringify({ idea }),
+      body: JSON.stringify({ idea, link }),
     });
   }
 
