@@ -209,6 +209,12 @@ class ApiClient {
     });
   }
 
+  async cancelInvitation(groupId: number, invitationId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/invitations/${invitationId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async removeMember(groupId: number, userId: number) {
     return this.request<{ message: string }>(`/api/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',

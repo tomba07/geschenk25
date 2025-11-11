@@ -235,6 +235,36 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const handleCancelInvitation = (invitationId: number, username: string) => {
+    if (!group) return;
+
+    Alert.alert(
+      'Remove Invitation',
+      `Are you sure you want to remove the invitation for ${username}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await groupService.cancelInvitation(groupId, invitationId);
+              await loadGroup();
+            } catch (error: any) {
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleAssignSecretSanta = () => {
     if (!group) return;
 
@@ -660,6 +690,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                           Invited {new Date(invitation.invited_at).toLocaleDateString()}
                         </Text>
                       </View>
+                      {isOwner && !hasAssignments && (
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => handleCancelInvitation(invitation.invitation_id, invitation.username)}
+                        >
+                          <Text style={styles.removeButtonText}>Remove</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ))}
                 </View>
