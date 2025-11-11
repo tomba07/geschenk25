@@ -48,6 +48,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [deleting, setDeleting] = useState(false);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
   const [giftIdeaModalVisible, setGiftIdeaModalVisible] = useState(false);
+  const [assignedPersonGiftIdeasModalVisible, setAssignedPersonGiftIdeasModalVisible] = useState(false);
+  const [assignedPersonGiftIdeas, setAssignedPersonGiftIdeas] = useState<GiftIdea[]>([]);
+  const [loadingAssignedPersonGiftIdeas, setLoadingAssignedPersonGiftIdeas] = useState(false);
   const [editingGiftIdea, setEditingGiftIdea] = useState<GiftIdea | null>(null);
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [selectedForUserId, setSelectedForUserId] = useState<number | null>(null);
@@ -63,7 +66,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       const groupData = await groupService.getGroupById(groupId);
       setGroup(groupData);
       
-      // Load assignment and gift ideas if user is a member
+          // Load assignment and gift ideas if user is a member
       if (groupData && userId) {
         const isOwner = userId === groupData.created_by;
         const isMember = isOwner || groupData.members?.some(m => m.id === userId);
@@ -71,9 +74,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           const assignmentData = await groupService.getAssignment(groupId);
           setAssignment(assignmentData);
           
-          // Load gift ideas (will be filtered by API based on assignment)
+          // Load only gift ideas created by the current user
           const ideas = await groupService.getGiftIdeas(groupId);
-          setGiftIdeas(ideas);
+          const myIdeas = ideas.filter(idea => idea.created_by_id === userId);
+          setGiftIdeas(myIdeas);
         }
       }
     } catch (error: any) {
@@ -379,6 +383,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const handleOpenAssignedPersonGiftIdeas = async () => {
+    if (!assignment) return;
+    
+    setAssignedPersonGiftIdeasModalVisible(true);
+    setLoadingAssignedPersonGiftIdeas(true);
+    try {
+      const ideas = await groupService.getGiftIdeas(groupId, assignment.receiver_id);
+      setAssignedPersonGiftIdeas(ideas);
+    } catch (error: any) {
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
+      setAssignedPersonGiftIdeasModalVisible(false);
+    } finally {
+      setLoadingAssignedPersonGiftIdeas(false);
+    }
+  };
+
   // Check if assignments exist (if current user has an assignment, assignments have been made)
   const hasAssignments = assignment !== null;
 
@@ -492,6 +515,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <Text style={styles.assignmentLabel}>You are assigned to:</Text>
                   <Text style={styles.assignmentName}>{assignment.receiver_display_name}</Text>
                   <Text style={styles.assignmentHint}>@{assignment.receiver_username} 🎁 Get a gift for this person!</Text>
+                  <TouchableOpacity
+                    style={styles.viewGiftIdeasButton}
+                    onPress={handleOpenAssignedPersonGiftIdeas}
+                  >
+                    <Text style={styles.viewGiftIdeasButtonText}>View Gift Ideas</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.noAssignmentCard}>
@@ -508,7 +537,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           {isMember && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Gift Ideas</Text>
+                <Text style={styles.sectionTitle}>My Gift Ideas</Text>
                 <TouchableOpacity
                   style={styles.addGiftIdeaButton}
                   onPress={() => handleOpenGiftIdeaModal()}
@@ -516,26 +545,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <Text style={styles.addGiftIdeaButtonText}>+ Add Idea</Text>
                 </TouchableOpacity>
               </View>
-              
-              {assignment ? (
-                <View style={styles.giftIdeaHint}>
-                  <Text style={styles.giftIdeaHintText}>
-                    💡 Gift ideas for {assignment.receiver_display_name}:
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.giftIdeaHint}>
-                  <Text style={styles.giftIdeaHintText}>
-                    💡 Add gift ideas for any group member
-                  </Text>
-                </View>
-              )}
 
               {giftIdeas.length > 0 ? (
                 <View style={styles.giftIdeasList}>
                   {giftIdeas.map((idea) => {
-                    const isCreator = idea.created_by_id === userId;
-                    const isForAssigned = assignment && idea.for_user_id === assignment.receiver_id;
                     return (
                       <View key={idea.id} style={styles.giftIdeaCard}>
                         <View style={styles.giftIdeaHeader}>
@@ -544,37 +557,29 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                             <View style={styles.giftIdeaMeta}>
                               <Text style={styles.giftIdeaMetaText}>
                                 For: {idea.for_user.display_name}
-                                {isForAssigned && ' (Your assigned person)'}
                               </Text>
-                              {!isCreator && (
-                                <Text style={styles.giftIdeaMetaText}>
-                                  By: {idea.created_by.display_name}
-                                </Text>
-                              )}
                             </View>
                           </View>
                         </View>
-                        {isCreator && (
-                          <View style={styles.giftIdeaActions}>
-                            <TouchableOpacity
-                              style={styles.editGiftIdeaButton}
-                              onPress={() => handleOpenGiftIdeaModal(undefined, idea)}
-                            >
-                              <Text style={styles.editGiftIdeaButtonText}>Edit</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.deleteGiftIdeaButton}
-                              onPress={() => handleDeleteGiftIdea(idea.id)}
-                              disabled={deletingGiftIdea === idea.id}
-                            >
-                              {deletingGiftIdea === idea.id ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                              ) : (
-                                <Text style={styles.deleteGiftIdeaButtonText}>Delete</Text>
-                              )}
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <View style={styles.giftIdeaActions}>
+                          <TouchableOpacity
+                            style={styles.editGiftIdeaButton}
+                            onPress={() => handleOpenGiftIdeaModal(undefined, idea)}
+                          >
+                            <Text style={styles.editGiftIdeaButtonText}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.deleteGiftIdeaButton}
+                            onPress={() => handleDeleteGiftIdea(idea.id)}
+                            disabled={deletingGiftIdea === idea.id}
+                          >
+                            {deletingGiftIdea === idea.id ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Text style={styles.deleteGiftIdeaButtonText}>Delete</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     );
                   })}
@@ -582,9 +587,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               ) : (
                 <View style={styles.noGiftIdeasCard}>
                   <Text style={styles.noGiftIdeasText}>
-                    {assignment 
-                      ? `No gift ideas yet for ${assignment.receiver_display_name}. Add some ideas!`
-                      : 'No gift ideas yet. Add some ideas for group members!'}
+                    You haven't created any gift ideas yet. Add some ideas for group members!
                   </Text>
                 </View>
               )}
@@ -810,6 +813,52 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </TouchableOpacity>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Assigned Person Gift Ideas Modal */}
+      <Modal
+        visible={assignedPersonGiftIdeasModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAssignedPersonGiftIdeasModalVisible(false)}
+      >
+        <View style={commonStyles.modalOverlay}>
+          <View style={commonStyles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Gift Ideas for {assignment?.receiver_display_name}
+            </Text>
+
+            {loadingAssignedPersonGiftIdeas ? (
+              <View style={styles.modalLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : assignedPersonGiftIdeas.length > 0 ? (
+              <ScrollView style={styles.assignedPersonGiftIdeasList}>
+                {assignedPersonGiftIdeas.map((idea) => (
+                  <View key={idea.id} style={styles.assignedPersonGiftIdeaCard}>
+                    <Text style={styles.assignedPersonGiftIdeaText}>{idea.idea}</Text>
+                    <Text style={styles.assignedPersonGiftIdeaCreator}>
+                      By: {idea.created_by.display_name}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.modalEmptyContainer}>
+                <Text style={styles.modalEmptyText}>
+                  No gift ideas yet for {assignment?.receiver_display_name}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[commonStyles.button, styles.closeModalButton]}
+              onPress={() => setAssignedPersonGiftIdeasModalVisible(false)}
+            >
+              <Text style={commonStyles.buttonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1158,6 +1207,20 @@ const styles = StyleSheet.create({
   giftIdeasList: {
     gap: spacing.md,
   },
+  giftIdeasSubsection: {
+    marginBottom: spacing.xl,
+  },
+  giftIdeasSubsectionTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  giftIdeaCardHighlighted: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: colors.surface,
+  },
   giftIdeaCard: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -1284,6 +1347,56 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  viewGiftIdeasButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    marginTop: spacing.md,
+    alignItems: 'center',
+  },
+  viewGiftIdeasButtonText: {
+    color: '#fff',
+    ...typography.bodySmall,
+    fontWeight: '600',
+  },
+  assignedPersonGiftIdeasList: {
+    maxHeight: 400,
+    marginBottom: spacing.md,
+  },
+  assignedPersonGiftIdeaCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  assignedPersonGiftIdeaText: {
+    ...typography.body,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  assignedPersonGiftIdeaCreator: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  modalLoadingContainer: {
+    padding: spacing.xxl,
+    alignItems: 'center',
+  },
+  modalEmptyContainer: {
+    padding: spacing.xxl,
+    alignItems: 'center',
+  },
+  modalEmptyText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  closeModalButton: {
+    marginTop: spacing.md,
   },
   modalTitle: {
     ...typography.h2,
