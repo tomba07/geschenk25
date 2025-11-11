@@ -807,12 +807,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 )}
 
                 <TouchableOpacity
-                  style={styles.closeButton}
+                  style={[commonStyles.button, styles.cancelButton]}
                   onPress={() => {
                     setDetailsModalVisible(false);
                   }}
                 >
-                  <Text style={styles.closeButtonText}>Close</Text>
+                  <Text style={styles.cancelButtonText}>Close</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -1056,13 +1056,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: spacing.md,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
