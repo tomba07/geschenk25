@@ -18,9 +18,10 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ onBack }: ProfileScreenProps) {
-  const { username, displayName, updateDisplayName } = useAuth();
+  const { username, displayName, updateDisplayName, deleteAccount } = useAuth();
   const [newDisplayName, setNewDisplayName] = useState(displayName || '');
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     if (newDisplayName.trim().length > 100) {
@@ -37,6 +38,35 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     } else {
       Alert.alert('Success', 'Display name updated successfully');
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This will permanently delete:\n\n• All your groups\n• All your group memberships\n• All gift ideas you created\n• All your data\n\nThis action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            setDeleting(false);
+
+            if (error) {
+              Alert.alert('Error', error.message || 'Failed to delete account');
+            } else {
+              // Account deleted and user signed out, navigation will be handled by App.tsx
+              Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const paddingTop = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0;
@@ -85,6 +115,24 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <Text style={commonStyles.buttonText}>Save Changes</Text>
           )}
         </TouchableOpacity>
+
+        <View style={styles.dangerSection}>
+          <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
+          <Text style={styles.dangerSectionDescription}>
+            Deleting your account will permanently remove all your data, including groups, memberships, and gift ideas. This action cannot be undone.
+          </Text>
+          <TouchableOpacity
+            style={[styles.deleteAccountButton, deleting && styles.buttonDisabled]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -131,6 +179,34 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  dangerSection: {
+    marginTop: spacing.xxl * 2,
+    paddingTop: spacing.xxl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dangerSectionTitle: {
+    ...typography.h3,
+    color: colors.danger,
+    marginBottom: spacing.sm,
+  },
+  dangerSectionDescription: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  deleteAccountButton: {
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  deleteAccountButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

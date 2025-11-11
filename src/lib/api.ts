@@ -153,6 +153,12 @@ class ApiClient {
     );
   }
 
+  async deleteAccount() {
+    return this.request<{ message: string }>('/api/auth/account', {
+      method: 'DELETE',
+    });
+  }
+
   async registerDeviceToken(device_token: string, platform: string) {
     return this.request<{ message: string }>(
       '/api/auth/device-token',
