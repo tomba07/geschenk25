@@ -11,6 +11,14 @@ export interface GroupOwner {
   display_name: string;
 }
 
+export interface PendingInvitation {
+  id: number;
+  username: string;
+  display_name: string;
+  invitation_id: number;
+  invited_at: string;
+}
+
 export interface Group {
   id: number;
   name: string;
@@ -19,6 +27,7 @@ export interface Group {
   created_by: number;
   members?: GroupMember[];
   owner?: GroupOwner;
+  pending_invitations?: PendingInvitation[];
 }
 
 export interface Invitation {

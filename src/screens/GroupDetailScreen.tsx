@@ -65,6 +65,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     }
     try {
       const groupData = await groupService.getGroupById(groupId);
+      console.log('Group data loaded:', groupData);
+      console.log('Pending invitations:', groupData?.pending_invitations);
       setGroup(groupData);
       
           // Load assignment and gift ideas if user is a member
@@ -613,9 +615,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 )}
               </View>
               
-              {group.members && group.members.length > 0 ? (
+              {(group.members && group.members.length > 0) || (group.pending_invitations && group.pending_invitations.length > 0) ? (
                 <View style={styles.membersList}>
-                  {group.members.map((member) => {
+                  {group.members && group.members.map((member) => {
                     const isMemberOwner = member.id === group.created_by;
                     return (
                       <View key={member.id} style={styles.memberItem}>
@@ -644,6 +646,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       </View>
                     );
                   })}
+                  {group.pending_invitations && group.pending_invitations.map((invitation) => (
+                    <View key={`pending-${invitation.invitation_id}`} style={[styles.memberItem, styles.pendingInvitationItem]}>
+                      <View style={styles.memberInfo}>
+                        <View style={styles.memberNameRow}>
+                          <Text style={styles.memberUsername}>{invitation.display_name}</Text>
+                          <View style={styles.pendingBadge}>
+                            <Text style={styles.pendingBadgeText}>Pending</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.memberUsernameSecondary}>@{invitation.username}</Text>
+                        <Text style={styles.memberDate}>
+                          Invited {new Date(invitation.invited_at).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No members yet</Text>
@@ -1161,6 +1179,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   ownerBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  pendingInvitationItem: {
+    opacity: 0.7,
+  },
+  pendingBadge: {
+    backgroundColor: colors.textSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: spacing.xs,
+  },
+  pendingBadgeText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: '600',
