@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
@@ -71,8 +73,14 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.content}>
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subtitle}>Create a new account</Text>
@@ -136,8 +144,8 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

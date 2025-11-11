@@ -13,6 +13,7 @@ import {
   StatusBar,
   StyleSheet,
   RefreshControl,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Group, Assignment, GiftIdea } from '../types/group';
@@ -60,7 +61,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const loadGroup = useCallback(async (showLoading = true) => {
     if (showLoading) {
-      setLoading(true);
+    setLoading(true);
     }
     try {
       const groupData = await groupService.getGroupById(groupId);
@@ -86,12 +87,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           ? error.appError.userMessage 
           : getErrorMessage(error);
         Alert.alert('Error', errorMessage);
-        onBack();
+      onBack();
       }
     } finally {
       if (showLoading) {
-        setLoading(false);
-      }
+      setLoading(false);
+    }
     }
   }, [groupId, userId, onBack]);
 
@@ -456,7 +457,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <Text style={styles.title}>Group Details</Text>
         <TouchableOpacity style={styles.infoButton} onPress={() => setDetailsModalVisible(true)}>
           <Text style={styles.infoButtonText}>Details</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -476,7 +477,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           )}
 
           {isMember && (
-            <View style={styles.section}>
+          <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Assignments</Text>
                 {isOwner && (
@@ -661,37 +662,39 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           setSearchResults([]);
         }}
       >
-        <View style={commonStyles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={commonStyles.modalOverlay}
+        >
           <View style={commonStyles.modalContent}>
             <Text style={styles.modalTitle}>Invite User</Text>
 
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Search for a user (e.g., @username or username)..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus={true}
-            />
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Search for a user (e.g., @username or username)..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={true}
+              />
 
-            {searching && (
-              <View style={styles.searchLoader}>
-                <ActivityIndicator size="small" color={colors.primary} />
-              </View>
-            )}
+              {searching && (
+                <View style={styles.searchLoader}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              )}
 
-            {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
-              <Text style={styles.noResultsText}>No users found</Text>
-            )}
+              {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
+                <Text style={styles.noResultsText}>No users found</Text>
+              )}
 
-            {searchResults.length > 0 && (
-              <View style={styles.searchResultsContainer}>
-                <FlatList
-                  data={searchResults}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={({ item }) => (
+              {searchResults.length > 0 && (
+                <View style={styles.searchResultsContainer}>
+                  {searchResults.map((item) => (
                     <TouchableOpacity
+                      key={item.id}
                       style={styles.searchResultItem}
                       onPress={() => handleInvite(item.username)}
                       disabled={inviting}
@@ -701,30 +704,29 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         <Text style={styles.searchResultUsernameSecondary}>@{item.username}</Text>
                       </View>
                       {inviting && (
-                        <ActivityIndicator size="small" color={colors.primary} style={styles.inviteLoader} />
+                        <ActivityIndicator size="small" color={colors.primary} />
                       )}
                     </TouchableOpacity>
-                  )}
-                  style={styles.searchResultsList}
-                />
-              </View>
-            )}
+                  ))}
+                </View>
+              )}
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setInviteModalVisible(false);
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-                disabled={inviting}
-              >
-                <Text style={styles.cancelButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[commonStyles.button, styles.cancelButton]}
+                  onPress={() => {
+                    setInviteModalVisible(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  disabled={inviting}
+                >
+                  <Text style={commonStyles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Group Details Modal */}
@@ -759,13 +761,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <View style={styles.detailsSection}>
                   <Text style={styles.detailsLabel}>Created</Text>
                   <Text style={styles.detailsValue}>
-                    {new Date(group.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </Text>
-                </View>
+              {new Date(group.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </Text>
+          </View>
 
                 {group.owner && (
                   <View style={styles.detailsSection}>
@@ -781,11 +783,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
                 {userId !== null && userId === group.created_by && (
                   <View style={styles.detailsSection}>
-                    <View style={styles.badgeContainer}>
-                      <Text style={styles.badgeText}>You are the owner</Text>
-                    </View>
-                  </View>
-                )}
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>You are the owner</Text>
+              </View>
+            </View>
+          )}
 
                 {userId !== null && userId === group.created_by && (
                   <View style={styles.detailsActions}>
@@ -800,7 +802,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         <Text style={styles.deleteButtonTextInModal}>Delete Group</Text>
                       )}
                     </TouchableOpacity>
-                  </View>
+        </View>
                 )}
 
                 <TouchableOpacity
@@ -844,7 +846,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     </Text>
                   </View>
                 ))}
-              </ScrollView>
+      </ScrollView>
             ) : (
               <View style={styles.modalEmptyContainer}>
                 <Text style={styles.modalEmptyText}>
@@ -870,83 +872,88 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         transparent={true}
         onRequestClose={handleCloseGiftIdeaModal}
       >
-        <View style={commonStyles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={commonStyles.modalOverlay}
+        >
           <View style={commonStyles.modalContent}>
             <Text style={styles.modalTitle}>
               {editingGiftIdea ? 'Edit Gift Idea' : 'Add Gift Idea'}
             </Text>
 
-            {!editingGiftIdea && (
-              <View style={styles.giftIdeaPersonSelector}>
-                <Text style={styles.giftIdeaLabel}>For:</Text>
-                {group && group.members && (
-                  <View style={styles.memberSelector}>
-                    {group.members.map((member) => (
-                      <TouchableOpacity
-                        key={member.id}
-                        style={[
-                          styles.memberSelectorOption,
-                          selectedForUserId === member.id && styles.memberSelectorOptionSelected,
-                        ]}
-                        onPress={() => setSelectedForUserId(member.id)}
-                      >
-                        <Text
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {!editingGiftIdea && (
+                <View style={styles.giftIdeaPersonSelector}>
+                  <Text style={styles.giftIdeaLabel}>For:</Text>
+                  {group && group.members && (
+                    <View style={styles.memberSelector}>
+                      {group.members.map((member) => (
+                        <TouchableOpacity
+                          key={member.id}
                           style={[
-                            styles.memberSelectorOptionText,
-                            selectedForUserId === member.id && styles.memberSelectorOptionTextSelected,
+                            styles.memberSelectorOption,
+                            selectedForUserId === member.id && styles.memberSelectorOptionSelected,
                           ]}
+                          onPress={() => setSelectedForUserId(member.id)}
                         >
-                          {member.display_name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
+                          <Text
+                            style={[
+                              styles.memberSelectorOptionText,
+                              selectedForUserId === member.id && styles.memberSelectorOptionTextSelected,
+                            ]}
+                          >
+                            {member.display_name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
-            {editingGiftIdea && selectedForUserId && group && (
-              <View style={styles.giftIdeaPersonDisplay}>
-                <Text style={styles.giftIdeaLabel}>
-                  For: {group.members?.find(m => m.id === selectedForUserId)?.display_name || 'Unknown'}
-                </Text>
-              </View>
-            )}
-
-            <TextInput
-              style={[commonStyles.input, styles.giftIdeaTextInput]}
-              placeholder="Enter gift idea..."
-              value={giftIdeaText}
-              onChangeText={setGiftIdeaText}
-              multiline={true}
-              numberOfLines={4}
-              autoFocus={true}
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[commonStyles.button, styles.cancelButton]}
-                onPress={handleCloseGiftIdeaModal}
-                disabled={savingGiftIdea}
-              >
-                <Text style={commonStyles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[commonStyles.button, savingGiftIdea && styles.buttonDisabled]}
-                onPress={handleSaveGiftIdea}
-                disabled={savingGiftIdea || !giftIdeaText.trim() || !selectedForUserId}
-              >
-                {savingGiftIdea ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={commonStyles.buttonText}>
-                    {editingGiftIdea ? 'Update' : 'Create'}
+              {editingGiftIdea && selectedForUserId && group && (
+                <View style={styles.giftIdeaPersonDisplay}>
+                  <Text style={styles.giftIdeaLabel}>
+                    For: {group.members?.find(m => m.id === selectedForUserId)?.display_name || 'Unknown'}
                   </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                </View>
+              )}
+
+              <TextInput
+                style={[commonStyles.input, styles.giftIdeaTextInput]}
+                placeholder="Enter gift idea..."
+                value={giftIdeaText}
+                onChangeText={setGiftIdeaText}
+                multiline={true}
+                numberOfLines={4}
+                autoFocus={true}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[commonStyles.button, styles.cancelButton]}
+                  onPress={handleCloseGiftIdeaModal}
+                  disabled={savingGiftIdea}
+                >
+                  <Text style={commonStyles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[commonStyles.button, savingGiftIdea && styles.buttonDisabled]}
+                  onPress={handleSaveGiftIdea}
+                  disabled={savingGiftIdea || !giftIdeaText.trim() || !selectedForUserId}
+                >
+                  {savingGiftIdea ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={commonStyles.buttonText}>
+                      {editingGiftIdea ? 'Update' : 'Create'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
