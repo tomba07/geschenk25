@@ -722,7 +722,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   }}
                   disabled={inviting}
                 >
-                  <Text style={commonStyles.buttonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -936,7 +936,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   onPress={handleCloseGiftIdeaModal}
                   disabled={savingGiftIdea}
                 >
-                  <Text style={commonStyles.buttonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[commonStyles.button, savingGiftIdea && styles.buttonDisabled]}
@@ -1351,7 +1351,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   cancelButton: {
-    backgroundColor: colors.textSecondary,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -1426,7 +1428,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    color: colors.textSecondary,
+    color: colors.text,
     ...typography.body,
     fontWeight: '600',
   },
