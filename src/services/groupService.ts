@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api';
-import { Group, Invitation, Assignment } from '../types/group';
+import { Group, Invitation, Assignment, GiftIdea } from '../types/group';
 import { AppError, ErrorType, parseError, logError } from '../utils/errors';
 
 export class GroupServiceError extends Error {
@@ -247,6 +247,120 @@ export const groupService = {
     if (response.error) {
       const appError = response.appError || parseError(response.error);
       logError(appError, 'groupService.deleteAssignments');
+      throw new GroupServiceError(appError);
+    }
+  },
+
+  // Create gift idea
+  async createGiftIdea(groupId: string, forUserId: number, idea: string): Promise<GiftIdea> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.createGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.createGiftIdea(id, forUserId, idea);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.createGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    if (!response.data?.gift_idea) {
+      const appError: AppError = {
+        type: ErrorType.API,
+        message: 'No gift idea data returned',
+        userMessage: 'Failed to create gift idea. Please try again.',
+      };
+      logError(appError, 'groupService.createGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    return response.data.gift_idea;
+  },
+
+  // Get gift ideas
+  async getGiftIdeas(groupId: string, forUserId?: number): Promise<GiftIdea[]> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.getGiftIdeas');
+      return [];
+    }
+
+    const response = await apiClient.getGiftIdeas(id, forUserId);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.getGiftIdeas');
+      return [];
+    }
+
+    return response.data?.gift_ideas || [];
+  },
+
+  // Update gift idea
+  async updateGiftIdea(groupId: string, ideaId: number, idea: string): Promise<GiftIdea> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.updateGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.updateGiftIdea(id, ideaId, idea);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.updateGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    if (!response.data?.gift_idea) {
+      const appError: AppError = {
+        type: ErrorType.API,
+        message: 'No gift idea data returned',
+        userMessage: 'Failed to update gift idea. Please try again.',
+      };
+      logError(appError, 'groupService.updateGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    return response.data.gift_idea;
+  },
+
+  // Delete gift idea
+  async deleteGiftIdea(groupId: string, ideaId: number): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.deleteGiftIdea');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.deleteGiftIdea(id, ideaId);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.deleteGiftIdea');
       throw new GroupServiceError(appError);
     }
   },

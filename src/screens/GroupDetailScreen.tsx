@@ -15,7 +15,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { groupService, GroupServiceError } from '../services/groupService';
-import { Group, Assignment } from '../types/group';
+import { Group, Assignment, GiftIdea } from '../types/group';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
@@ -46,6 +46,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [assigning, setAssigning] = useState(false);
   const [deletingAssignments, setDeletingAssignments] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
+  const [giftIdeaModalVisible, setGiftIdeaModalVisible] = useState(false);
+  const [editingGiftIdea, setEditingGiftIdea] = useState<GiftIdea | null>(null);
+  const [giftIdeaText, setGiftIdeaText] = useState('');
+  const [selectedForUserId, setSelectedForUserId] = useState<number | null>(null);
+  const [savingGiftIdea, setSavingGiftIdea] = useState(false);
+  const [deletingGiftIdea, setDeletingGiftIdea] = useState<number | null>(null);
   const { userId } = useAuth();
 
   const loadGroup = useCallback(async (showLoading = true) => {
@@ -56,13 +63,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       const groupData = await groupService.getGroupById(groupId);
       setGroup(groupData);
       
-      // Load assignment if user is a member
+      // Load assignment and gift ideas if user is a member
       if (groupData && userId) {
         const isOwner = userId === groupData.created_by;
         const isMember = isOwner || groupData.members?.some(m => m.id === userId);
         if (isMember) {
           const assignmentData = await groupService.getAssignment(groupId);
           setAssignment(assignmentData);
+          
+          // Load gift ideas (will be filtered by API based on assignment)
+          const ideas = await groupService.getGiftIdeas(groupId);
+          setGiftIdeas(ideas);
         }
       }
     } catch (error: any) {
@@ -290,6 +301,84 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     );
   };
 
+  const handleOpenGiftIdeaModal = (forUserId?: number, giftIdea?: GiftIdea) => {
+    if (giftIdea) {
+      setEditingGiftIdea(giftIdea);
+      setGiftIdeaText(giftIdea.idea);
+      setSelectedForUserId(giftIdea.for_user_id);
+    } else {
+      setEditingGiftIdea(null);
+      setGiftIdeaText('');
+      setSelectedForUserId(forUserId || null);
+    }
+    setGiftIdeaModalVisible(true);
+  };
+
+  const handleCloseGiftIdeaModal = () => {
+    setGiftIdeaModalVisible(false);
+    setEditingGiftIdea(null);
+    setGiftIdeaText('');
+    setSelectedForUserId(null);
+  };
+
+  const handleSaveGiftIdea = async () => {
+    if (!group || !selectedForUserId || !giftIdeaText.trim()) {
+      Alert.alert('Error', 'Please select a person and enter a gift idea');
+      return;
+    }
+
+    setSavingGiftIdea(true);
+    try {
+      if (editingGiftIdea) {
+        await groupService.updateGiftIdea(groupId, editingGiftIdea.id, giftIdeaText.trim());
+        Alert.alert('Success', 'Gift idea updated successfully');
+      } else {
+        await groupService.createGiftIdea(groupId, selectedForUserId, giftIdeaText.trim());
+        Alert.alert('Success', 'Gift idea created successfully');
+      }
+      handleCloseGiftIdeaModal();
+      await loadGroup();
+    } catch (error: any) {
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setSavingGiftIdea(false);
+    }
+  };
+
+  const handleDeleteGiftIdea = (ideaId: number) => {
+    Alert.alert(
+      'Delete Gift Idea',
+      'Are you sure you want to delete this gift idea?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingGiftIdea(ideaId);
+            try {
+              await groupService.deleteGiftIdea(groupId, ideaId);
+              await loadGroup();
+            } catch (error: any) {
+              const errorMessage = error instanceof GroupServiceError 
+                ? error.appError.userMessage 
+                : getErrorMessage(error);
+              Alert.alert('Error', errorMessage);
+            } finally {
+              setDeletingGiftIdea(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Check if assignments exist (if current user has an assignment, assignments have been made)
   const hasAssignments = assignment !== null;
 
@@ -410,6 +499,92 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     {isOwner 
                       ? 'No assignments yet. Click "Assign" to create Secret Santa pairs.'
                       : 'No assignments yet. The group owner needs to create assignments.'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {isMember && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Gift Ideas</Text>
+                <TouchableOpacity
+                  style={styles.addGiftIdeaButton}
+                  onPress={() => handleOpenGiftIdeaModal()}
+                >
+                  <Text style={styles.addGiftIdeaButtonText}>+ Add Idea</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {assignment ? (
+                <View style={styles.giftIdeaHint}>
+                  <Text style={styles.giftIdeaHintText}>
+                    💡 Gift ideas for {assignment.receiver_display_name}:
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.giftIdeaHint}>
+                  <Text style={styles.giftIdeaHintText}>
+                    💡 Add gift ideas for any group member
+                  </Text>
+                </View>
+              )}
+
+              {giftIdeas.length > 0 ? (
+                <View style={styles.giftIdeasList}>
+                  {giftIdeas.map((idea) => {
+                    const isCreator = idea.created_by_id === userId;
+                    const isForAssigned = assignment && idea.for_user_id === assignment.receiver_id;
+                    return (
+                      <View key={idea.id} style={styles.giftIdeaCard}>
+                        <View style={styles.giftIdeaHeader}>
+                          <View style={styles.giftIdeaInfo}>
+                            <Text style={styles.giftIdeaText}>{idea.idea}</Text>
+                            <View style={styles.giftIdeaMeta}>
+                              <Text style={styles.giftIdeaMetaText}>
+                                For: {idea.for_user.display_name}
+                                {isForAssigned && ' (Your assigned person)'}
+                              </Text>
+                              {!isCreator && (
+                                <Text style={styles.giftIdeaMetaText}>
+                                  By: {idea.created_by.display_name}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        </View>
+                        {isCreator && (
+                          <View style={styles.giftIdeaActions}>
+                            <TouchableOpacity
+                              style={styles.editGiftIdeaButton}
+                              onPress={() => handleOpenGiftIdeaModal(undefined, idea)}
+                            >
+                              <Text style={styles.editGiftIdeaButtonText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.deleteGiftIdeaButton}
+                              onPress={() => handleDeleteGiftIdea(idea.id)}
+                              disabled={deletingGiftIdea === idea.id}
+                            >
+                              {deletingGiftIdea === idea.id ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                              ) : (
+                                <Text style={styles.deleteGiftIdeaButtonText}>Delete</Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.noGiftIdeasCard}>
+                  <Text style={styles.noGiftIdeasText}>
+                    {assignment 
+                      ? `No gift ideas yet for ${assignment.receiver_display_name}. Add some ideas!`
+                      : 'No gift ideas yet. Add some ideas for group members!'}
                   </Text>
                 </View>
               )}
@@ -635,6 +810,92 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </TouchableOpacity>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Gift Idea Modal */}
+      <Modal
+        visible={giftIdeaModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseGiftIdeaModal}
+      >
+        <View style={commonStyles.modalOverlay}>
+          <View style={commonStyles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {editingGiftIdea ? 'Edit Gift Idea' : 'Add Gift Idea'}
+            </Text>
+
+            {!editingGiftIdea && (
+              <View style={styles.giftIdeaPersonSelector}>
+                <Text style={styles.giftIdeaLabel}>For:</Text>
+                {group && group.members && (
+                  <View style={styles.memberSelector}>
+                    {group.members.map((member) => (
+                      <TouchableOpacity
+                        key={member.id}
+                        style={[
+                          styles.memberSelectorOption,
+                          selectedForUserId === member.id && styles.memberSelectorOptionSelected,
+                        ]}
+                        onPress={() => setSelectedForUserId(member.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.memberSelectorOptionText,
+                            selectedForUserId === member.id && styles.memberSelectorOptionTextSelected,
+                          ]}
+                        >
+                          {member.display_name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {editingGiftIdea && selectedForUserId && group && (
+              <View style={styles.giftIdeaPersonDisplay}>
+                <Text style={styles.giftIdeaLabel}>
+                  For: {group.members?.find(m => m.id === selectedForUserId)?.display_name || 'Unknown'}
+                </Text>
+              </View>
+            )}
+
+            <TextInput
+              style={[commonStyles.input, styles.giftIdeaTextInput]}
+              placeholder="Enter gift idea..."
+              value={giftIdeaText}
+              onChangeText={setGiftIdeaText}
+              multiline={true}
+              numberOfLines={4}
+              autoFocus={true}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[commonStyles.button, styles.cancelButton]}
+                onPress={handleCloseGiftIdeaModal}
+                disabled={savingGiftIdea}
+              >
+                <Text style={commonStyles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[commonStyles.button, savingGiftIdea && styles.buttonDisabled]}
+                onPress={handleSaveGiftIdea}
+                disabled={savingGiftIdea || !giftIdeaText.trim() || !selectedForUserId}
+              >
+                {savingGiftIdea ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={commonStyles.buttonText}>
+                    {editingGiftIdea ? 'Update' : 'Create'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -872,6 +1133,157 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textTertiary,
     fontStyle: 'italic',
+  },
+  addGiftIdeaButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+  },
+  addGiftIdeaButtonText: {
+    color: '#fff',
+    ...typography.bodySmall,
+    fontWeight: '600',
+  },
+  giftIdeaHint: {
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+  },
+  giftIdeaHintText: {
+    ...typography.bodySmall,
+    color: colors.text,
+  },
+  giftIdeasList: {
+    gap: spacing.md,
+  },
+  giftIdeaCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  giftIdeaHeader: {
+    marginBottom: spacing.sm,
+  },
+  giftIdeaInfo: {
+    flex: 1,
+  },
+  giftIdeaText: {
+    ...typography.body,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  giftIdeaMeta: {
+    flexDirection: 'column',
+    gap: spacing.xs / 2,
+  },
+  giftIdeaMetaText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  giftIdeaActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  editGiftIdeaButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editGiftIdeaButtonText: {
+    color: '#fff',
+    ...typography.bodySmall,
+    fontWeight: '600',
+  },
+  deleteGiftIdeaButton: {
+    flex: 1,
+    backgroundColor: colors.danger,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  deleteGiftIdeaButtonText: {
+    color: '#fff',
+    ...typography.bodySmall,
+    fontWeight: '600',
+  },
+  noGiftIdeasCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  noGiftIdeasText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  giftIdeaPersonSelector: {
+    marginBottom: spacing.md,
+  },
+  giftIdeaLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  memberSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  memberSelectorOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  memberSelectorOptionSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  memberSelectorOptionText: {
+    ...typography.bodySmall,
+    color: colors.text,
+  },
+  memberSelectorOptionTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  giftIdeaPersonDisplay: {
+    marginBottom: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+  },
+  giftIdeaTextInput: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: spacing.md,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  cancelButton: {
+    backgroundColor: colors.textSecondary,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   modalTitle: {
     ...typography.h2,

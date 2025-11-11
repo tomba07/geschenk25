@@ -38,3 +38,21 @@ export interface Assignment {
   receiver_display_name: string;
 }
 
+export interface GiftIdeaUser {
+  id: number;
+  username: string;
+  display_name: string;
+}
+
+export interface GiftIdea {
+  id: number;
+  group_id: number;
+  for_user_id: number;
+  created_by_id: number;
+  idea: string;
+  created_at: string;
+  updated_at: string;
+  created_by: GiftIdeaUser;
+  for_user: GiftIdeaUser;
+}
+

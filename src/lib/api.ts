@@ -233,6 +233,34 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Gift ideas endpoints
+  async createGiftIdea(groupId: number, forUserId: number, idea: string) {
+    return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas`, {
+      method: 'POST',
+      body: JSON.stringify({ for_user_id: forUserId, idea }),
+    });
+  }
+
+  async getGiftIdeas(groupId: number, forUserId?: number) {
+    const url = forUserId
+      ? `/api/groups/${groupId}/gift-ideas?for_user_id=${forUserId}`
+      : `/api/groups/${groupId}/gift-ideas`;
+    return this.request<{ gift_ideas: any[] }>(url);
+  }
+
+  async updateGiftIdea(groupId: number, ideaId: number, idea: string) {
+    return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ idea }),
+    });
+  }
+
+  async deleteGiftIdea(groupId: number, ideaId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_URL);
