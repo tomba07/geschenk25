@@ -217,7 +217,11 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         <View style={styles.groupCardContent}>
           <View style={styles.groupCardHeader}>
             <View style={styles.groupIconContainer}>
-              <Text style={styles.groupIcon}>🎁</Text>
+              {item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={styles.groupImage} />
+              ) : (
+                <Text style={styles.groupIcon}>🎁</Text>
+              )}
             </View>
             <View style={styles.groupCardInfo}>
               <Text style={styles.groupName} numberOfLines={1}>{item.name}</Text>
@@ -441,9 +445,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           >
             <View style={styles.createGroupModalContent}>
               <View style={styles.modalHeader}>
-                <View style={styles.modalIconContainer}>
-                  <Text style={styles.modalIcon}>🎁</Text>
-                </View>
                 <Text style={styles.modalTitle}>Create New Group</Text>
                 <Text style={styles.modalSubtitle}>Start organizing your Secret Santa exchange</Text>
               </View>
@@ -732,6 +733,11 @@ const styles = StyleSheet.create({
   },
   groupIcon: {
     fontSize: 24,
+  },
+  groupImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   groupCardInfo: {
     flex: 1,
