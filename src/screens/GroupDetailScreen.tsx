@@ -777,7 +777,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                             </View>
                             <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
                             <Text style={styles.memberDate}>
-                              {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              Joined {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </Text>
                           </View>
                         </View>
