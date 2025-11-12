@@ -23,6 +23,7 @@ export interface Group {
   id: number;
   name: string;
   description?: string;
+  image_url?: string | null;
   created_at: string;
   created_by: number;
   members?: GroupMember[];

@@ -29,8 +29,8 @@ export const groupService = {
   },
 
   // Create a new group
-  async createGroup(name: string, description?: string): Promise<Group> {
-    const response = await apiClient.createGroup(name, description);
+  async createGroup(name: string, description?: string, imageUrl?: string): Promise<Group> {
+    const response = await apiClient.createGroup(name, description, imageUrl);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);

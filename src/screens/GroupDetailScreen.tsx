@@ -15,6 +15,7 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Linking,
+  Image,
 } from 'react-native';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Group, Assignment, GiftIdea } from '../types/group';
@@ -493,7 +494,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Group Details</Text>
+        <View style={styles.headerTitleContainer}>
+          {group.image_url ? (
+            <Image source={{ uri: group.image_url }} style={styles.headerImage} />
+          ) : (
+            <Text style={styles.headerIcon}>🎁</Text>
+          )}
+          <Text style={styles.title}>{group.name}</Text>
+        </View>
         <TouchableOpacity style={styles.infoButton} onPress={() => setDetailsModalVisible(true)}>
           <Text style={styles.infoButtonText}>Details</Text>
           </TouchableOpacity>
@@ -506,12 +514,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         }
       >
         <View style={styles.content}>
-          <Text style={styles.groupName}>{group.name}</Text>
-          
           {group.description && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Description</Text>
-              <Text style={styles.description}>{group.description}</Text>
+            <View style={styles.descriptionSection}>
+              <Text style={styles.groupDescription}>{group.description}</Text>
             </View>
           )}
 
@@ -552,9 +557,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               
               {assignment ? (
                 <View style={styles.assignmentCard}>
-                  <Text style={styles.assignmentLabel}>You are assigned to:</Text>
-                  <Text style={styles.assignmentName}>{assignment.receiver_display_name}</Text>
-                  <Text style={styles.assignmentHint}>@{assignment.receiver_username} 🎁 Get a gift for this person!</Text>
+                  <View style={styles.assignmentCardHeader}>
+                    <View style={styles.assignmentIconContainer}>
+                      <Text style={styles.assignmentIcon}>🎯</Text>
+                    </View>
+                    <View style={styles.assignmentInfo}>
+                      <Text style={styles.assignmentLabel}>You are assigned to</Text>
+                      <Text style={styles.assignmentName}>{assignment.receiver_display_name}</Text>
+                      <Text style={styles.assignmentUsername}>@{assignment.receiver_username}</Text>
+                    </View>
+                  </View>
                   <TouchableOpacity
                     style={styles.viewGiftIdeasButton}
                     onPress={handleOpenAssignedPersonGiftIdeas}
@@ -564,6 +576,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </View>
               ) : (
                 <View style={styles.noAssignmentCard}>
+                  <Text style={styles.noAssignmentIcon}>🎁</Text>
                   <Text style={styles.noAssignmentText}>
                     {isOwner 
                       ? 'No assignments yet. Click "Assign" to create Secret Santa pairs.'
@@ -591,30 +604,28 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {giftIdeas.map((idea) => {
                     return (
                       <View key={idea.id} style={styles.giftIdeaCard}>
-                        <View style={styles.giftIdeaHeader}>
-                          <View style={styles.giftIdeaInfo}>
-                            <Text style={styles.giftIdeaText}>{idea.idea}</Text>
-                            {idea.link && (
-                              <TouchableOpacity
-                                style={styles.giftIdeaLink}
-                                onPress={() => {
-                                  const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
-                                    ? idea.link!
-                                    : `https://${idea.link!}`;
-                                  Linking.openURL(url).catch((err) => {
-                                    console.error('Failed to open URL:', err);
-                                    Alert.alert('Error', 'Could not open link');
-                                  });
-                                }}
-                              >
-                                <Text style={styles.giftIdeaLinkText}>🔗 Open Link</Text>
-                              </TouchableOpacity>
-                            )}
-                            <View style={styles.giftIdeaMeta}>
-                              <Text style={styles.giftIdeaMetaText}>
-                                For: {idea.for_user.display_name}
-                              </Text>
-                            </View>
+                        <View style={styles.giftIdeaContent}>
+                          <Text style={styles.giftIdeaText}>{idea.idea}</Text>
+                          {idea.link && (
+                            <TouchableOpacity
+                              style={styles.giftIdeaLink}
+                              onPress={() => {
+                                const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
+                                  ? idea.link!
+                                  : `https://${idea.link!}`;
+                                Linking.openURL(url).catch((err) => {
+                                  console.error('Failed to open URL:', err);
+                                  Alert.alert('Error', 'Could not open link');
+                                });
+                              }}
+                            >
+                              <Text style={styles.giftIdeaLinkText}>🔗 Open Link</Text>
+                            </TouchableOpacity>
+                          )}
+                          <View style={styles.giftIdeaMeta}>
+                            <Text style={styles.giftIdeaMetaText}>
+                              For: {idea.for_user.display_name}
+                            </Text>
                           </View>
                         </View>
                         <View style={styles.giftIdeaActions}>
@@ -642,6 +653,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </View>
               ) : (
                 <View style={styles.noGiftIdeasCard}>
+                  <Text style={styles.noGiftIdeasIcon}>💡</Text>
                   <Text style={styles.noGiftIdeasText}>
                     You haven't created any gift ideas yet. Add some ideas for group members!
                   </Text>
@@ -672,20 +684,27 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {group.members && group.members.map((member) => {
                     const isMemberOwner = member.id === group.created_by;
                     return (
-                      <View key={member.id} style={styles.memberItem}>
-                        <View style={styles.memberInfo}>
-                          <View style={styles.memberNameRow}>
-                            <Text style={styles.memberUsername}>{member.display_name}</Text>
-                            {isMemberOwner && (
-                              <View style={styles.ownerBadge}>
-                                <Text style={styles.ownerBadgeText}>Owner</Text>
-                              </View>
-                            )}
+                      <View key={member.id} style={styles.memberCard}>
+                        <View style={styles.memberCardContent}>
+                          <View style={styles.memberAvatar}>
+                            <Text style={styles.memberAvatarText}>
+                              {member.display_name.charAt(0).toUpperCase()}
+                            </Text>
                           </View>
-                          <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
-                          <Text style={styles.memberDate}>
-                            {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString()}
-                          </Text>
+                          <View style={styles.memberInfo}>
+                            <View style={styles.memberNameRow}>
+                              <Text style={styles.memberUsername}>{member.display_name}</Text>
+                              {isMemberOwner && (
+                                <View style={styles.ownerBadge}>
+                                  <Text style={styles.ownerBadgeText}>Owner</Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
+                            <Text style={styles.memberDate}>
+                              {isMemberOwner ? 'Created' : 'Joined'} {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </Text>
+                          </View>
                         </View>
                         {isOwner && member.id !== userId && !isMemberOwner && !hasAssignments && (
                           <TouchableOpacity
@@ -699,18 +718,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     );
                   })}
                   {group.pending_invitations && group.pending_invitations.map((invitation) => (
-                    <View key={`pending-${invitation.invitation_id}`} style={[styles.memberItem, styles.pendingInvitationItem]}>
-                      <View style={styles.memberInfo}>
-                        <View style={styles.memberNameRow}>
-                          <Text style={styles.memberUsername}>{invitation.display_name}</Text>
-                          <View style={styles.pendingBadge}>
-                            <Text style={styles.pendingBadgeText}>Pending</Text>
-                          </View>
+                    <View key={`pending-${invitation.invitation_id}`} style={[styles.memberCard, styles.pendingInvitationCard]}>
+                      <View style={styles.memberCardContent}>
+                        <View style={[styles.memberAvatar, styles.pendingMemberAvatar]}>
+                          <Text style={styles.memberAvatarText}>
+                            {invitation.display_name.charAt(0).toUpperCase()}
+                          </Text>
                         </View>
-                        <Text style={styles.memberUsernameSecondary}>@{invitation.username}</Text>
-                        <Text style={styles.memberDate}>
-                          Invited {new Date(invitation.invited_at).toLocaleDateString()}
-                        </Text>
+                        <View style={styles.memberInfo}>
+                          <View style={styles.memberNameRow}>
+                            <Text style={styles.memberUsername}>{invitation.display_name}</Text>
+                            <View style={styles.pendingBadge}>
+                              <Text style={styles.pendingBadgeText}>Pending</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.memberUsernameSecondary}>@{invitation.username}</Text>
+                          <Text style={styles.memberDate}>
+                            Invited {new Date(invitation.invited_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </Text>
+                        </View>
                       </View>
                       {isOwner && !hasAssignments && (
                         <TouchableOpacity
@@ -1088,9 +1114,25 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
+  headerTitleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIcon: {
+    fontSize: 20,
+    marginRight: spacing.xs,
+  },
+  headerImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: spacing.xs,
+    backgroundColor: colors.surface,
+  },
   title: {
     ...typography.h3,
-    flex: 1,
     textAlign: 'center',
   },
   placeholder: {
@@ -1174,22 +1216,28 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.xl,
+    paddingBottom: spacing.xxl * 2,
   },
-  groupName: {
-    ...typography.h1,
+  descriptionSection: {
     marginBottom: spacing.xxl,
-    color: colors.text,
+    paddingBottom: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  groupDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 22,
   },
   section: {
     marginBottom: spacing.xxl,
   },
   sectionTitle: {
-    ...typography.bodySmall,
+    ...typography.h3,
+    fontSize: 18,
     fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   sectionText: {
     ...typography.body,
@@ -1238,14 +1286,46 @@ const styles = StyleSheet.create({
   membersList: {
     marginTop: spacing.sm,
   },
-  memberItem: {
+  memberCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: 16,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  pendingInvitationCard: {
+    opacity: 0.8,
+  },
+  memberCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  memberAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  pendingMemberAvatar: {
+    backgroundColor: colors.textSecondary,
+  },
+  memberAvatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
   memberInfo: {
     flex: 1,
@@ -1277,9 +1357,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
-  },
-  pendingInvitationItem: {
-    opacity: 0.7,
   },
   pendingBadge: {
     backgroundColor: colors.textSecondary,
@@ -1351,17 +1428,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   giftIdeaCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  giftIdeaHeader: {
-    marginBottom: spacing.sm,
-  },
-  giftIdeaInfo: {
-    flex: 1,
+  giftIdeaContent: {
+    marginBottom: spacing.md,
   },
   giftIdeaText: {
     ...typography.body,
@@ -1412,14 +1492,22 @@ const styles = StyleSheet.create({
   },
   noGiftIdeasCard: {
     backgroundColor: colors.surface,
+    borderRadius: 16,
     padding: spacing.xl,
-    borderRadius: 12,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
   },
+  noGiftIdeasIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
+  },
   noGiftIdeasText: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 22,
   },
   giftIdeaPersonSelector: {
     marginBottom: spacing.md,
@@ -1663,42 +1751,74 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   assignmentCard: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: spacing.xl,
-    marginTop: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.success,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  assignmentCardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  assignmentIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  assignmentIcon: {
+    fontSize: 24,
+  },
+  assignmentInfo: {
+    flex: 1,
   },
   assignmentLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    fontWeight: '600',
+    marginBottom: spacing.xs / 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 11,
   },
   assignmentName: {
-    ...typography.h2,
+    ...typography.h3,
+    fontSize: 20,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs / 2,
   },
-  assignmentHint: {
+  assignmentUsername: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   noAssignmentCard: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.lg,
-    marginTop: spacing.md,
+    borderRadius: 16,
+    padding: spacing.xl,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+  },
+  noAssignmentIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
   },
   noAssignmentText: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });

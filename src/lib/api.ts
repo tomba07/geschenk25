@@ -178,10 +178,10 @@ class ApiClient {
     return this.request<{ group: any }>(`/api/groups/${id}`);
   }
 
-  async createGroup(name: string, description?: string) {
+  async createGroup(name: string, description?: string, image_url?: string) {
     return this.request<{ group: any }>('/api/groups', {
       method: 'POST',
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, image_url }),
     });
   }
 
