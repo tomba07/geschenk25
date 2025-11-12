@@ -2,6 +2,7 @@ export interface GroupMember {
   id: number;
   username: string;
   display_name: string;
+  image_url?: string | null;
   joined_at: string;
 }
 
@@ -9,6 +10,7 @@ export interface GroupOwner {
   id: number;
   username: string;
   display_name: string;
+  image_url?: string | null;
 }
 
 export interface PendingInvitation {

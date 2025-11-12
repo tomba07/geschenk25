@@ -8,11 +8,13 @@ interface AuthContextType {
   userId: number | null;
   username: string | null;
   displayName: string | null;
+  imageUrl: string | null;
   isLoading: boolean;
   signIn: (username: string, password: string) => Promise<{ error: any }>;
   signUp: (username: string, password: string, display_name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateDisplayName: (display_name: string) => Promise<{ error: any }>;
+  updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
 }
 
@@ -33,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userId, setUserId] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserId(response.data.user.id);
           setUsername(response.data.user.username);
           setDisplayName(response.data.user.display_name);
+          setImageUrl(response.data.user.image_url || null);
         } else {
           // Token invalid, clear storage
           await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
@@ -91,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserId(user.id);
         setUsername(user.username);
         setDisplayName(user.display_name);
+        setImageUrl(user.image_url || null);
       }
 
       return { error: null };
@@ -121,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserId(user.id);
         setUsername(user.username);
         setDisplayName(user.display_name);
+        setImageUrl(user.image_url || null);
       }
 
       return { error: null };
@@ -142,12 +148,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data) {
         const { user } = response.data;
         setDisplayName(user.display_name);
+        setImageUrl(user.image_url || null);
         
         // Update stored user data
         const userStr = await AsyncStorage.getItem(USER_KEY);
         if (userStr) {
           const storedUser = JSON.parse(userStr);
           storedUser.display_name = user.display_name;
+          storedUser.image_url = user.image_url;
+          await AsyncStorage.setItem(USER_KEY, JSON.stringify(storedUser));
+        }
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error);
+      return { error: { message: errorMessage } };
+    }
+  };
+
+  const updateProfileImage = async (image_url?: string) => {
+    try {
+      const response = await apiClient.updateProfileImage(image_url);
+      
+      if (response.error) {
+        const errorMessage = response.appError?.userMessage || response.error;
+        return { error: { message: errorMessage } };
+      }
+
+      if (response.data) {
+        const { user } = response.data;
+        setImageUrl(user.image_url || null);
+        
+        // Update stored user data
+        const userStr = await AsyncStorage.getItem(USER_KEY);
+        if (userStr) {
+          const storedUser = JSON.parse(userStr);
+          storedUser.image_url = user.image_url;
           await AsyncStorage.setItem(USER_KEY, JSON.stringify(storedUser));
         }
       }
@@ -166,6 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserId(null);
     setUsername(null);
     setDisplayName(null);
+    setImageUrl(null);
   };
 
   const deleteAccount = async () => {
@@ -194,11 +232,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userId,
         username,
         displayName,
+        imageUrl,
         isLoading,
         signIn,
         signUp,
         signOut,
         updateDisplayName,
+        updateProfileImage,
         deleteAccount,
       }}
     >

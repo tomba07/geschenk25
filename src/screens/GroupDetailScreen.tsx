@@ -599,7 +599,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Assignments</Text>
-                {isOwner && (
+        {isOwner && (
                   <View style={styles.assignButtonContainer}>
                     {hasAssignments ? (
                       <TouchableOpacity
@@ -612,7 +612,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         ) : (
                           <Text style={styles.undoButtonText}>Undo</Text>
                         )}
-                      </TouchableOpacity>
+          </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
                         style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
@@ -628,8 +628,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     )}
                   </View>
                 )}
-              </View>
-              
+      </View>
+
               {assignment ? (
                 <View style={styles.assignmentCard}>
                   <View style={styles.assignmentCardHeader}>
@@ -738,7 +738,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           )}
 
           {isMember && (
-            <View style={styles.section}>
+          <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Members</Text>
                 {isOwner && !hasAssignments && (
@@ -761,11 +761,15 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     return (
                       <View key={member.id} style={styles.memberCard}>
                         <View style={styles.memberCardContent}>
-                          <View style={styles.memberAvatar}>
-                            <Text style={styles.memberAvatarText}>
-                              {member.display_name.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
+                          {member.image_url ? (
+                            <Image source={{ uri: member.image_url }} style={styles.memberAvatar} />
+                          ) : (
+                            <View style={styles.memberAvatar}>
+                              <Text style={styles.memberAvatarText}>
+                                {member.display_name.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                          )}
                           <View style={styles.memberInfo}>
                             <View style={styles.memberNameRow}>
                               <Text style={styles.memberUsername}>{member.display_name}</Text>
@@ -1143,7 +1147,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     </Text>
                   </View>
                 ))}
-              </ScrollView>
+      </ScrollView>
             ) : (
               <View style={styles.modalEmptyContainer}>
                 <Text style={styles.modalEmptyText}>
@@ -1552,6 +1556,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+    overflow: 'hidden',
   },
   pendingMemberAvatar: {
     backgroundColor: colors.textSecondary,

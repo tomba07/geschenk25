@@ -29,7 +29,7 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeScreenProps) {
-  const { username, displayName, signOut } = useAuth();
+  const { username, displayName, imageUrl, signOut } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,11 +283,15 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       <View style={[commonStyles.container, { paddingTop }]}>
         <View style={commonStyles.header}>
           <TouchableOpacity style={styles.userButton} onPress={() => setMenuVisible(true)}>
-            <View style={styles.userIcon}>
-              <Text style={styles.userIconText}>
-                {(displayName || username || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            {imageUrl ? (
+              <Image source={{ uri: imageUrl }} style={styles.userIcon} />
+            ) : (
+              <View style={styles.userIcon}>
+                <Text style={styles.userIconText}>
+                  {(displayName || username || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <Text style={styles.title}>My Groups</Text>
           <View style={styles.placeholder} />
@@ -303,11 +307,15 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     <View style={[commonStyles.container, { paddingTop }]}>
       <View style={commonStyles.header}>
         <TouchableOpacity style={styles.userButton} onPress={() => setMenuVisible(true)}>
-          <View style={styles.userIcon}>
-            <Text style={styles.userIconText}>
-              {(displayName || username || 'U').charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={styles.userIcon} />
+          ) : (
+            <View style={styles.userIcon}>
+              <Text style={styles.userIconText}>
+                {(displayName || username || 'U').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
         <Text style={styles.title}>My Groups</Text>
         <TouchableOpacity
@@ -555,6 +563,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   userIconText: {
     color: '#fff',

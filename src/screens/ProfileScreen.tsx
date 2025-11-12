@@ -9,7 +9,10 @@ import {
   StyleSheet,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
@@ -18,10 +21,72 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ onBack }: ProfileScreenProps) {
-  const { username, displayName, updateDisplayName, deleteAccount } = useAuth();
+  const { username, displayName, imageUrl, updateDisplayName, updateProfileImage, deleteAccount } = useAuth();
   const [newDisplayName, setNewDisplayName] = useState(displayName || '');
+  const [editingImage, setEditingImage] = useState<string | null>(imageUrl || null);
   const [loading, setLoading] = useState(false);
+  const [updatingImage, setUpdatingImage] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'We need access to your photos to upload a profile image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditingImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setEditingImage(null);
+  };
+
+  const handleSaveImage = async () => {
+    setUpdatingImage(true);
+    try {
+      let imageBase64: string | undefined;
+      if (editingImage) {
+        try {
+          const base64 = await FileSystem.readAsStringAsync(editingImage, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          imageBase64 = `data:image/jpeg;base64,${base64}`;
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          Alert.alert('Error', 'Failed to process image. Please try again.');
+          setUpdatingImage(false);
+          return;
+        }
+      }
+
+      const { error } = await updateProfileImage(imageBase64);
+      setUpdatingImage(false);
+
+      if (error) {
+        Alert.alert('Error', error.message || 'Failed to update profile image');
+      } else {
+        Alert.alert('Success', 'Profile image updated successfully');
+      }
+    } catch (error) {
+      setUpdatingImage(false);
+      Alert.alert('Error', 'Failed to update profile image');
+    }
+  };
 
   const handleSave = async () => {
     if (newDisplayName.trim().length > 100) {
@@ -82,6 +147,55 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       </View>
 
       <View style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.label}>Profile Image</Text>
+          {editingImage || imageUrl ? (
+            <View style={styles.imagePreviewContainer}>
+              <Image 
+                source={{ uri: editingImage || imageUrl || '' }} 
+                style={styles.profileImagePreview} 
+              />
+              <View style={styles.imageActions}>
+                <TouchableOpacity
+                  style={styles.imageActionButton}
+                  onPress={handlePickImage}
+                  disabled={updatingImage}
+                >
+                  <Text style={styles.imageActionButtonText}>Change</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.imageActionButton, styles.removeImageButton]}
+                  onPress={handleRemoveImage}
+                  disabled={updatingImage}
+                >
+                  <Text style={styles.imageActionButtonText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+              {(editingImage !== (imageUrl || null)) && (
+                <TouchableOpacity
+                  style={[commonStyles.button, styles.saveImageButton]}
+                  onPress={handleSaveImage}
+                  disabled={updatingImage}
+                >
+                  {updatingImage ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={commonStyles.buttonText}>Save Image</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.imagePickerButton}
+              onPress={handlePickImage}
+              disabled={updatingImage}
+            >
+              <Text style={styles.imagePickerButtonText}>📷 Choose Image</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.label}>Username</Text>
           <Text style={styles.value}>@{username}</Text>
@@ -206,6 +320,59 @@ const styles = StyleSheet.create({
   deleteAccountButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+  },
+  profileImagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  imageActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  imageActionButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flex: 1,
+  },
+  removeImageButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
+  imageActionButtonText: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  saveImageButton: {
+    marginTop: spacing.sm,
+  },
+  imagePickerButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  imagePickerButtonText: {
+    ...typography.body,
+    color: colors.text,
     fontWeight: '600',
   },
 });

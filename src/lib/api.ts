@@ -114,7 +114,7 @@ class ApiClient {
 
   // Auth endpoints
   async register(username: string, password: string, display_name?: string) {
-    return this.request<{ token: string; user: { id: number; username: string; display_name: string } }>(
+    return this.request<{ token: string; user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
       '/api/auth/register',
       {
         method: 'POST',
@@ -124,7 +124,7 @@ class ApiClient {
   }
 
   async login(username: string, password: string) {
-    return this.request<{ token: string; user: { id: number; username: string; display_name: string } }>(
+    return this.request<{ token: string; user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
       '/api/auth/login',
       {
         method: 'POST',
@@ -134,21 +134,31 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request<{ user: { id: number; username: string; display_name: string } }>('/api/auth/me');
+    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>('/api/auth/me');
   }
 
   async searchUsers(query: string) {
-    return this.request<{ users: { id: number; username: string; display_name: string }[] }>(
+    return this.request<{ users: { id: number; username: string; display_name: string; image_url?: string | null }[] }>(
       `/api/auth/search?q=${encodeURIComponent(query)}`
     );
   }
 
   async updateDisplayName(display_name: string) {
-    return this.request<{ user: { id: number; username: string; display_name: string } }>(
+    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
       '/api/auth/profile/display-name',
       {
         method: 'PUT',
         body: JSON.stringify({ display_name }),
+      }
+    );
+  }
+
+  async updateProfileImage(image_url?: string) {
+    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
+      '/api/auth/profile/image',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ image_url }),
       }
     );
   }
