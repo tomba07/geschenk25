@@ -15,6 +15,8 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
@@ -36,6 +38,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const [modalVisible, setModalVisible] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+  const [groupImage, setGroupImage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   const loadGroups = useCallback(async () => {
@@ -70,6 +73,34 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     loadInvitations();
   }, [loadGroups, loadInvitations]);
 
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'We need access to your photos to upload a group image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setGroupImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setGroupImage(null);
+  };
+
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
       Alert.alert('Error', 'Please enter a group name');
@@ -78,13 +109,31 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
     setCreating(true);
     try {
+      let imageBase64: string | undefined;
+      if (groupImage) {
+        try {
+          // Read file as base64 string using legacy API
+          const base64 = await FileSystem.readAsStringAsync(groupImage, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          imageBase64 = `data:image/jpeg;base64,${base64}`;
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          Alert.alert('Error', 'Failed to process image. Please try again.');
+          setCreating(false);
+          return;
+        }
+      }
+
       await groupService.createGroup(
         groupName.trim(), 
-        groupDescription.trim() || undefined
+        groupDescription.trim() || undefined,
+        imageBase64
       );
       setModalVisible(false);
       setGroupName('');
       setGroupDescription('');
+      setGroupImage(null);
       await loadGroups();
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
@@ -409,6 +458,30 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
               </View>
 
               <View style={styles.modalForm}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Group Image <Text style={styles.optionalLabel}>(optional)</Text></Text>
+                  {groupImage ? (
+                    <View style={styles.imagePreviewContainer}>
+                      <Image source={{ uri: groupImage }} style={styles.imagePreview} />
+                      <TouchableOpacity
+                        style={styles.removeImageButton}
+                        onPress={handleRemoveImage}
+                        disabled={creating}
+                      >
+                        <Text style={styles.removeImageButtonText}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.imagePickerButton}
+                      onPress={handlePickImage}
+                      disabled={creating}
+                    >
+                      <Text style={styles.imagePickerButtonText}>📷 Choose Image</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Group Name</Text>
                   <TextInput

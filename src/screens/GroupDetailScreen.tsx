@@ -17,6 +17,8 @@ import {
   Linking,
   Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Group, Assignment, GiftIdea } from '../types/group';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +50,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [assigning, setAssigning] = useState(false);
   const [deletingAssignments, setDeletingAssignments] = useState(false);
+  const [editingImage, setEditingImage] = useState<string | null>(null);
+  const [updatingImage, setUpdatingImage] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
   const [giftIdeaModalVisible, setGiftIdeaModalVisible] = useState(false);
@@ -110,6 +114,74 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     await loadGroup(false);
     setRefreshing(false);
   }, [loadGroup]);
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'We need access to your photos to upload a group image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditingImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (group?.image_url) {
+      // If there's an existing image, set editingImage to empty string to indicate removal
+      setEditingImage('');
+    } else {
+      // If no existing image, just clear the selection
+      setEditingImage(null);
+    }
+  };
+
+  const handleSaveImage = async () => {
+    if (!group) return;
+
+    setUpdatingImage(true);
+    try {
+      let imageBase64: string | undefined;
+      if (editingImage) {
+        try {
+          const base64 = await FileSystem.readAsStringAsync(editingImage, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          imageBase64 = `data:image/jpeg;base64,${base64}`;
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          Alert.alert('Error', 'Failed to process image. Please try again.');
+          setUpdatingImage(false);
+          return;
+        }
+      }
+
+      const updatedGroup = await groupService.updateGroup(groupId, imageBase64);
+      setGroup(updatedGroup);
+      setEditingImage(null);
+      Alert.alert('Success', 'Group image updated successfully');
+    } catch (error: any) {
+      const errorMessage = error instanceof GroupServiceError 
+        ? error.appError.userMessage 
+        : getErrorMessage(error);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setUpdatingImage(false);
+    }
+  };
 
   const handleDelete = () => {
     if (!group) return;
@@ -855,6 +927,106 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             {group && (
               <>
                 <Text style={styles.detailsModalTitle}>{group.name}</Text>
+                
+                {userId !== null && userId === group.created_by && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>Group Image</Text>
+                    {editingImage !== null && editingImage !== '' ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image 
+                          source={{ uri: editingImage }} 
+                          style={styles.detailsImagePreview} 
+                        />
+                        <View style={styles.imageActions}>
+                          <TouchableOpacity
+                            style={styles.imageActionButton}
+                            onPress={handlePickImage}
+                            disabled={updatingImage}
+                          >
+                            <Text style={styles.imageActionButtonText}>Change</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.imageActionButton, styles.removeImageButton]}
+                            onPress={handleRemoveImage}
+                            disabled={updatingImage}
+                          >
+                            <Text style={styles.imageActionButtonText}>Remove</Text>
+                          </TouchableOpacity>
+                        </View>
+                        {(editingImage !== (group.image_url || null)) && (
+                          <TouchableOpacity
+                            style={[commonStyles.button, styles.saveImageButton]}
+                            onPress={handleSaveImage}
+                            disabled={updatingImage}
+                          >
+                            {updatingImage ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={styles.saveImageButtonText}>Save Image</Text>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ) : editingImage === '' ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <View style={[styles.detailsImagePreview, { backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ fontSize: 40 }}>🎁</Text>
+                        </View>
+                        <View style={styles.imageActions}>
+                          <TouchableOpacity
+                            style={styles.imageActionButton}
+                            onPress={handlePickImage}
+                            disabled={updatingImage}
+                          >
+                            <Text style={styles.imageActionButtonText}>Choose Image</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity
+                          style={[commonStyles.button, styles.saveImageButton]}
+                          onPress={handleSaveImage}
+                          disabled={updatingImage}
+                        >
+                          {updatingImage ? (
+                            <ActivityIndicator color="#fff" />
+                          ) : (
+                            <Text style={styles.saveImageButtonText}>Save Changes</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    ) : group.image_url ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image 
+                          source={{ uri: group.image_url }} 
+                          style={styles.detailsImagePreview} 
+                        />
+                        <View style={styles.imageActions}>
+                          <TouchableOpacity
+                            style={styles.imageActionButton}
+                            onPress={handlePickImage}
+                            disabled={updatingImage}
+                          >
+                            <Text style={styles.imageActionButtonText}>Change</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.imageActionButton, styles.removeImageButton]}
+                            onPress={handleRemoveImage}
+                            disabled={updatingImage}
+                          >
+                            <Text style={styles.imageActionButtonText}>Remove</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.imagePickerButton}
+                        onPress={handlePickImage}
+                        disabled={updatingImage}
+                      >
+                        <Text style={styles.imagePickerButtonText}>📷 Choose Image</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
                 
                 {group.description && (
                   <View style={styles.detailsSection}>
