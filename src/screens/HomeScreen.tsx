@@ -95,7 +95,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const handleAcceptInvitation = async (invitationId: number) => {
     try {
       await groupService.acceptInvitation(invitationId);
-      Alert.alert('Success', 'Invitation accepted! You can now view the group.');
       await loadInvitations();
       await loadGroups();
     } catch (error: any) {
