@@ -154,47 +154,68 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     );
   };
 
-  const renderGroupItem = ({ item }: { item: Group }) => (
-    <TouchableOpacity
-      style={commonStyles.card}
-      onPress={() => onGroupPress(item.id.toString())}
-      activeOpacity={0.7}
-    >
-      <View style={styles.groupContent}>
-        <Text style={styles.groupName}>{item.name}</Text>
-        {item.description && (
-          <Text style={styles.groupDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-        )}
-        <Text style={styles.groupDate}>
-          Created {new Date(item.created_at).toLocaleDateString()}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderGroupItem = ({ item }: { item: Group }) => {
+    const memberCount = (item.members?.length || 0) + 1; // +1 for owner
+    return (
+      <TouchableOpacity
+        style={styles.groupCard}
+        onPress={() => onGroupPress(item.id.toString())}
+        activeOpacity={0.7}
+      >
+        <View style={styles.groupCardContent}>
+          <View style={styles.groupCardHeader}>
+            <View style={styles.groupIconContainer}>
+              <Text style={styles.groupIcon}>🎁</Text>
+            </View>
+            <View style={styles.groupCardInfo}>
+              <Text style={styles.groupName} numberOfLines={1}>{item.name}</Text>
+              {item.description && (
+                <Text style={styles.groupDescription} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              )}
+              <View style={styles.groupMeta}>
+                <Text style={styles.groupMemberCount}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
+                <Text style={styles.groupMetaDot}>•</Text>
+                <Text style={styles.groupDate}>
+                  {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderInvitationItem = ({ item }: { item: Invitation }) => (
-    <View key={item.id} style={commonStyles.card}>
-      <View style={styles.invitationContent}>
-        <Text style={styles.invitationGroupName}>{item.group_name}</Text>
-        <Text style={styles.invitationText}>
-          Invited by {item.inviter_display_name} (@{item.inviter_username})
-        </Text>
-      </View>
-      <View style={styles.invitationActions}>
-        <TouchableOpacity
-          style={[styles.acceptButton, { marginRight: spacing.sm }]}
-          onPress={() => handleAcceptInvitation(item.id)}
-        >
-          <Text style={styles.acceptButtonText}>Accept</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.rejectButton}
-          onPress={() => handleRejectInvitation(item.id)}
-        >
-          <Text style={styles.rejectButtonText}>Reject</Text>
-        </TouchableOpacity>
+    <View key={item.id} style={styles.invitationCard}>
+      <View style={styles.invitationCardContent}>
+        <View style={styles.invitationHeader}>
+          <View style={styles.invitationIconContainer}>
+            <Text style={styles.invitationIcon}>📬</Text>
+          </View>
+          <View style={styles.invitationInfo}>
+            <Text style={styles.invitationGroupName} numberOfLines={1}>{item.group_name}</Text>
+            <Text style={styles.invitationText} numberOfLines={1}>
+              from {item.inviter_display_name}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.invitationActions}>
+          <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={() => handleAcceptInvitation(item.id)}
+          >
+            <Text style={styles.acceptButtonText}>Accept</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.rejectButton}
+            onPress={() => handleRejectInvitation(item.id)}
+          >
+            <Text style={styles.rejectButtonText}>Reject</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -243,7 +264,12 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
       {invitations.length > 0 && (
         <View style={styles.invitationsSection}>
-          <Text style={styles.sectionTitle}>Pending Invitations</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pending Invitations</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{invitations.length}</Text>
+            </View>
+          </View>
           {loadingInvitations ? (
             <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
           ) : (
@@ -261,8 +287,17 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
       {groups.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Text style={styles.emptyIcon}>🎁</Text>
+          </View>
           <Text style={styles.emptyText}>No groups yet</Text>
-          <Text style={styles.emptySubtext}>Create your first group to get started</Text>
+          <Text style={styles.emptySubtext}>Create your first group to start organizing your Secret Santa exchange</Text>
+          <TouchableOpacity
+            style={styles.emptyCreateButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <Text style={styles.emptyCreateButtonText}>Create Your First Group</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -469,13 +504,34 @@ const styles = StyleSheet.create({
   },
   invitationsSection: {
     padding: spacing.lg,
+    paddingTop: spacing.xl,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     ...typography.h3,
-    marginBottom: spacing.md,
+    fontSize: 18,
     color: colors.text,
+    marginRight: spacing.sm,
+  },
+  badge: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   loader: {
     marginVertical: spacing.xl,
@@ -483,14 +539,47 @@ const styles = StyleSheet.create({
   invitationsList: {
     paddingRight: spacing.lg,
   },
-  invitationContent: {
+  invitationCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    width: 280,
+    marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  invitationCardContent: {
+    padding: spacing.lg,
+  },
+  invitationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  invitationIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  invitationIcon: {
+    fontSize: 20,
+  },
+  invitationInfo: {
+    flex: 1,
   },
   invitationGroupName: {
     ...typography.body,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs / 2,
   },
   invitationText: {
     ...typography.bodySmall,
@@ -498,12 +587,13 @@ const styles = StyleSheet.create({
   },
   invitationActions: {
     flexDirection: 'row',
+    gap: spacing.sm,
   },
   acceptButton: {
     flex: 1,
     backgroundColor: colors.primary,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -516,9 +606,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   rejectButtonText: {
     color: colors.textSecondary,
@@ -527,8 +619,44 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
-  groupContent: {
+  groupCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  groupCardContent: {
+    flex: 1,
+  },
+  groupCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  groupIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  groupIcon: {
+    fontSize: 24,
+  },
+  groupCardInfo: {
     flex: 1,
   },
   groupName: {
@@ -542,6 +670,21 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
+    lineHeight: 20,
+  },
+  groupMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  groupMemberCount: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  groupMetaDot: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginHorizontal: spacing.xs,
   },
   groupDate: {
     ...typography.caption,
@@ -553,15 +696,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.xl * 2,
   },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  emptyIcon: {
+    fontSize: 40,
+  },
   emptyText: {
-    ...typography.h3,
-    color: colors.textSecondary,
+    ...typography.h2,
+    fontSize: 22,
+    color: colors.text,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptySubtext: {
-    ...typography.bodySmall,
-    color: colors.textTertiary,
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: 22,
+  },
+  emptyCreateButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 12,
+    marginTop: spacing.md,
+  },
+  emptyCreateButtonText: {
+    color: '#fff',
+    ...typography.body,
+    fontWeight: '600',
   },
   menuOverlay: {
     flex: 1,
