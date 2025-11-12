@@ -270,8 +270,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           renderItem={renderGroupItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
-          refreshing={loading}
-          onRefresh={loadGroups}
+          refreshing={loading || loadingInvitations}
+          onRefresh={async () => {
+            await Promise.all([loadGroups(), loadInvitations()]);
+          }}
         />
       )}
 
