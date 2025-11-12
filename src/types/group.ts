@@ -48,6 +48,7 @@ export interface Assignment {
   receiver_id: number;
   receiver_username: string;
   receiver_display_name: string;
+  receiver_image_url?: string | null;
 }
 
 export interface GiftIdeaUser {

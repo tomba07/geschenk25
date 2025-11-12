@@ -633,9 +633,15 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               {assignment ? (
                 <View style={styles.assignmentCard}>
                   <View style={styles.assignmentCardHeader}>
-                    <View style={styles.assignmentIconContainer}>
-                      <Text style={styles.assignmentIcon}>🎯</Text>
-                    </View>
+                    {assignment.receiver_image_url ? (
+                      <Image source={{ uri: assignment.receiver_image_url }} style={styles.assignmentIconContainer} />
+                    ) : (
+                      <View style={styles.assignmentIconContainer}>
+                        <Text style={styles.assignmentIcon}>
+                          {assignment.receiver_display_name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.assignmentInfo}>
                       <Text style={styles.assignmentLabel}>You are assigned to</Text>
                       <Text style={styles.assignmentName}>{assignment.receiver_display_name}</Text>
@@ -2015,9 +2021,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+    overflow: 'hidden',
   },
   assignmentIcon: {
-    fontSize: 24,
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: '600',
   },
   assignmentInfo: {
     flex: 1,
