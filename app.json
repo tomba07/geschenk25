@@ -27,12 +27,6 @@
             "badge": true,
             "alert": true
           }
-        ],
-        [
-          "expo-image-picker",
-          {
-            "photosPermission": "The app accesses your photos to let you upload group images."
-          }
         ]
       ]
     },
@@ -52,12 +46,6 @@
             "sound": true,
             "badge": true,
             "defaultChannel": "default"
-          }
-        ],
-        [
-          "expo-image-picker",
-          {
-            "photosPermission": "The app accesses your photos to let you upload group images."
           }
         ]
       ],
