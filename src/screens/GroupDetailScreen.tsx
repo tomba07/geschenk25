@@ -601,19 +601,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <Text style={styles.sectionTitle}>Assignments</Text>
         {isOwner && (
                   <View style={styles.assignButtonContainer}>
-                    {hasAssignments ? (
-                      <TouchableOpacity
-                        style={[styles.undoButton, deletingAssignments && styles.assignButtonDisabled]}
-                        onPress={handleDeleteAssignments}
-                        disabled={deletingAssignments}
-                      >
-                        {deletingAssignments ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={styles.undoButtonText}>Undo</Text>
-                        )}
-          </TouchableOpacity>
-                    ) : (
+                    {!hasAssignments && (
                       <TouchableOpacity
                         style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
                         onPress={handleAssignSecretSanta}
@@ -624,8 +612,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         ) : (
                           <Text style={styles.assignButtonText}>Assign</Text>
                         )}
-                      </TouchableOpacity>
-                    )}
+          </TouchableOpacity>
+        )}
                   </View>
                 )}
       </View>
@@ -686,47 +674,46 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     return (
                       <View key={idea.id} style={styles.giftIdeaCard}>
                         <View style={styles.giftIdeaContent}>
-                          <Text style={styles.giftIdeaText}>{idea.idea}</Text>
-                          {idea.link && (
-                            <TouchableOpacity
-                              style={styles.giftIdeaLink}
-                              onPress={() => {
-                                const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
-                                  ? idea.link!
-                                  : `https://${idea.link!}`;
-                                Linking.openURL(url).catch((err) => {
-                                  console.error('Failed to open URL:', err);
-                                  Alert.alert('Error', 'Could not open link');
-                                });
-                              }}
-                            >
-                              <Text style={styles.giftIdeaLinkText}>🔗 Open Link</Text>
-                            </TouchableOpacity>
-                          )}
-                          <View style={styles.giftIdeaMeta}>
-                            <Text style={styles.giftIdeaMetaText}>
-                              For: {idea.for_user.display_name}
-                            </Text>
+                          <View style={styles.giftIdeaMainContent}>
+                            <View style={styles.giftIdeaTextContainer}>
+                              <Text style={styles.giftIdeaText}>{idea.idea}</Text>
+                              {idea.link && (
+                                <TouchableOpacity
+                                  style={styles.giftIdeaLink}
+                                  onPress={() => {
+                                    const url = idea.link!.startsWith('http://') || idea.link!.startsWith('https://')
+                                      ? idea.link!
+                                      : `https://${idea.link!}`;
+                                    Linking.openURL(url).catch((err) => {
+                                      console.error('Failed to open URL:', err);
+                                      Alert.alert('Error', 'Could not open link');
+                                    });
+                                  }}
+                                >
+                                  <Text style={styles.giftIdeaLinkText}>🔗 Open Link</Text>
+                                </TouchableOpacity>
+                              )}
+                              <View style={styles.giftIdeaMeta}>
+                                <Text style={styles.giftIdeaMetaText}>
+                                  For: {idea.for_user.display_name}
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={styles.giftIdeaActionButtons}>
+                              <TouchableOpacity
+                                style={styles.giftIdeaButton}
+                                onPress={() => handleOpenGiftIdeaModal(undefined, idea)}
+                              >
+                                <Text style={styles.giftIdeaButtonText}>Edit</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.giftIdeaButton}
+                                onPress={() => handleDeleteGiftIdea(idea.id)}
+                              >
+                                <Text style={styles.giftIdeaButtonText}>Delete</Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
-                        </View>
-                        <View style={styles.giftIdeaActions}>
-                          <TouchableOpacity
-                            style={styles.editGiftIdeaButton}
-                            onPress={() => handleOpenGiftIdeaModal(undefined, idea)}
-                          >
-                            <Text style={styles.editGiftIdeaButtonText}>Edit</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.deleteGiftIdeaButton}
-                            onPress={() => handleDeleteGiftIdea(idea.id)}
-                            disabled={deletingGiftIdea === idea.id}
-                          >
-                            {deletingGiftIdea === idea.id ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Text style={styles.deleteGiftIdeaButtonText}>Delete</Text>
-                            )}
-                          </TouchableOpacity>
                         </View>
                       </View>
                     );
@@ -1080,19 +1067,36 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           )}
 
                 {userId !== null && userId === group.created_by && (
-                  <View style={styles.detailsActions}>
-                    <TouchableOpacity
-                      style={styles.deleteButtonInModal}
-                      onPress={handleDelete}
-                      disabled={deleting}
-                    >
-                      {deleting ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.deleteButtonTextInModal}>Delete Group</Text>
-                      )}
-                    </TouchableOpacity>
+                  <>
+                    {hasAssignments && (
+                      <View style={styles.detailsActions}>
+                        <TouchableOpacity
+                          style={[commonStyles.button, styles.undoButtonInModal, deletingAssignments && styles.buttonDisabled]}
+                          onPress={handleDeleteAssignments}
+                          disabled={deletingAssignments}
+                        >
+                          {deletingAssignments ? (
+                            <ActivityIndicator color="#fff" />
+                          ) : (
+                            <Text style={commonStyles.buttonText}>Undo Assignments</Text>
+                          )}
+                        </TouchableOpacity>
         </View>
+                    )}
+                    <View style={styles.detailsActions}>
+                      <TouchableOpacity
+                        style={styles.deleteButtonInModal}
+                        onPress={handleDelete}
+                        disabled={deleting}
+                      >
+                        {deleting ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.deleteButtonTextInModal}>Delete Group</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </>
                 )}
 
                 <TouchableOpacity
@@ -1452,6 +1456,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
   },
+  undoButtonInModal: {
+    marginBottom: spacing.md,
+  },
   closeButton: {
     marginTop: spacing.md,
   },
@@ -1686,7 +1693,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   giftIdeaContent: {
-    marginBottom: spacing.md,
+    flex: 1,
+  },
+  giftIdeaMainContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  giftIdeaTextContainer: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   giftIdeaText: {
     ...typography.body,
@@ -1701,39 +1716,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
   },
-  giftIdeaActions: {
+  giftIdeaActionButtons: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  editGiftIdeaButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
+    gap: spacing.md,
     alignItems: 'center',
   },
-  editGiftIdeaButtonText: {
-    color: '#fff',
-    ...typography.bodySmall,
-    fontWeight: '600',
-  },
-  deleteGiftIdeaButton: {
-    flex: 1,
-    backgroundColor: colors.danger,
+  giftIdeaButton: {
     paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
   },
-  deleteGiftIdeaButtonText: {
-    color: '#fff',
-    ...typography.bodySmall,
-    fontWeight: '600',
+  giftIdeaButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   noGiftIdeasCard: {
     backgroundColor: colors.surface,
