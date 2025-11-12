@@ -80,6 +80,40 @@ export const groupService = {
     return response.data?.group || null;
   },
 
+  // Update a group
+  async updateGroup(groupId: string, imageUrl?: string): Promise<Group> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.updateGroup');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.updateGroup(id, imageUrl);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.updateGroup');
+      throw new GroupServiceError(appError);
+    }
+
+    if (!response.data?.group) {
+      const appError: AppError = {
+        type: ErrorType.API,
+        message: 'No group data returned',
+        userMessage: 'Failed to update group. Please try again.',
+      };
+      logError(appError, 'groupService.updateGroup');
+      throw new GroupServiceError(appError);
+    }
+
+    return response.data.group;
+  },
+
   // Delete a group
   async deleteGroup(groupId: string): Promise<void> {
     const id = parseInt(groupId);

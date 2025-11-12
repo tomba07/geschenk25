@@ -185,6 +185,13 @@ class ApiClient {
     });
   }
 
+  async updateGroup(id: number, image_url?: string) {
+    return this.request<{ group: any }>(`/api/groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image_url }),
+    });
+  }
+
   async deleteGroup(id: number) {
     return this.request<{ message: string }>(`/api/groups/${id}`, {
       method: 'DELETE',
