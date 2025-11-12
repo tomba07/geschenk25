@@ -17,7 +17,9 @@
       "requireFullScreen": true,
       "bundleIdentifier": "com.tomba07.geschenk25",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIRequiredDeviceCapabilities": ["armv7"],
+        "UIDeviceFamily": [1]
       },
       "plugins": [
         [

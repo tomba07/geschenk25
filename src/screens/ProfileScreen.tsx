@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
@@ -82,7 +83,12 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.section}>
           <Text style={styles.label}>Username</Text>
           <Text style={styles.value}>@{username}</Text>
@@ -134,7 +140,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -156,8 +162,12 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 60,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     padding: spacing.xl,
+    paddingBottom: spacing.xxl * 2,
   },
   section: {
     marginBottom: spacing.xxl,
