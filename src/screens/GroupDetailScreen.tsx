@@ -175,7 +175,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       const updatedGroup = await groupService.updateGroup(groupId, imageBase64);
       setGroup(updatedGroup);
       setEditingImage(null);
-      Alert.alert('Success', 'Group image updated successfully');
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
         ? error.appError.userMessage 
@@ -271,7 +270,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setInviteModalVisible(false);
       setSearchQuery('');
       setSearchResults([]);
-      Alert.alert('Success', 'Invitation sent successfully');
       await loadGroup();
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
@@ -408,7 +406,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             setAssigning(true);
             try {
               await groupService.assignSecretSanta(groupId);
-              Alert.alert('Success', 'Secret Santa assignments created successfully!');
               await loadGroup();
             } catch (error: any) {
               const errorMessage = error instanceof GroupServiceError 
@@ -442,7 +439,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             setDeletingAssignments(true);
             try {
               await groupService.deleteAssignments(groupId);
-              Alert.alert('Success', 'Assignments undone successfully!');
               await loadGroup();
             } catch (error: any) {
               const errorMessage = error instanceof GroupServiceError 
@@ -493,10 +489,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       const linkValue = giftIdeaLink.trim() || undefined;
       if (editingGiftIdea) {
         await groupService.updateGiftIdea(groupId, editingGiftIdea.id, giftIdeaText.trim(), linkValue);
-        Alert.alert('Success', 'Gift idea updated successfully');
       } else {
         await groupService.createGiftIdea(groupId, selectedForUserId, giftIdeaText.trim(), linkValue);
-        Alert.alert('Success', 'Gift idea created successfully');
       }
       handleCloseGiftIdeaModal();
       await loadGroup();

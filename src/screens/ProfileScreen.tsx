@@ -113,8 +113,6 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
     if (errors.length > 0) {
       Alert.alert('Error', errors.join('\n'));
-    } else if (displayNameChanged || imageChanged) {
-      Alert.alert('Success', 'Profile updated successfully');
     }
   };
 

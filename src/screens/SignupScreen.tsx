@@ -59,16 +59,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     if (error) {
       Alert.alert('Signup Error', error.message);
     } else {
-      Alert.alert(
-        'Success',
-        'Account created! You can now sign in with your username.',
-        [
-          {
-            text: 'OK',
-            onPress: onSwitchToLogin,
-          },
-        ]
-      );
+      onSwitchToLogin();
     }
   };
 
