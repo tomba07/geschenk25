@@ -22,70 +22,86 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
   // Handle deep linking for invite links
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
       const parsed = Linking.parse(event.url);
-      // URL format: geschenk25://join/TOKEN
-      const pathSegments = parsed.path?.split('/').filter(Boolean) || [];
       
-      if (pathSegments[0] === 'join' && pathSegments[1]) {
-        const token = pathSegments[1];
-        
-        if (!isAuthenticated) {
-          Alert.alert('Login Required', 'Please log in to join the group.');
-          return;
+      // URL format: geschenk25://join/TOKEN
+      // Parsed structure: { hostname: "join", path: "TOKEN", scheme: "geschenk25" }
+      let token: string | null = null;
+      
+      // Extract token from path when hostname is "join"
+      if (parsed.hostname === 'join' && parsed.path) {
+        token = parsed.path.replace(/^\//, ''); // Remove leading slash if present
+      } else if (parsed.path) {
+        // Fallback: try to extract from path segments
+        const pathSegments = parsed.path.split('/').filter(Boolean);
+        if (pathSegments[0] === 'join' && pathSegments[1]) {
+          token = pathSegments[1];
+        } else if (pathSegments.length > 0) {
+          token = pathSegments[0];
         }
-
-        // Get group info
-        const groupResponse = await apiClient.getGroupByInviteToken(token);
-        if (groupResponse.error || !groupResponse.data) {
-          Alert.alert('Error', groupResponse.error || 'Invalid invite link');
-          return;
-        }
-
-        const group = groupResponse.data.group;
-
-        // Show join confirmation
-        Alert.alert(
-          'Join Group',
-          `Do you want to join "${group.name}"?`,
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Join',
-              onPress: async () => {
-                try {
-                  const joinResponse = await apiClient.joinGroupByToken(token);
-                  if (joinResponse.error) {
-                    Alert.alert('Error', joinResponse.error);
-                    return;
-                  }
-                  
-                  Alert.alert('Success', 'You have joined the group!', [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        setSelectedGroupId(joinResponse.data?.group_id.toString() || null);
-                        setCurrentScreen('groupDetail');
-                        setRefreshHomeKey(prev => prev + 1);
-                      },
-                    },
-                  ]);
-                } catch (error) {
-                  Alert.alert('Error', getErrorMessage(error));
-                }
-              },
-            },
-          ]
-        );
       }
+      
+      if (!token) {
+        console.error('Could not extract token from invite link:', event.url);
+        return;
+      }
+      
+      if (!isAuthenticated) {
+        // Fail silently if user is not logged in
+        return;
+      }
+
+      // Get group info
+      const groupResponse = await apiClient.getGroupByInviteToken(token);
+      if (groupResponse.error || !groupResponse.data) {
+        Alert.alert('Error', groupResponse.error || 'Invalid invite link');
+        return;
+      }
+
+      const group = groupResponse.data.group;
+
+      // Show join confirmation
+      Alert.alert(
+        'Join Group',
+        `Do you want to join "${group.name}"?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Join',
+            onPress: async () => {
+              try {
+                const joinResponse = await apiClient.joinGroupByToken(token);
+                if (joinResponse.error) {
+                  Alert.alert('Error', joinResponse.error);
+                  return;
+                }
+                
+                Alert.alert('Success', 'You have joined the group!', [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      setSelectedGroupId(joinResponse.data?.group_id.toString() || null);
+                      setCurrentScreen('groupDetail');
+                      setRefreshHomeKey(prev => prev + 1);
+                    },
+                  },
+                ]);
+              } catch (error) {
+                Alert.alert('Error', getErrorMessage(error));
+              }
+            },
+          },
+        ]
+      );
     };
 
     // Handle initial URL (when app is opened via deep link)
@@ -93,6 +109,8 @@ function AppContent() {
       if (url) {
         handleDeepLink({ url });
       }
+    }).catch((error) => {
+      console.error('Error getting initial URL:', error);
     });
 
     // Handle deep links while app is running
