@@ -135,6 +135,13 @@ function AppContent() {
             // Force refresh of home screen to reload invitations
             setRefreshHomeKey(prev => prev + 1);
           }
+          
+          // Navigate to group detail if it's an assignment notification
+          if (data?.type === 'assignment' && data?.groupId) {
+            setSelectedGroupId(data.groupId.toString());
+            setCurrentScreen('groupDetail');
+            setRefreshHomeKey(prev => prev + 1);
+          }
         }
       );
 
