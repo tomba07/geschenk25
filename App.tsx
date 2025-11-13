@@ -125,20 +125,59 @@ function AppContent() {
         (notification) => {
           console.log('Notification received:', notification);
         },
-        (response) => {
+        async (response) => {
           console.log('Notification tapped:', response);
-          const data = response.notification.request.content.data;
+          const data = response.notification.request.content.data as any;
           
-          // Navigate to home screen if it's an invitation notification
-          if (data?.type === 'invitation') {
-            setCurrentScreen('home');
-            // Force refresh of home screen to reload invitations
-            setRefreshHomeKey(prev => prev + 1);
+          // Show join dialog if it's an invitation notification
+          if (data?.type === 'invitation' && data?.groupId && data?.invitationId) {
+            const groupName = data.groupName || 'this group';
+            const invitationId = Number(data.invitationId);
+            const groupId = Number(data.groupId);
+            
+            Alert.alert(
+              'Join Group',
+              `Do you want to join "${groupName}"?`,
+              [
+                {
+                  text: 'Reject',
+                  style: 'cancel',
+                  onPress: async () => {
+                    try {
+                      await apiClient.rejectInvitation(invitationId);
+                      setRefreshHomeKey(prev => prev + 1);
+                    } catch (error) {
+                      Alert.alert('Error', getErrorMessage(error));
+                    }
+                  },
+                },
+                {
+                  text: 'Accept',
+                  onPress: async () => {
+                    try {
+                      const acceptResponse = await apiClient.acceptInvitation(invitationId);
+                      if (acceptResponse.error) {
+                        Alert.alert('Error', acceptResponse.error);
+                        return;
+                      }
+                      
+                      // Navigate directly to the group
+                      setSelectedGroupId(groupId.toString());
+                      setCurrentScreen('groupDetail');
+                      setRefreshHomeKey(prev => prev + 1);
+                    } catch (error) {
+                      Alert.alert('Error', getErrorMessage(error));
+                    }
+                  },
+                },
+              ]
+            );
           }
           
           // Navigate to group detail if it's an assignment notification
           if (data?.type === 'assignment' && data?.groupId) {
-            setSelectedGroupId(data.groupId.toString());
+            const groupId = Number(data.groupId);
+            setSelectedGroupId(groupId.toString());
             setCurrentScreen('groupDetail');
             setRefreshHomeKey(prev => prev + 1);
           }
