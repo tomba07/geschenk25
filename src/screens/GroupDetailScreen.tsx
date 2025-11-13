@@ -17,6 +17,7 @@ import {
   Linking,
   Image,
   Share,
+  InteractionManager,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -270,7 +271,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setInviteModalVisible(false);
       setSearchQuery('');
       setSearchResults([]);
-      await loadGroup();
+      // Delay loadGroup to avoid race condition with modal dismissal
+      InteractionManager.runAfterInteractions(() => {
+        loadGroup();
+      });
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
         ? error.appError.userMessage 
@@ -493,7 +497,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         await groupService.createGiftIdea(groupId, selectedForUserId, giftIdeaText.trim(), linkValue);
       }
       handleCloseGiftIdeaModal();
-      await loadGroup();
+      // Delay loadGroup to avoid race condition with modal dismissal
+      InteractionManager.runAfterInteractions(() => {
+        loadGroup();
+      });
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
         ? error.appError.userMessage 
@@ -874,9 +881,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         animationType="slide"
         transparent={true}
         onRequestClose={() => {
-          setInviteModalVisible(false);
-          setSearchQuery('');
-          setSearchResults([]);
+          if (inviteModalVisible) {
+            setInviteModalVisible(false);
+            setSearchQuery('');
+            setSearchResults([]);
+          }
         }}
       >
         <KeyboardAvoidingView
@@ -985,7 +994,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         animationType="fade"
         transparent={true}
         onRequestClose={() => {
-          setDetailsModalVisible(false);
+          if (detailsModalVisible) {
+            setDetailsModalVisible(false);
+          }
         }}
       >
         <View style={commonStyles.modalOverlay}>
@@ -1192,7 +1203,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         visible={assignedPersonGiftIdeasModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setAssignedPersonGiftIdeasModalVisible(false)}
+        onRequestClose={() => {
+          if (assignedPersonGiftIdeasModalVisible) {
+            setAssignedPersonGiftIdeasModalVisible(false);
+          }
+        }}
       >
         <View style={commonStyles.modalOverlay}>
           <View style={commonStyles.modalContent}>
@@ -1254,7 +1269,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         visible={giftIdeaModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={handleCloseGiftIdeaModal}
+        onRequestClose={() => {
+          if (giftIdeaModalVisible) {
+            handleCloseGiftIdeaModal();
+          }
+        }}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -2029,9 +2048,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 100,
     alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.surface,
   },
   cancelButtonText: {
     color: colors.text,

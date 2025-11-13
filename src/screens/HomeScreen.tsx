@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Image,
+  InteractionManager,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -131,10 +132,13 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         imageBase64
       );
       setModalVisible(false);
-      setGroupName('');
-      setGroupDescription('');
-      setGroupImage(null);
-      await loadGroups();
+      // Delay state cleanup and data reload to avoid race condition with modal dismissal
+      InteractionManager.runAfterInteractions(() => {
+        setGroupName('');
+        setGroupDescription('');
+        setGroupImage(null);
+        loadGroups();
+      });
     } catch (error: any) {
       const errorMessage = error instanceof GroupServiceError 
         ? error.appError.userMessage 
@@ -386,13 +390,21 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         visible={menuVisible}
         animationType="fade"
         transparent={true}
-        onRequestClose={() => setMenuVisible(false)}
+        onRequestClose={() => {
+          if (menuVisible) {
+            setMenuVisible(false);
+          }
+        }}
       >
         <View style={styles.menuOverlay}>
           <TouchableOpacity
             style={styles.menuOverlayTouchable}
             activeOpacity={1}
-            onPress={() => setMenuVisible(false)}
+            onPress={() => {
+              if (menuVisible) {
+                setMenuVisible(false);
+              }
+            }}
           />
           <View style={styles.menuContent}>
             <View style={styles.profileInfo}>
@@ -439,7 +451,17 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         visible={modalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          if (modalVisible) {
+            setModalVisible(false);
+            // Delay state cleanup to avoid race condition with modal dismissal
+            InteractionManager.runAfterInteractions(() => {
+              setGroupName('');
+              setGroupDescription('');
+              setGroupImage(null);
+            });
+          }
+        }}
       >
         <KeyboardAvoidingView
           style={commonStyles.modalOverlay}
@@ -449,7 +471,17 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           <TouchableOpacity
             style={styles.modalOverlayTouchable}
             activeOpacity={1}
-            onPress={() => setModalVisible(false)}
+            onPress={() => {
+              if (modalVisible) {
+                setModalVisible(false);
+                // Delay state cleanup to avoid race condition with modal dismissal
+                InteractionManager.runAfterInteractions(() => {
+                  setGroupName('');
+                  setGroupDescription('');
+                  setGroupImage(null);
+                });
+              }
+            }}
           />
           <ScrollView
             contentContainerStyle={styles.modalScrollContent}
@@ -521,10 +553,15 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                 <TouchableOpacity
                   style={[commonStyles.button, styles.cancelButton]}
                   onPress={() => {
-                    setModalVisible(false);
-                    setGroupName('');
-                    setGroupDescription('');
-                    setGroupImage(null);
+                    if (modalVisible) {
+                      setModalVisible(false);
+                      // Delay state cleanup to avoid race condition with modal dismissal
+                      InteractionManager.runAfterInteractions(() => {
+                        setGroupName('');
+                        setGroupDescription('');
+                        setGroupImage(null);
+                      });
+                    }
                   }}
                   disabled={creating}
                 >
