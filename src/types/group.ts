@@ -28,6 +28,7 @@ export interface Group {
   image_url?: string | null;
   created_at: string;
   created_by: number;
+  member_count?: number;
   members?: GroupMember[];
   owner?: GroupOwner;
   pending_invitations?: PendingInvitation[];

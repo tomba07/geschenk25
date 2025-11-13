@@ -207,7 +207,8 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   };
 
   const renderGroupItem = ({ item }: { item: Group }) => {
-    const memberCount = (item.members?.length || 0) + 1; // +1 for owner
+    // Use member_count from API if available, otherwise fall back to members array length
+    const memberCount = item.member_count ?? (item.members ? item.members.length : null);
     return (
       <TouchableOpacity
         style={styles.groupCard}
@@ -231,8 +232,12 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                 </Text>
               )}
               <View style={styles.groupMeta}>
-                <Text style={styles.groupMemberCount}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
-                <Text style={styles.groupMetaDot}>•</Text>
+                {memberCount !== null && (
+                  <>
+                    <Text style={styles.groupMemberCount}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
+                    <Text style={styles.groupMetaDot}>•</Text>
+                  </>
+                )}
                 <Text style={styles.groupDate}>
                   {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </Text>
