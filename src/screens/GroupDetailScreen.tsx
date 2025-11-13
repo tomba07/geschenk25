@@ -814,17 +814,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                           )}
                           <View style={styles.memberInfo}>
                             <View style={styles.memberNameRow}>
-                              <Text style={styles.memberUsername}>{member.display_name}</Text>
-                              {isMemberOwner && (
-                                <View style={styles.ownerBadge}>
-                                  <Text style={styles.ownerBadgeText}>Owner</Text>
-                                </View>
-                              )}
-                            </View>
-                            <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
-                            <Text style={styles.memberDate}>
-                              Joined {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </Text>
+                            <Text style={styles.memberUsername}>{member.display_name}</Text>
+                            {isMemberOwner && (
+                              <View style={styles.ownerBadge}>
+                                <Text style={styles.ownerBadgeText}>Owner</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
                           </View>
                         </View>
                         {isOwner && member.id !== userId && !isMemberOwner && !hasAssignments && (
