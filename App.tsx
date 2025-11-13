@@ -75,31 +75,25 @@ function AppContent() {
             text: 'Cancel',
             style: 'cancel',
           },
-          {
-            text: 'Join',
-            onPress: async () => {
-              try {
-                const joinResponse = await apiClient.joinGroupByToken(token);
-                if (joinResponse.error) {
-                  Alert.alert('Error', joinResponse.error);
-                  return;
+            {
+              text: 'Join',
+              onPress: async () => {
+                try {
+                  const joinResponse = await apiClient.joinGroupByToken(token);
+                  if (joinResponse.error) {
+                    Alert.alert('Error', joinResponse.error);
+                    return;
+                  }
+                  
+                  // Navigate directly to the group
+                  setSelectedGroupId(joinResponse.data?.group_id.toString() || null);
+                  setCurrentScreen('groupDetail');
+                  setRefreshHomeKey(prev => prev + 1);
+                } catch (error) {
+                  Alert.alert('Error', getErrorMessage(error));
                 }
-                
-                Alert.alert('Success', 'You have joined the group!', [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      setSelectedGroupId(joinResponse.data?.group_id.toString() || null);
-                      setCurrentScreen('groupDetail');
-                      setRefreshHomeKey(prev => prev + 1);
-                    },
-                  },
-                ]);
-              } catch (error) {
-                Alert.alert('Error', getErrorMessage(error));
-              }
+              },
             },
-          },
         ]
       );
     };
