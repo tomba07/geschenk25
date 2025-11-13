@@ -43,7 +43,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
-  const [inviteLinkModalVisible, setInviteLinkModalVisible] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [loadingInviteLink, setLoadingInviteLink] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
@@ -285,6 +284,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleGetInviteLink = async () => {
+    if (inviteLink) return; // Already loaded
+    
     setLoadingInviteLink(true);
     try {
       const response = await apiClient.getInviteLink(parseInt(groupId));
@@ -295,10 +296,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         const token = response.data.invite_token;
         const link = `geschenk25://join/${token}`;
         setInviteLink(link);
-        setInviteLinkModalVisible(true);
       }
     } catch (error: any) {
-      Alert.alert('Error', getErrorMessage(error));
+      console.error('Error getting invite link:', error);
     } finally {
       setLoadingInviteLink(false);
     }
@@ -317,15 +317,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     }
   };
 
-  const handleCopyInviteLink = () => {
-    if (!inviteLink) return;
-    // For React Native, we'll use the Clipboard API
-    // But for now, we'll just show it in an alert that can be copied
-    Alert.alert('Invite Link', inviteLink, [
-      { text: 'OK' },
-      { text: 'Share', onPress: handleShareInviteLink },
-    ]);
-  };
 
   const handleRemoveMember = (memberId: number, memberUsername: string) => {
     if (!group) return;
@@ -789,25 +780,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Members</Text>
                 {isOwner && !hasAssignments && (
-                  <View style={styles.inviteButtonsContainer}>
-                    <TouchableOpacity
-                      style={styles.inviteButton}
-                      onPress={() => setInviteModalVisible(true)}
-                    >
-                      <Text style={styles.inviteButtonText}>+ Invite</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.inviteButton, styles.inviteLinkButton]}
-                      onPress={handleGetInviteLink}
-                      disabled={loadingInviteLink}
-                    >
-                      {loadingInviteLink ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.inviteButtonText}>🔗 Link</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.inviteButton}
+                    onPress={() => {
+                      setInviteModalVisible(true);
+                      // Load invite link when opening modal
+                      handleGetInviteLink();
+                    }}
+                  >
+                    <Text style={styles.inviteButtonText}>+ Invite</Text>
+                  </TouchableOpacity>
                 )}
                 {isOwner && hasAssignments && (
                   <Text style={styles.disabledHint}>Undo assignments to edit members</Text>
@@ -914,46 +896,79 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <Text style={styles.modalTitle}>Invite User</Text>
 
             <ScrollView keyboardShouldPersistTaps="handled">
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Search for a user (e.g., @username or username)..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoFocus={true}
-              />
+              {/* Invite Link Section */}
+              <View style={styles.inviteLinkSection}>
+                <Text style={styles.inviteLinkSectionTitle}>Invite Link</Text>
+                <Text style={styles.inviteLinkSectionDescription}>
+                  Share this link to invite others to join your group
+                </Text>
+                {loadingInviteLink ? (
+                  <View style={styles.inviteLinkLoading}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : inviteLink ? (
+                  <View style={styles.inviteLinkContainer}>
+                    <Text style={styles.inviteLinkText} selectable>
+                      {inviteLink}
+                    </Text>
+                  </View>
+                ) : null}
+                {inviteLink && (
+                  <TouchableOpacity
+                    style={[commonStyles.button, styles.shareLinkButton]}
+                    onPress={handleShareInviteLink}
+                  >
+                    <Text style={commonStyles.buttonText}>Share Link</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
-              {searching && (
-                <View style={styles.searchLoader}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                </View>
-              )}
+              <View style={styles.divider} />
 
-              {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
-                <Text style={styles.noResultsText}>No users found</Text>
-              )}
+              {/* Search User Section */}
+              <View style={styles.searchUserSection}>
+                <Text style={styles.searchUserSectionTitle}>Search by Username</Text>
+                <TextInput
+                  style={commonStyles.input}
+                  placeholder="Search for a user (e.g., @username or username)..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus={false}
+                />
 
-              {searchResults.length > 0 && (
-                <View style={styles.searchResultsContainer}>
-                  {searchResults.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.searchResultItem}
-                      onPress={() => handleInvite(item.username)}
-                      disabled={inviting}
-                    >
-                      <View>
-                        <Text style={styles.searchResultUsername}>{item.display_name}</Text>
-                        <Text style={styles.searchResultUsernameSecondary}>@{item.username}</Text>
-                      </View>
-                      {inviting && (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+                {searching && (
+                  <View style={styles.searchLoader}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                )}
+
+                {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
+                  <Text style={styles.noResultsText}>No users found</Text>
+                )}
+
+                {searchResults.length > 0 && (
+                  <View style={styles.searchResultsContainer}>
+                    {searchResults.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.searchResultItem}
+                        onPress={() => handleInvite(item.username)}
+                        disabled={inviting}
+                      >
+                        <View>
+                          <Text style={styles.searchResultUsername}>{item.display_name}</Text>
+                          <Text style={styles.searchResultUsernameSecondary}>@{item.username}</Text>
+                        </View>
+                        {inviting && (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity
@@ -965,52 +980,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   }}
                   disabled={inviting}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Invite Link Modal */}
-      <Modal
-        visible={inviteLinkModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setInviteLinkModalVisible(false)}
-      >
-        <View style={commonStyles.modalOverlay}>
-          <View style={commonStyles.modalContent}>
-            <Text style={styles.modalTitle}>Invite Link</Text>
-            <Text style={styles.modalSubtitle}>
-              Share this link to invite others to join your group
-            </Text>
-
-            {inviteLink && (
-              <View style={styles.inviteLinkContainer}>
-                <Text style={styles.inviteLinkText} selectable>
-                  {inviteLink}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[commonStyles.button, styles.cancelButton]}
-                onPress={() => setInviteLinkModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={commonStyles.button}
-                onPress={handleShareInviteLink}
-              >
-                <Text style={commonStyles.buttonText}>Share</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
       </Modal>
 
       {/* Group Details Modal */}
@@ -1630,18 +1605,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  inviteButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
   inviteButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs * 1.5,
     borderRadius: 8,
-  },
-  inviteLinkButton: {
-    backgroundColor: colors.primary,
   },
   inviteButtonText: {
     color: '#fff',
@@ -1660,6 +1628,41 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  inviteLinkSection: {
+    marginBottom: spacing.xl,
+  },
+  inviteLinkSectionTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  inviteLinkSectionDescription: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  inviteLinkLoading: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  shareLinkButton: {
+    marginTop: spacing.sm,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.xl,
+  },
+  searchUserSection: {
+    marginBottom: spacing.lg,
+  },
+  searchUserSectionTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   membersList: {
     marginTop: spacing.sm,
