@@ -22,21 +22,22 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit & { requireAuth?: boolean } = {}
   ): Promise<ApiResponse<T>> {
+    const { requireAuth = true, ...fetchOptions } = options;
     const url = `${this.baseUrl}${endpoint}`;
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...fetchOptions.headers,
     };
 
-    if (this.token) {
+    if (requireAuth && this.token) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
     }
 
     try {
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
       });
 
@@ -236,6 +237,25 @@ class ApiClient {
     return this.request<{ message: string }>(`/api/groups/${groupId}/invitations/${invitationId}`, {
       method: 'DELETE',
     });
+  }
+
+  // Invite link endpoints
+  async getInviteLink(groupId: number) {
+    return this.request<{ invite_token: string }>(`/api/groups/${groupId}/invite-link`);
+  }
+
+  async joinGroupByToken(token: string) {
+    return this.request<{ message: string; group_id: number }>(`/api/groups/join/${token}`, {
+      method: 'POST',
+    });
+  }
+
+  async getGroupByInviteToken(token: string) {
+    // Public endpoint, no auth required
+    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null } }>(
+      `/api/groups/invite/${token}`,
+      { requireAuth: false }
+    );
   }
 
   async removeMember(groupId: number, userId: number) {

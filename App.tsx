@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 import { colors } from './src/styles/theme';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { registerForPushNotifications, setupNotificationHandlers } from './src/services/notifications';
+import { apiClient } from './src/lib/api';
+import { getErrorMessage } from './src/utils/errors';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -21,6 +24,84 @@ function AppContent() {
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
+
+  // Handle deep linking for invite links
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const parsed = Linking.parse(event.url);
+      // URL format: geschenk25://join/TOKEN
+      const pathSegments = parsed.path?.split('/').filter(Boolean) || [];
+      
+      if (pathSegments[0] === 'join' && pathSegments[1]) {
+        const token = pathSegments[1];
+        
+        if (!isAuthenticated) {
+          Alert.alert('Login Required', 'Please log in to join the group.');
+          return;
+        }
+
+        // Get group info
+        const groupResponse = await apiClient.getGroupByInviteToken(token);
+        if (groupResponse.error || !groupResponse.data) {
+          Alert.alert('Error', groupResponse.error || 'Invalid invite link');
+          return;
+        }
+
+        const group = groupResponse.data.group;
+
+        // Show join confirmation
+        Alert.alert(
+          'Join Group',
+          `Do you want to join "${group.name}"?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Join',
+              onPress: async () => {
+                try {
+                  const joinResponse = await apiClient.joinGroupByToken(token);
+                  if (joinResponse.error) {
+                    Alert.alert('Error', joinResponse.error);
+                    return;
+                  }
+                  
+                  Alert.alert('Success', 'You have joined the group!', [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        setSelectedGroupId(joinResponse.data?.group_id.toString() || null);
+                        setCurrentScreen('groupDetail');
+                        setRefreshHomeKey(prev => prev + 1);
+                      },
+                    },
+                  ]);
+                } catch (error) {
+                  Alert.alert('Error', getErrorMessage(error));
+                }
+              },
+            },
+          ]
+        );
+      }
+    };
+
+    // Handle initial URL (when app is opened via deep link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    // Handle deep links while app is running
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {

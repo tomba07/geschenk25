@@ -21,6 +21,7 @@
         "UIRequiredDeviceCapabilities": ["armv7"],
         "UIDeviceFamily": [1]
       },
+      "scheme": "geschenk25",
       "plugins": [
         [
           "expo-notifications",
@@ -43,6 +44,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "scheme": "geschenk25",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "plugins": [

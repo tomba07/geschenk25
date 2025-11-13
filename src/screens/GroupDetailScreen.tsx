@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Linking,
   Image,
+  Share,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -42,6 +43,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteLinkModalVisible, setInviteLinkModalVisible] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [loadingInviteLink, setLoadingInviteLink] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
@@ -278,6 +282,49 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     } finally {
       setInviting(false);
     }
+  };
+
+  const handleGetInviteLink = async () => {
+    setLoadingInviteLink(true);
+    try {
+      const response = await apiClient.getInviteLink(parseInt(groupId));
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      if (response.data) {
+        const token = response.data.invite_token;
+        const link = `geschenk25://join/${token}`;
+        setInviteLink(link);
+        setInviteLinkModalVisible(true);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', getErrorMessage(error));
+    } finally {
+      setLoadingInviteLink(false);
+    }
+  };
+
+  const handleShareInviteLink = async () => {
+    if (!inviteLink || !group) return;
+    
+    try {
+      await Share.share({
+        message: `Join my Secret Santa group "${group.name}"! ${inviteLink}`,
+        url: inviteLink,
+      });
+    } catch (error: any) {
+      console.error('Error sharing invite link:', error);
+    }
+  };
+
+  const handleCopyInviteLink = () => {
+    if (!inviteLink) return;
+    // For React Native, we'll use the Clipboard API
+    // But for now, we'll just show it in an alert that can be copied
+    Alert.alert('Invite Link', inviteLink, [
+      { text: 'OK' },
+      { text: 'Share', onPress: handleShareInviteLink },
+    ]);
   };
 
   const handleRemoveMember = (memberId: number, memberUsername: string) => {
@@ -742,12 +789,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Members</Text>
                 {isOwner && !hasAssignments && (
-                  <TouchableOpacity
-                    style={styles.inviteButton}
-                    onPress={() => setInviteModalVisible(true)}
-                  >
-                    <Text style={styles.inviteButtonText}>+ Invite</Text>
-                  </TouchableOpacity>
+                  <View style={styles.inviteButtonsContainer}>
+                    <TouchableOpacity
+                      style={styles.inviteButton}
+                      onPress={() => setInviteModalVisible(true)}
+                    >
+                      <Text style={styles.inviteButtonText}>+ Invite</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.inviteButton, styles.inviteLinkButton]}
+                      onPress={handleGetInviteLink}
+                      disabled={loadingInviteLink}
+                    >
+                      {loadingInviteLink ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.inviteButtonText}>🔗 Link</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 )}
                 {isOwner && hasAssignments && (
                   <Text style={styles.disabledHint}>Undo assignments to edit members</Text>
@@ -911,6 +971,46 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Invite Link Modal */}
+      <Modal
+        visible={inviteLinkModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setInviteLinkModalVisible(false)}
+      >
+        <View style={commonStyles.modalOverlay}>
+          <View style={commonStyles.modalContent}>
+            <Text style={styles.modalTitle}>Invite Link</Text>
+            <Text style={styles.modalSubtitle}>
+              Share this link to invite others to join your group
+            </Text>
+
+            {inviteLink && (
+              <View style={styles.inviteLinkContainer}>
+                <Text style={styles.inviteLinkText} selectable>
+                  {inviteLink}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[commonStyles.button, styles.cancelButton]}
+                onPress={() => setInviteLinkModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={commonStyles.button}
+                onPress={handleShareInviteLink}
+              >
+                <Text style={commonStyles.buttonText}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Group Details Modal */}
@@ -1530,16 +1630,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  inviteButtonsContainer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   inviteButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs * 1.5,
     borderRadius: 8,
   },
+  inviteLinkButton: {
+    backgroundColor: colors.primary,
+  },
   inviteButtonText: {
     color: '#fff',
     ...typography.bodySmall,
     fontWeight: '600',
+  },
+  inviteLinkContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginVertical: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inviteLinkText: {
+    ...typography.body,
+    color: colors.text,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   membersList: {
     marginTop: spacing.sm,
@@ -1898,6 +2018,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     ...typography.h2,
     marginBottom: spacing.xl,
+  },
+  modalSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
   },
   modalButtons: {
     flexDirection: 'row',
