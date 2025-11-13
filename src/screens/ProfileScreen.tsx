@@ -38,7 +38,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.images,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -57,38 +57,6 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     setEditingImage(null);
   };
 
-  const handleSaveImage = async () => {
-    setUpdatingImage(true);
-    try {
-      let imageBase64: string | undefined;
-      if (editingImage) {
-        try {
-          const base64 = await FileSystem.readAsStringAsync(editingImage, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          imageBase64 = `data:image/jpeg;base64,${base64}`;
-        } catch (error) {
-          console.error('Error converting image to base64:', error);
-          Alert.alert('Error', 'Failed to process image. Please try again.');
-          setUpdatingImage(false);
-          return;
-        }
-      }
-
-      const { error } = await updateProfileImage(imageBase64);
-      setUpdatingImage(false);
-
-      if (error) {
-        Alert.alert('Error', error.message || 'Failed to update profile image');
-      } else {
-        Alert.alert('Success', 'Profile image updated successfully');
-      }
-    } catch (error) {
-      setUpdatingImage(false);
-      Alert.alert('Error', 'Failed to update profile image');
-    }
-  };
-
   const handleSave = async () => {
     if (newDisplayName.trim().length > 100) {
       Alert.alert('Error', 'Display name must be 100 characters or less');
@@ -96,13 +64,57 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     }
 
     setLoading(true);
-    const { error } = await updateDisplayName(newDisplayName.trim() || '');
+    const errors: string[] = [];
+
+    // Save display name if changed
+    const displayNameChanged = newDisplayName.trim() !== (displayName || '');
+    if (displayNameChanged) {
+      const { error } = await updateDisplayName(newDisplayName.trim() || '');
+      if (error) {
+        errors.push(`Display name: ${error.message || 'Failed to update'}`);
+      }
+    }
+
+    // Save image if changed
+    const imageChanged = editingImage !== (imageUrl || null);
+    if (imageChanged) {
+      setUpdatingImage(true);
+      try {
+        let imageBase64: string | undefined;
+        if (editingImage) {
+          try {
+            const base64 = await FileSystem.readAsStringAsync(editingImage, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            imageBase64 = `data:image/jpeg;base64,${base64}`;
+          } catch (error) {
+            console.error('Error converting image to base64:', error);
+            errors.push('Image: Failed to process image');
+            setUpdatingImage(false);
+            setLoading(false);
+            if (errors.length > 0) {
+              Alert.alert('Error', errors.join('\n'));
+            }
+            return;
+          }
+        }
+
+        const { error } = await updateProfileImage(imageBase64);
+        if (error) {
+          errors.push(`Image: ${error.message || 'Failed to update'}`);
+        }
+      } catch (error) {
+        errors.push('Image: Failed to update profile image');
+      }
+      setUpdatingImage(false);
+    }
+
     setLoading(false);
 
-    if (error) {
-      Alert.alert('Error', error.message || 'Failed to update display name');
-    } else {
-      Alert.alert('Success', 'Display name updated successfully');
+    if (errors.length > 0) {
+      Alert.alert('Error', errors.join('\n'));
+    } else if (displayNameChanged || imageChanged) {
+      Alert.alert('Success', 'Profile updated successfully');
     }
   };
 
@@ -177,19 +189,6 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
                   <Text style={styles.imageActionButtonText}>Remove</Text>
                 </TouchableOpacity>
               </View>
-              {(editingImage !== (imageUrl || null)) && (
-                <TouchableOpacity
-                  style={[commonStyles.button, styles.saveImageButton]}
-                  onPress={handleSaveImage}
-                  disabled={updatingImage}
-                >
-                  {updatingImage ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={commonStyles.buttonText}>Save Image</Text>
-                  )}
-                </TouchableOpacity>
-              )}
             </View>
           ) : (
             <TouchableOpacity
@@ -224,17 +223,19 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[commonStyles.button, loading && styles.buttonDisabled]}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={commonStyles.buttonText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
+        {((newDisplayName.trim() !== (displayName || '')) || (editingImage !== (imageUrl || null))) && (
+          <TouchableOpacity
+            style={[commonStyles.button, (loading || updatingImage) && styles.buttonDisabled]}
+            onPress={handleSave}
+            disabled={loading || updatingImage}
+          >
+            {(loading || updatingImage) ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={commonStyles.buttonText}>Save Changes</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         <View style={styles.dangerSection}>
           <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
@@ -366,9 +367,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  saveImageButton: {
-    marginTop: spacing.sm,
   },
   imagePickerButton: {
     paddingVertical: spacing.md,
