@@ -349,9 +349,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       return;
     }
 
+    const pendingCount = group.pending_invitations?.length || 0;
+    let message = 'This will randomly assign each member to another member.';
+    
+    if (pendingCount > 0) {
+      message += `\n\n⚠️ ${pendingCount} pending invitation${pendingCount === 1 ? '' : 's'} will not be included.`;
+    }
+
     Alert.alert(
       'Assign Secret Santa',
-      `This will randomly assign each member to another member. Existing assignments will be replaced. Continue?`,
+      message,
       [
         {
           text: 'Cancel',
