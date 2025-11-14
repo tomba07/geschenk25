@@ -2,7 +2,7 @@
   "expo": {
     "name": "Geschenk",
     "slug": "geschenk25",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -34,7 +34,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "The app accesses your photos to let you upload group images."
+            "photosPermission": "Select photos from your library to use as group images or profile pictures."
           }
         ]
       ]
@@ -61,7 +61,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "The app accesses your photos to let you upload group images."
+            "photosPermission": "Select photos from your library to use as group images or profile pictures."
           }
         ]
       ],
