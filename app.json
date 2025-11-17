@@ -34,7 +34,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "Select photos from your library to use as group images or profile pictures."
+            "photosPermission": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
           }
         ]
       ]
@@ -62,7 +62,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "Select photos from your library to use as group images or profile pictures."
+            "photosPermission": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
           }
         ]
       ],
