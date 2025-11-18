@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Alert, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import { colors } from './src/styles/theme';
@@ -239,6 +239,19 @@ function AppContent() {
 }
 
 export default function App() {
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webWrapper}>
+        <View style={styles.appContainer}>
+          <AuthProvider>
+            <AppContent />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
       <AppContent />
@@ -248,6 +261,24 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  webWrapper: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    ...(Platform.OS === 'web' && {
+      minHeight: '100vh',
+    }),
+  },
+  appContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 428,
+    backgroundColor: colors.background,
+    ...(Platform.OS === 'web' && {
+      boxShadow: '0 0 20px rgba(0, 0, 0, 0.1)',
+    } as any),
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
