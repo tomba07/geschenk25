@@ -7,7 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:web": "expo export:web"
+    "build:web": "expo export --platform web"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.24.0",

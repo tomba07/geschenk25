@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build:web",
-  "outputDirectory": "web-build",
+  "outputDirectory": "dist",
   "devCommand": "npm run web",
   "installCommand": "npm install",
   "framework": null,
