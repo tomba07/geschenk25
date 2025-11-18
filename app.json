@@ -19,7 +19,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIRequiredDeviceCapabilities": ["armv7"],
-        "UIDeviceFamily": [1]
+        "UIDeviceFamily": [1],
+        "NSPhotoLibraryUsageDescription": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
       },
       "scheme": "geschenk25",
       "plugins": [
