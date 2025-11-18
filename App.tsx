@@ -30,20 +30,24 @@ function AppContent() {
     const handleDeepLink = async (event: { url: string }) => {
       const parsed = Linking.parse(event.url);
       
-      // URL format: geschenk25://join/TOKEN
-      // Parsed structure: { hostname: "join", path: "TOKEN", scheme: "geschenk25" }
       let token: string | null = null;
       
-      // Extract token from path when hostname is "join"
-      if (parsed.hostname === 'join' && parsed.path) {
-        token = parsed.path.replace(/^\//, ''); // Remove leading slash if present
-      } else if (parsed.path) {
-        // Fallback: try to extract from path segments
+      // Handle native deep links: geschenk25://join/TOKEN
+      if (parsed.scheme === 'geschenk25') {
+        if (parsed.hostname === 'join' && parsed.path) {
+          token = parsed.path.replace(/^\//, '');
+        } else if (parsed.path) {
+          const pathSegments = parsed.path.split('/').filter(Boolean);
+          if (pathSegments[0] === 'join' && pathSegments[1]) {
+            token = pathSegments[1];
+          }
+        }
+      }
+      // Handle web URLs: https://domain.com/join/TOKEN
+      else if (parsed.path) {
         const pathSegments = parsed.path.split('/').filter(Boolean);
         if (pathSegments[0] === 'join' && pathSegments[1]) {
           token = pathSegments[1];
-        } else if (pathSegments.length > 0) {
-          token = pathSegments[0];
         }
       }
       
@@ -98,17 +102,39 @@ function AppContent() {
       );
     };
 
-    // Handle initial URL (when app is opened via deep link)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleDeepLink({ url });
+    // Handle initial URL (when app is opened via deep link or web URL)
+    if (Platform.OS === 'web') {
+      // On web, check the current URL path
+      if (typeof window !== 'undefined') {
+        const currentUrl = window.location.href;
+        handleDeepLink({ url: currentUrl });
       }
-    }).catch((error) => {
-      console.error('Error getting initial URL:', error);
-    });
+    } else {
+      // On native, use Linking API
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          handleDeepLink({ url });
+        }
+      }).catch((error) => {
+        console.error('Error getting initial URL:', error);
+      });
+    }
 
     // Handle deep links while app is running
     const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    // On web, also listen to popstate for browser navigation
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handlePopState = () => {
+        handleDeepLink({ url: window.location.href });
+      };
+      window.addEventListener('popstate', handlePopState);
+      
+      return () => {
+        subscription.remove();
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
 
     return () => {
       subscription.remove();

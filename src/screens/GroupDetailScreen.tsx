@@ -296,7 +296,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
       if (response.data) {
         const token = response.data.invite_token;
-        const link = `geschenk25://join/${token}`;
+        // Generate platform-specific invite link
+        let link: string;
+        if (Platform.OS === 'web') {
+          // For web, use the current origin + /join/TOKEN
+          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          link = `${origin}/join/${token}`;
+        } else {
+          // For native, use custom scheme
+          link = `geschenk25://join/${token}`;
+        }
         setInviteLink(link);
       }
     } catch (error: any) {
