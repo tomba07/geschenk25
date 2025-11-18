@@ -8,19 +8,22 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://geschenk25.vercel.app"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://geschenk25.vercel.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://geschenk25-api.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://geschenk25.vercel.app"
       }
     }
   },

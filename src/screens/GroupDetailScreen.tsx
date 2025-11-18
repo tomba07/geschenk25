@@ -44,7 +44,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteLinks, setInviteLinks] = useState<{ native: string; web: string } | null>(null);
   const [loadingInviteLink, setLoadingInviteLink] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -286,7 +286,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleGetInviteLink = async () => {
-    if (inviteLink) return; // Already loaded
+    if (inviteLinks) return; // Already loaded
     
     setLoadingInviteLink(true);
     try {
@@ -296,17 +296,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
       if (response.data) {
         const token = response.data.invite_token;
-        // Generate platform-specific invite link
-        let link: string;
-        if (Platform.OS === 'web') {
-          // For web, use the current origin + /join/TOKEN
-          const origin = typeof window !== 'undefined' ? window.location.origin : '';
-          link = `${origin}/join/${token}`;
-        } else {
-          // For native, use custom scheme
-          link = `geschenk25://join/${token}`;
-        }
-        setInviteLink(link);
+        // Generate both native and web invite links
+        const origin = Platform.OS === 'web' && typeof window !== 'undefined' 
+          ? window.location.origin 
+          : process.env.EXPO_PUBLIC_WEB_URL || 'https://geschenk25.vercel.app';
+        const nativeLink = `geschenk25://join/${token}`;
+        const webLink = `${origin}/join/${token}`;
+        setInviteLinks({ native: nativeLink, web: webLink });
       }
     } catch (error: any) {
       console.error('Error getting invite link:', error);
@@ -316,12 +312,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleShareInviteLink = async () => {
-    if (!inviteLink || !group) return;
+    if (!inviteLinks || !group) return;
     
     try {
+      const message = `Join my Secret Santa group "${group.name}"!\n\n📱 Mobile: ${inviteLinks.native}\n🌐 Web: ${inviteLinks.web}`;
       await Share.share({
-        message: `Join my Secret Santa group "${group.name}"! ${inviteLink}`,
-        url: inviteLink,
+        message,
+        url: inviteLinks.web, // Use web link as primary for sharing
       });
     } catch (error: any) {
       console.error('Error sharing invite link:', error);
@@ -907,27 +904,36 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <ScrollView keyboardShouldPersistTaps="handled">
               {/* Invite Link Section */}
               <View style={styles.inviteLinkSection}>
-                <Text style={styles.inviteLinkSectionTitle}>Invite Link</Text>
+                <Text style={styles.inviteLinkSectionTitle}>Invite Links</Text>
                 <Text style={styles.inviteLinkSectionDescription}>
-                  Share this link to invite others to join your group
+                  Share these links to invite others to join your group
                 </Text>
                 {loadingInviteLink ? (
                   <View style={styles.inviteLinkLoading}>
                     <ActivityIndicator size="small" color={colors.primary} />
                   </View>
-                ) : inviteLink ? (
-                  <View style={styles.inviteLinkContainer}>
-                    <Text style={styles.inviteLinkText} selectable>
-                      {inviteLink}
-                    </Text>
-                  </View>
+                ) : inviteLinks ? (
+                  <>
+                    <View style={styles.inviteLinkContainer}>
+                      <Text style={styles.inviteLinkLabel}>📱 Mobile App:</Text>
+                      <Text style={styles.inviteLinkText} selectable>
+                        {inviteLinks.native}
+                      </Text>
+                    </View>
+                    <View style={styles.inviteLinkContainer}>
+                      <Text style={styles.inviteLinkLabel}>🌐 Web:</Text>
+                      <Text style={styles.inviteLinkText} selectable>
+                        {inviteLinks.web}
+                      </Text>
+                    </View>
+                  </>
                 ) : null}
-                {inviteLink && (
+                {inviteLinks && (
                   <TouchableOpacity
                     style={[commonStyles.button, styles.shareLinkButton]}
                     onPress={handleShareInviteLink}
                   >
-                    <Text style={commonStyles.buttonText}>Share Link</Text>
+                    <Text style={commonStyles.buttonText}>Share Links</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1642,6 +1648,12 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  inviteLinkLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   inviteLinkText: {
     ...typography.body,
