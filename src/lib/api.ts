@@ -310,6 +310,24 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Exclusions endpoints
+  async getExclusions(groupId: number) {
+    return this.request<{ exclusions: any[] }>(`/api/groups/${groupId}/exclusions`);
+  }
+
+  async addExclusion(groupId: number, excludedUserId: number, giverId?: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/exclusions`, {
+      method: 'POST',
+      body: JSON.stringify({ excluded_user_id: excludedUserId, ...(giverId && { giver_id: giverId }) }),
+    });
+  }
+
+  async removeExclusion(groupId: number, exclusionId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/exclusions/${exclusionId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_URL);

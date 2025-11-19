@@ -71,3 +71,13 @@ export interface GiftIdea {
   for_user: GiftIdeaUser;
 }
 
+export interface Exclusion {
+  id: number;
+  giver_id: number;
+  excluded_user_id: number;
+  giver_username: string;
+  giver_display_name: string;
+  excluded_username: string;
+  excluded_display_name: string;
+}
+

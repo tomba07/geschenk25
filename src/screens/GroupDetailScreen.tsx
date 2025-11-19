@@ -22,7 +22,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { groupService, GroupServiceError } from '../services/groupService';
-import { Group, Assignment, GiftIdea } from '../types/group';
+import { Group, Assignment, GiftIdea, Exclusion } from '../types/group';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
@@ -68,6 +68,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [selectedForUserId, setSelectedForUserId] = useState<number | null>(null);
   const [savingGiftIdea, setSavingGiftIdea] = useState(false);
   const [deletingGiftIdea, setDeletingGiftIdea] = useState<number | null>(null);
+  const [exclusions, setExclusions] = useState<Exclusion[]>([]);
+  const [loadingExclusions, setLoadingExclusions] = useState(false);
+  const [exclusionModalVisible, setExclusionModalVisible] = useState(false);
+  const [selectedMember1, setSelectedMember1] = useState<{ id: number; name: string } | null>(null);
+  const [selectedMember2, setSelectedMember2] = useState<{ id: number; name: string } | null>(null);
   const { userId } = useAuth();
 
   const loadGroup = useCallback(async (showLoading = true) => {
@@ -92,6 +97,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           const ideas = await groupService.getGiftIdeas(groupId);
           const myIdeas = ideas.filter(idea => idea.created_by_id === userId);
           setGiftIdeas(myIdeas);
+          
+          // Load exclusions
+          const exclusionsResponse = await apiClient.getExclusions(parseInt(groupId));
+          if (exclusionsResponse.data) {
+            setExclusions(exclusionsResponse.data.exclusions);
+          }
         }
       }
     } catch (error: any) {
@@ -384,6 +395,93 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         },
       ]
     );
+  };
+
+  const handleAddExclusion = async (giverId: number, excludedUserId: number, excludedUserName: string) => {
+    if (!group || !userId) return;
+
+    try {
+      const response = await apiClient.addExclusion(parseInt(groupId), excludedUserId, giverId);
+      if (response.error) {
+        Alert.alert('Error', response.error);
+        return;
+      }
+      // Reload exclusions
+      const exclusionsResponse = await apiClient.getExclusions(parseInt(groupId));
+      if (exclusionsResponse.data) {
+        setExclusions(exclusionsResponse.data.exclusions);
+      }
+      // Close modal and reset selection
+      setExclusionModalVisible(false);
+      setSelectedMember1(null);
+      setSelectedMember2(null);
+    } catch (error: any) {
+      Alert.alert('Error', getErrorMessage(error));
+    }
+  };
+
+  const handleSelectMemberForExclusion = (member: { id: number; display_name?: string; username: string }) => {
+    if (!group) return;
+    
+    const memberName = member.display_name || member.username;
+    
+    // If no member selected yet, select first member
+    if (!selectedMember1) {
+      setSelectedMember1({ id: member.id, name: memberName });
+    } 
+    // If first member selected, select second member
+    else if (!selectedMember2) {
+      // Can't select the same member
+      if (member.id === selectedMember1.id) {
+        Alert.alert('Invalid selection', 'Please select a different member.');
+        return;
+      }
+      setSelectedMember2({ id: member.id, name: memberName });
+    }
+    // If both selected, allow reselecting
+    else {
+      // Reset and start over
+      setSelectedMember1({ id: member.id, name: memberName });
+      setSelectedMember2(null);
+    }
+  };
+
+  const handleConfirmExclusionPair = () => {
+    if (!selectedMember1 || !selectedMember2) return;
+    
+    // Check if this pair already exists
+    const pairKey1 = `${selectedMember1.id}-${selectedMember2.id}`;
+    const pairKey2 = `${selectedMember2.id}-${selectedMember1.id}`;
+    const pairExists = exclusions.some(
+      ex => `${ex.giver_id}-${ex.excluded_user_id}` === pairKey1 || 
+            `${ex.giver_id}-${ex.excluded_user_id}` === pairKey2
+    );
+    
+    if (pairExists) {
+      Alert.alert('Pair already exists', 'This exclusion pair has already been created.');
+      return;
+    }
+    
+    handleAddExclusion(selectedMember1.id, selectedMember2.id, selectedMember2.name);
+  };
+
+  const handleRemoveExclusion = async (exclusionId: number) => {
+    if (!group || !userId) return;
+
+    try {
+      const response = await apiClient.removeExclusion(parseInt(groupId), exclusionId);
+      if (response.error) {
+        Alert.alert('Error', response.error);
+        return;
+      }
+      // Reload exclusions
+      const exclusionsResponse = await apiClient.getExclusions(parseInt(groupId));
+      if (exclusionsResponse.data) {
+        setExclusions(exclusionsResponse.data.exclusions);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', getErrorMessage(error));
+    }
   };
 
   const handleAssignSecretSanta = () => {
@@ -807,6 +905,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <View style={styles.membersList}>
                   {group.members && group.members.map((member) => {
                     const isMemberOwner = member.id === group.created_by;
+                    
                     return (
                       <View key={member.id} style={styles.memberCard}>
                         <View style={styles.memberCardContent}>
@@ -831,14 +930,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                           <Text style={styles.memberUsernameSecondary}>@{member.username}</Text>
                           </View>
                         </View>
-                        {isOwner && member.id !== userId && !isMemberOwner && !hasAssignments && (
-                          <TouchableOpacity
-                            style={styles.removeButton}
-                            onPress={() => handleRemoveMember(member.id, member.username)}
-                          >
-                            <Text style={styles.removeButtonText}>Remove</Text>
-                          </TouchableOpacity>
-                        )}
+                        <View style={styles.memberActions}>
+                          {isOwner && member.id !== userId && !isMemberOwner && !hasAssignments && (
+                            <TouchableOpacity
+                              style={styles.removeButton}
+                              onPress={() => handleRemoveMember(member.id, member.username)}
+                            >
+                              <Text style={styles.removeButtonText}>Remove</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </View>
                     );
                   })}
@@ -876,6 +977,85 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No members yet</Text>
+              )}
+            </View>
+          )}
+
+          {isOwner && !hasAssignments && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Exclusions</Text>
+                <TouchableOpacity
+                  style={styles.addExclusionButton}
+                  onPress={() => {
+                    // Deduplicate members by ID
+                    const membersMap = new Map<number, { id: number; display_name?: string; username: string }>();
+                    if (group.owner) {
+                      membersMap.set(group.owner.id, group.owner);
+                    }
+                    group.members?.forEach(member => {
+                      if (!membersMap.has(member.id)) {
+                        membersMap.set(member.id, member);
+                      }
+                    });
+                    const allMembers = Array.from(membersMap.values());
+                    
+                    if (allMembers.length < 2) {
+                      Alert.alert('Not enough members', 'You need at least 2 members to create exclusions.');
+                      return;
+                    }
+                    
+                    setSelectedMember1(null);
+                    setSelectedMember2(null);
+                    setExclusionModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.addExclusionButtonText}>+ Add Pair</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {exclusions.length > 0 ? (
+                <View style={styles.exclusionsList}>
+                  {(() => {
+                    // Group exclusions into pairs (only show one direction to avoid duplicates)
+                    const seenPairs = new Set<string>();
+                    const pairs: Array<{ id: number; member1: { id: number; name: string }; member2: { id: number; name: string } }> = [];
+                    
+                    exclusions.forEach((ex) => {
+                      const pairKey = [ex.giver_id, ex.excluded_user_id].sort().join('-');
+                      if (!seenPairs.has(pairKey)) {
+                        seenPairs.add(pairKey);
+                        pairs.push({
+                          id: ex.id,
+                          member1: {
+                            id: ex.giver_id,
+                            name: ex.giver_display_name || ex.giver_username,
+                          },
+                          member2: {
+                            id: ex.excluded_user_id,
+                            name: ex.excluded_display_name || ex.excluded_username,
+                          },
+                        });
+                      }
+                    });
+                    
+                    return pairs.map((pair) => (
+                      <View key={pair.id} style={styles.exclusionPairCard}>
+                        <Text style={styles.exclusionPairText}>
+                          {pair.member1.name} ↔ {pair.member2.name}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.removeExclusionButton}
+                          onPress={() => handleRemoveExclusion(pair.id)}
+                        >
+                          <Text style={styles.removeExclusionButtonText}>Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ));
+                  })()}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>No exclusions set</Text>
               )}
             </View>
           )}
@@ -999,6 +1179,214 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </TouchableOpacity>
               </View>
             </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Add Exclusion Pair Modal */}
+      <Modal
+        visible={exclusionModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setExclusionModalVisible(false);
+          setSelectedMember1(null);
+          setSelectedMember2(null);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={commonStyles.modalOverlay}
+        >
+          <View
+            style={styles.exclusionModalContent}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Exclusion Pair</Text>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Select two members who should NOT be assigned to each other
+            </Text>
+
+            <ScrollView 
+              keyboardShouldPersistTaps="handled" 
+              style={styles.exclusionModalScroll}
+              contentContainerStyle={styles.exclusionModalScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {/* Selected Pair Preview */}
+              {selectedMember1 && selectedMember2 && (
+                <View style={styles.selectedPairPreview}>
+                  <Text style={styles.selectedPairLabel}>Selected Pair:</Text>
+                  <View style={styles.selectedPairCard}>
+                    <Text style={styles.selectedPairText}>
+                      {selectedMember1.name} ↔ {selectedMember2.name}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Member List */}
+              {!group ? (
+                <View style={styles.emptyStateContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.emptyText}>Loading...</Text>
+                </View>
+              ) : (() => {
+                // Build list of all members including owner
+                // Note: The owner might already be in the members list, so we deduplicate
+                const allMembers: Array<{ id: number; display_name?: string; username: string; image_url?: string | null }> = [];
+                const seenIds = new Set<number>();
+                
+                // Add owner first if it exists and is not already in members
+                if (group.owner) {
+                  allMembers.push(group.owner);
+                  seenIds.add(group.owner.id);
+                }
+                
+                // Add all members (excluding duplicates)
+                if (group.members && group.members.length > 0) {
+                  group.members.forEach(member => {
+                    if (!seenIds.has(member.id)) {
+                      allMembers.push(member);
+                      seenIds.add(member.id);
+                    }
+                  });
+                }
+                
+                // If we still have no members, check if owner is in members but owner object is missing
+                if (allMembers.length === 0 && group.members && group.members.length > 0) {
+                  // Use members directly if owner object is missing
+                  allMembers.push(...group.members);
+                }
+                
+                // Debug: log member data
+                console.log('Exclusion modal - group:', {
+                  hasOwner: !!group.owner,
+                  ownerId: group.owner?.id,
+                  membersCount: group.members?.length || 0,
+                  allMembersCount: allMembers.length,
+                  createdBy: group.created_by
+                });
+                
+                if (allMembers.length === 0) {
+                  return (
+                    <View style={styles.emptyStateContainer}>
+                      <Text style={styles.emptyText}>No members available</Text>
+                      <Text style={styles.emptyTextSecondary}>
+                        Add members to the group first before creating exclusions.
+                      </Text>
+                    </View>
+                  );
+                }
+                
+                console.log('Rendering member list with', allMembers.length, 'members');
+                return (
+                  <View key="member-list" style={styles.exclusionMemberList}>
+                    {allMembers.map((member) => {
+                      const memberName = member.display_name || member.username;
+                      console.log('Rendering member:', memberName, member.id);
+                      const isOwner = member.id === group?.created_by;
+                      const isSelected1 = selectedMember1?.id === member.id;
+                      const isSelected2 = selectedMember2?.id === member.id;
+                      const isSelected = isSelected1 || isSelected2;
+                      
+                      // Check if this member is already in an exclusion pair with the other selected member
+                      let alreadyExcludedWith = false;
+                      if (selectedMember1 && member.id !== selectedMember1.id) {
+                        const pairKey1 = `${selectedMember1.id}-${member.id}`;
+                        const pairKey2 = `${member.id}-${selectedMember1.id}`;
+                        alreadyExcludedWith = exclusions.some(
+                          ex => `${ex.giver_id}-${ex.excluded_user_id}` === pairKey1 || 
+                                `${ex.giver_id}-${ex.excluded_user_id}` === pairKey2
+                        );
+                      }
+                      
+                      return (
+                        <TouchableOpacity
+                          key={member.id}
+                          style={[
+                            styles.exclusionMemberCard,
+                            isSelected && styles.exclusionMemberCardSelected,
+                            alreadyExcludedWith && styles.exclusionMemberCardExcluded,
+                          ]}
+                          onPress={() => {
+                            if (alreadyExcludedWith) {
+                              Alert.alert(
+                                'Already excluded',
+                                `${memberName} and ${selectedMember1?.name} are already in an exclusion pair.`
+                              );
+                              return;
+                            }
+                            // If already selected, deselect
+                            if (isSelected1) {
+                              setSelectedMember1(null);
+                            } else if (isSelected2) {
+                              setSelectedMember2(null);
+                            } else {
+                              handleSelectMemberForExclusion(member);
+                            }
+                          }}
+                        >
+                          <View style={styles.exclusionMemberCardContent}>
+                            {member.image_url ? (
+                              <Image source={{ uri: member.image_url }} style={styles.exclusionMemberAvatar} />
+                            ) : (
+                              <View style={styles.exclusionMemberAvatar}>
+                                <Text style={styles.exclusionMemberAvatarText}>
+                                  {memberName.charAt(0).toUpperCase()}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.exclusionMemberInfo}>
+                              <View style={styles.exclusionMemberNameRow}>
+                                <Text style={styles.exclusionMemberName}>{memberName}</Text>
+                                {isOwner && (
+                                  <View style={styles.ownerBadge}>
+                                    <Text style={styles.ownerBadgeText}>Owner</Text>
+                                  </View>
+                                )}
+                                {alreadyExcludedWith && (
+                                  <View style={styles.alreadyExcludedBadge}>
+                                    <Text style={styles.alreadyExcludedBadgeText}>Already excluded</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={styles.exclusionMemberUsername}>@{member.username}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[commonStyles.button, styles.cancelButton]}
+                onPress={() => {
+                  setExclusionModalVisible(false);
+                  setSelectedMember1(null);
+                  setSelectedMember2(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  commonStyles.button,
+                  styles.confirmButton,
+                  { marginLeft: spacing.sm },
+                  (!selectedMember1 || !selectedMember2) && styles.buttonDisabled
+                ]}
+                onPress={handleConfirmExclusionPair}
+                disabled={!selectedMember1 || !selectedMember2}
+              >
+                <Text style={commonStyles.buttonText}>Create Pair</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1767,9 +2155,238 @@ const styles = StyleSheet.create({
   },
   ownerBadgeText: {
     color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  excludedBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: spacing.xs,
+  },
+  excludedBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  memberActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  excludeButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: colors.border,
+  },
+  excludeButtonActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  excludeButtonText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  excludeButtonTextActive: {
+    color: '#fff',
+  },
+  exclusionInfo: {
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
+  exclusionInfoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  addExclusionButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  addExclusionButtonText: {
+    ...typography.bodySmall,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  exclusionsList: {
+    marginTop: spacing.sm,
+  },
+  exclusionPairCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: 16,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  exclusionPairText: {
+    ...typography.body,
+    color: colors.text,
+    flex: 1,
+  },
+  removeExclusionButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  removeExclusionButtonText: {
+    ...typography.bodySmall,
+    color: colors.danger,
+    fontWeight: '600',
+  },
+  modalSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  exclusionModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.xxl,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    overflow: 'hidden',
+    flexDirection: 'column',
+  },
+  exclusionModalScroll: {
+    maxHeight: 400,
+  },
+  exclusionModalScrollContent: {
+    paddingBottom: spacing.md,
+  },
+  selectedPairPreview: {
+    marginBottom: spacing.lg,
+  },
+  selectedPairLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  selectedPairCard: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  selectedPairText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  exclusionInstructions: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  exclusionInstructionsText: {
+    ...typography.body,
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  exclusionMemberList: {
+    marginBottom: spacing.lg,
+  },
+  exclusionMemberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  exclusionMemberCardSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  exclusionMemberCardDisabled: {
+    opacity: 0.5,
+  },
+  exclusionMemberCardExcluded: {
+    borderColor: colors.textSecondary,
+    backgroundColor: colors.surface,
+  },
+  exclusionMemberCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  exclusionMemberAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  exclusionMemberAvatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  exclusionMemberInfo: {
+    flex: 1,
+  },
+  exclusionMemberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    flexWrap: 'wrap',
+  },
+  exclusionMemberName: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+    marginRight: spacing.xs,
+  },
+  exclusionMemberUsername: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  selectionBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: spacing.xs,
+  },
+  selectionBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  alreadyExcludedBadge: {
+    backgroundColor: colors.textSecondary,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: spacing.xs,
+  },
+  alreadyExcludedBadgeText: {
+    color: '#fff',
     fontSize: 10,
     fontWeight: '600',
-    textTransform: 'uppercase',
+  },
+  confirmButton: {
+    backgroundColor: colors.primary,
   },
   pendingBadge: {
     backgroundColor: colors.textSecondary,
@@ -1801,6 +2418,16 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textTertiary,
     fontStyle: 'italic',
+  },
+  emptyStateContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  emptyTextSecondary: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   addGiftIdeaButton: {
     backgroundColor: colors.primary,
@@ -2049,14 +2676,29 @@ const styles = StyleSheet.create({
   closeModalButton: {
     marginTop: spacing.md,
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
   modalTitle: {
     ...typography.h2,
-    marginBottom: spacing.xl,
+    flex: 1,
   },
-  modalSubtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.md,
+  },
+  modalCloseButtonText: {
+    fontSize: 20,
+    color: colors.text,
+    fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',
