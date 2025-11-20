@@ -20,7 +20,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIRequiredDeviceCapabilities": ["armv7"],
         "UIDeviceFamily": [1],
-        "NSPhotoLibraryUsageDescription": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
+        "NSPhotoLibraryUsageDescription": "Geschenk accesses your photo library to let you select and upload images for your Secret Santa groups and profile picture. For example, when creating a new Secret Santa group, you can choose a photo from your library which will be uploaded and displayed as the group image for all members to see."
       },
       "scheme": "geschenk25",
       "plugins": [
@@ -35,7 +35,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
+            "photosPermission": "Geschenk accesses your photo library to let you select and upload images for your Secret Santa groups and profile picture. For example, when creating a new Secret Santa group, you can choose a photo from your library which will be uploaded and displayed as the group image for all members to see."
           }
         ]
       ]
@@ -63,7 +63,7 @@
         [
           "expo-image-picker",
           {
-            "photosPermission": "Geschenk needs access to your photo library to let you select images for your Secret Santa groups and profile picture. For example, you can choose a photo from your library to set as a group image when creating a new Secret Santa group."
+            "photosPermission": "Geschenk accesses your photo library to let you select and upload images for your Secret Santa groups and profile picture. For example, when creating a new Secret Santa group, you can choose a photo from your library which will be uploaded and displayed as the group image for all members to see."
           }
         ]
       ],
