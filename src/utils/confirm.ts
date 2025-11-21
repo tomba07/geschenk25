@@ -11,7 +11,7 @@ export function confirm(
   onCancel?: () => void
 ): void {
   if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) {
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) {
       onConfirm();
     } else if (onCancel) {
       onCancel();
@@ -47,7 +47,7 @@ export function confirmDestructive(
   onCancel?: () => void
 ): void {
   if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) {
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) {
       onConfirm();
     } else if (onCancel) {
       onCancel();
