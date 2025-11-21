@@ -510,15 +510,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       return;
     }
 
-    const pendingCount = group.pending_invitations?.length || 0;
-    if (pendingCount > 0) {
-      Alert.alert(
-        'Cannot Assign',
-        'Cannot assign while there are pending invitations.'
-      );
-      return;
-    }
-
     Alert.alert(
       'Assign Secret Santa',
       'This will randomly assign each member to another member.',
