@@ -15,6 +15,7 @@ import {
   ScrollView,
   Image,
   InteractionManager,
+  RefreshControl,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -327,54 +328,92 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         </TouchableOpacity>
       </View>
 
-      {invitations.length > 0 && (
-        <View style={styles.invitationsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Pending Invitations</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{invitations.length}</Text>
-            </View>
-          </View>
-          {loadingInvitations ? (
-            <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
-          ) : (
-            <FlatList
-              data={invitations}
-              renderItem={renderInvitationItem}
-              keyExtractor={(item) => item.id.toString()}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.invitationsList}
-            />
-          )}
-        </View>
-      )}
-
       {groups.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Text style={styles.emptyIcon}>🎁</Text>
+        <ScrollView
+          contentContainerStyle={styles.emptyScrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading || loadingInvitations}
+              onRefresh={async () => {
+                await Promise.all([loadGroups(), loadInvitations()]);
+              }}
+            />
+          }
+        >
+          {invitations.length > 0 && (
+            <View style={styles.invitationsSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Pending Invitations</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{invitations.length}</Text>
+                </View>
+              </View>
+              {loadingInvitations ? (
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.invitationsList}
+                >
+                  {invitations.map((invitation) => (
+                    <View key={invitation.id}>
+                      {renderInvitationItem({ item: invitation })}
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
+              <Text style={styles.emptyIcon}>🎁</Text>
+            </View>
+            <Text style={styles.emptyText}>No groups yet</Text>
+            <Text style={styles.emptySubtext}>Create your first group to start organizing your Secret Santa exchange</Text>
+            <TouchableOpacity
+              style={styles.emptyCreateButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.emptyCreateButtonText}>Create Your First Group</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyText}>No groups yet</Text>
-          <Text style={styles.emptySubtext}>Create your first group to start organizing your Secret Santa exchange</Text>
-          <TouchableOpacity
-            style={styles.emptyCreateButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.emptyCreateButtonText}>Create Your First Group</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
-        <FlatList
-          data={groups}
-          renderItem={renderGroupItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-          refreshing={loading || loadingInvitations}
-          onRefresh={async () => {
-            await Promise.all([loadGroups(), loadInvitations()]);
-          }}
-        />
+        <>
+          {invitations.length > 0 && (
+            <View style={styles.invitationsSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Pending Invitations</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{invitations.length}</Text>
+                </View>
+              </View>
+              {loadingInvitations ? (
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
+              ) : (
+                <FlatList
+                  data={invitations}
+                  renderItem={renderInvitationItem}
+                  keyExtractor={(item) => item.id.toString()}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.invitationsList}
+                />
+              )}
+            </View>
+          )}
+          <FlatList
+            data={groups}
+            renderItem={renderGroupItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.list}
+            refreshing={loading || loadingInvitations}
+            onRefresh={async () => {
+              await Promise.all([loadGroups(), loadInvitations()]);
+            }}
+          />
+        </>
       )}
 
       {/* Profile Menu Modal */}
@@ -816,11 +855,15 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
   },
+  emptyScrollContent: {
+    flexGrow: 1,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl * 2,
+    minHeight: '100%',
   },
   emptyIconContainer: {
     width: 80,
