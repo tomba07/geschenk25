@@ -198,6 +198,31 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     }
   };
 
+  const handleLeaveGroup = () => {
+    if (!group) return;
+
+    confirmDestructive(
+      'Leave Group',
+      `Are you sure you want to leave "${group.name}"? You will no longer have access to this group.`,
+      'Leave',
+      async () => {
+        setDeleting(true);
+        try {
+          await groupService.leaveGroup(groupId);
+          setDetailsModalVisible(false);
+          onBack();
+        } catch (error: any) {
+          const errorMessage = error instanceof GroupServiceError 
+            ? error.appError.userMessage 
+            : getErrorMessage(error);
+          Alert.alert('Error', errorMessage);
+        } finally {
+          setDeleting(false);
+        }
+      }
+    );
+  };
+
   const handleDelete = () => {
     if (!group) return;
 
@@ -1578,6 +1603,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   </>
                 )}
 
+                {userId !== null && userId !== group.created_by && isMember && (
+                  <View style={styles.detailsActions}>
+                    <TouchableOpacity
+                      style={[commonStyles.button, styles.leaveButtonInModal, deleting && styles.buttonDisabled]}
+                      onPress={handleLeaveGroup}
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={commonStyles.buttonText}>Leave Group</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
                 <TouchableOpacity
                   style={[commonStyles.button, styles.cancelButton]}
                   onPress={() => {
@@ -1945,6 +1986,9 @@ const styles = StyleSheet.create({
   },
   undoButtonInModal: {
     marginBottom: spacing.md,
+  },
+  leaveButtonInModal: {
+    backgroundColor: colors.danger,
   },
   closeButton: {
     marginTop: spacing.md,

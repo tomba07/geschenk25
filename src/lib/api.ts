@@ -258,6 +258,12 @@ class ApiClient {
     );
   }
 
+  async leaveGroup(groupId: number) {
+    return this.request<{ message: string }>(`/api/groups/${groupId}/leave`, {
+      method: 'POST',
+    });
+  }
+
   async removeMember(groupId: number, userId: number) {
     return this.request<{ message: string }>(`/api/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',

@@ -216,6 +216,28 @@ export const groupService = {
     }
   },
 
+  // Leave group (member can leave, but owner cannot)
+  async leaveGroup(groupId: string): Promise<void> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.leaveGroup');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.leaveGroup(id);
+    
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.leaveGroup');
+      throw new GroupServiceError(appError);
+    }
+  },
+
   // Remove member from group
   async removeMember(groupId: string, userId: number): Promise<void> {
     const id = parseInt(groupId);
