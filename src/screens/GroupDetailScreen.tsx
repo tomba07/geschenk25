@@ -504,22 +504,24 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const handleAssignSecretSanta = () => {
     if (!group) return;
 
-    const totalMembers = (group.members?.length || 0) + 1; // +1 for owner
+    const totalMembers = group.members?.length || 0; // members array already includes owner
     if (totalMembers < 2) {
       Alert.alert('Error', 'Need at least 2 members to create Secret Santa assignments');
       return;
     }
 
     const pendingCount = group.pending_invitations?.length || 0;
-    let message = 'This will randomly assign each member to another member.';
-    
     if (pendingCount > 0) {
-      message += `\n\n⚠️ ${pendingCount} pending invitation${pendingCount === 1 ? '' : 's'} will not be included.`;
+      Alert.alert(
+        'Cannot Assign',
+        'Cannot assign while there are pending invitations.'
+      );
+      return;
     }
 
     Alert.alert(
       'Assign Secret Santa',
-      message,
+      'This will randomly assign each member to another member.',
       [
         {
           text: 'Cancel',
@@ -768,19 +770,33 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <Text style={styles.sectionTitle}>Assignments</Text>
         {isOwner && (
                   <View style={styles.assignButtonContainer}>
-                    {!hasAssignments && (
-                      <TouchableOpacity
-                        style={[styles.assignButton, assigning && styles.assignButtonDisabled]}
-                        onPress={handleAssignSecretSanta}
-                        disabled={assigning}
-                      >
-                        {assigning ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={styles.assignButtonText}>Assign</Text>
-                        )}
-          </TouchableOpacity>
-        )}
+                    {!hasAssignments && (() => {
+                      const totalMembers = group.members?.length || 0; // members array already includes owner
+                      const pendingCount = group.pending_invitations?.length || 0;
+                      
+                      // Don't show button if less than 2 members (unless there are pending invitations - show disabled)
+                      if (totalMembers < 2 && pendingCount === 0) {
+                        return null;
+                      }
+                      
+                      // Show button (disabled if pending invitations or less than 2 members)
+                      return (
+                        <TouchableOpacity
+                          style={[
+                            styles.assignButton, 
+                            (assigning || pendingCount > 0 || totalMembers < 2) && styles.assignButtonDisabled
+                          ]}
+                          onPress={handleAssignSecretSanta}
+                          disabled={assigning || pendingCount > 0 || totalMembers < 2}
+                        >
+                          {assigning ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={styles.assignButtonText}>Assign</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })()}
                   </View>
                 )}
       </View>
@@ -814,9 +830,26 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <View style={styles.noAssignmentCard}>
                   <Text style={styles.noAssignmentIcon}>🎁</Text>
                   <Text style={styles.noAssignmentText}>
-                    {isOwner 
-                      ? 'No assignments yet. Click "Assign" to create Secret Santa pairs.'
-                      : 'No assignments yet. The group owner needs to create assignments.'}
+                    {(() => {
+                      const totalMembers = group.members?.length || 0; // members array already includes owner
+                      const pendingCount = group.pending_invitations?.length || 0;
+                      
+                      // Check pending invitations first (highest priority)
+                      if (isOwner && pendingCount > 0) {
+                        return 'Cannot assign while there are pending invitations.';
+                      }
+                      
+                      // Then check member count
+                      if (isOwner && totalMembers < 2) {
+                        return 'Add at least one more member to create Secret Santa assignments.';
+                      }
+                      
+                      // Default messages
+                      if (isOwner) {
+                        return 'No assignments yet. Click "Assign" to create Secret Santa pairs.';
+                      }
+                      return 'No assignments yet. The group owner needs to create assignments.';
+                    })()}
                   </Text>
                 </View>
               )}
