@@ -21,6 +21,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
+import { confirmDestructive } from '../utils/confirm';
 import { Group, Invitation } from '../types/group';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
 
@@ -191,22 +192,13 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   };
 
   const handleSignOut = async () => {
-    Alert.alert(
+    confirmDestructive(
       'Sign Out',
       'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-          },
-        },
-      ]
+      'Sign Out',
+      async () => {
+        await signOut();
+      }
     );
   };
 

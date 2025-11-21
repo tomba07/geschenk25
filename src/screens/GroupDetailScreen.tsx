@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { colors, spacing, typography, commonStyles } from '../styles/theme';
 import { getErrorMessage } from '../utils/errors';
+import { confirmDestructive } from '../utils/confirm';
 
 interface GroupDetailScreenProps {
   groupId: string;
@@ -200,34 +201,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const handleDelete = () => {
     if (!group) return;
 
-    Alert.alert(
+    confirmDestructive(
       'Delete Group',
       `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              await groupService.deleteGroup(groupId);
-              setDetailsModalVisible(false);
-              onBack();
-            } catch (error: any) {
-              const errorMessage = error instanceof GroupServiceError 
-                ? error.appError.userMessage 
-                : getErrorMessage(error);
-              Alert.alert('Error', errorMessage);
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ]
+      'Delete',
+      async () => {
+        setDeleting(true);
+        try {
+          await groupService.deleteGroup(groupId);
+          setDetailsModalVisible(false);
+          onBack();
+        } catch (error: any) {
+          const errorMessage = error instanceof GroupServiceError 
+            ? error.appError.userMessage 
+            : getErrorMessage(error);
+          Alert.alert('Error', errorMessage);
+        } finally {
+          setDeleting(false);
+        }
+      }
     );
   };
 
