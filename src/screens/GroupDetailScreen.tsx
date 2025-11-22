@@ -1125,36 +1125,24 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <ScrollView keyboardShouldPersistTaps="handled">
               {/* Invite Link Section */}
               <View style={styles.inviteLinkSection}>
-                <Text style={styles.inviteLinkSectionTitle}>Invite Links</Text>
-                <Text style={styles.inviteLinkSectionDescription}>
-                  Share these links to invite others to join your group
-                </Text>
+                <Text style={styles.inviteLinkSectionTitle}>Invite Link</Text>
                 {loadingInviteLink ? (
                   <View style={styles.inviteLinkLoading}>
                     <ActivityIndicator size="small" color={colors.primary} />
                   </View>
                 ) : inviteLinks ? (
-                  <>
-                    <View style={styles.inviteLinkContainer}>
-                      <Text style={styles.inviteLinkLabel}>📱 Mobile App:</Text>
-                      <Text style={styles.inviteLinkText} selectable>
-                        {inviteLinks.native}
-                      </Text>
-                    </View>
-                    <View style={styles.inviteLinkContainer}>
-                      <Text style={styles.inviteLinkLabel}>🌐 Web:</Text>
-                      <Text style={styles.inviteLinkText} selectable>
-                        {inviteLinks.web}
-                      </Text>
-                    </View>
-                  </>
+                  <View style={styles.inviteLinkContainer}>
+                    <Text style={styles.inviteLinkText} selectable>
+                      {inviteLinks.web}
+                    </Text>
+                  </View>
                 ) : null}
                 {inviteLinks && (
                   <TouchableOpacity
                     style={[commonStyles.button, styles.shareLinkButton]}
                     onPress={handleShareInviteLink}
                   >
-                    <Text style={commonStyles.buttonText}>Share Links</Text>
+                    <Text style={commonStyles.buttonText}>Share Link</Text>
                   </TouchableOpacity>
                 )}
               </View>
