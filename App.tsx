@@ -14,36 +14,15 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-import InviteLandingScreen from './src/screens/InviteLandingScreen';
 
-type Screen = 'home' | 'groupDetail' | 'profile' | 'inviteLanding';
+type Screen = 'home' | 'groupDetail' | 'profile';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [showSignup, setShowSignup] = useState(false);
-  
-  // Initialize screen state based on URL (for mobile web invite links)
-  const getInitialScreen = (): { screen: Screen; token: string | null } => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
-      if (pathMatch) {
-        const token = pathMatch[1];
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-        const isAndroid = /Android/.test(navigator.userAgent);
-        if (isIOS || isAndroid) {
-          return { screen: 'inviteLanding', token };
-        }
-      }
-    }
-    return { screen: 'home', token: null };
-  };
-  
-  const initialScreenState = getInitialScreen();
-  const [currentScreen, setCurrentScreen] = useState<Screen>(initialScreenState.screen);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
-  const [inviteToken, setInviteToken] = useState<string | null>(initialScreenState.token);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
@@ -124,46 +103,13 @@ function AppContent() {
   };
 
   useEffect(() => {
-    // Skip URL processing if we're already showing the invite landing screen
-    // (it was set during initial state to prevent any redirects)
-    if (currentScreen === 'inviteLanding' && inviteToken) {
-      // Don't process any deep links - just show the landing page
-      return;
-    }
-    
     // Handle initial URL (when app is opened via deep link or web URL)
     if (Platform.OS === 'web') {
       // On web, check the current URL path
       if (typeof window !== 'undefined') {
         const currentUrl = window.location.href;
-        const url = new URL(currentUrl);
-        
-        // Check if this is a /join/:token route
-        const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
-        if (pathMatch) {
-          const token = pathMatch[1];
-          
-          // Detect mobile device
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-          const isAndroid = /Android/.test(navigator.userAgent);
-          
-          if (isIOS || isAndroid) {
-            // On mobile, show the landing page - no automatic redirects
-            setInviteToken(token);
-            setCurrentScreen('inviteLanding');
-            // Don't process as normal deep link - return early
-            return;
-          } else {
-            // On desktop, process as normal deep link (web app)
-            // But only if authenticated, otherwise it will fail silently
-            if (isAuthenticated) {
-              handleDeepLink({ url: currentUrl });
-            }
-            return;
-          }
-        }
-        
-        // Normal web app flow - only process if authenticated
+        // Process as normal deep link if authenticated
+        // Universal Links will handle opening the app automatically on mobile
         if (isAuthenticated) {
           handleDeepLink({ url: currentUrl });
         }
@@ -277,42 +223,6 @@ function AppContent() {
       };
     }
   }, [isAuthenticated]);
-
-  // Handle invite landing screen FIRST (shown on mobile web before authentication)
-  // This must be checked before isLoading to prevent any redirects
-  if (currentScreen === 'inviteLanding' && inviteToken) {
-    return (
-      <InviteLandingScreen
-        token={inviteToken}
-        onOpenApp={async () => {
-          // When user clicks "Open in App", process the deep link
-          // This will work on native, and on web it will attempt to open the app
-          const appScheme = `geschenk25://join/${inviteToken}`;
-          try {
-            await Linking.openURL(appScheme);
-            // On native, this will open the app and the deep link handler will process it
-            // On web, this will attempt to open the native app
-          } catch (error) {
-            console.error('Error opening app:', error);
-          }
-        }}
-        onContinueWeb={async () => {
-          // When user clicks "Continue on Web", navigate to home
-          // The invite link will be processed after authentication if needed
-          const token = inviteToken;
-          setCurrentScreen('home');
-          setInviteToken(null);
-          // If authenticated, process the invite link
-          if (isAuthenticated && token) {
-            // Use setTimeout to ensure state updates are processed first
-            setTimeout(() => {
-              handleDeepLink({ url: `geschenk25://join/${token}` });
-            }, 100);
-          }
-        }}
-      />
-    );
-  }
 
   if (isLoading) {
     return (
