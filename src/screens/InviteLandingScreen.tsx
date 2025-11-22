@@ -25,8 +25,28 @@ export default function InviteLandingScreen({
   const isAndroid = Platform.OS === 'android' || (typeof navigator !== 'undefined' && /Android/.test(navigator.userAgent));
 
   const handleOpenApp = () => {
-    // Call the parent handler - it will use Universal Links
-    onOpenApp();
+    // On web, try to open the app using custom scheme (user-initiated, so Safari allows it)
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const appScheme = `geschenk25://join/${token}`;
+      try {
+        // Create a link and click it - this works for user-initiated actions
+        const link = document.createElement('a');
+        link.href = appScheme;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error opening app:', error);
+      }
+    } else {
+      // On native, use Linking
+      onOpenApp();
+    }
   };
 
   const handleOpenStore = () => {
