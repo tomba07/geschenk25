@@ -14,15 +14,36 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import InviteLandingScreen from './src/screens/InviteLandingScreen';
 
-type Screen = 'home' | 'groupDetail' | 'profile';
+type Screen = 'home' | 'groupDetail' | 'profile' | 'inviteLanding';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [showSignup, setShowSignup] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  
+  // Check if we're opening an invite link on mobile web
+  const getInitialInviteToken = (): string | null => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+      if (pathMatch) {
+        const token = pathMatch[1];
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        if (isIOS || isAndroid) {
+          return token;
+        }
+      }
+    }
+    return null;
+  };
+  
+  const [currentScreen, setCurrentScreen] = useState<Screen>(getInitialInviteToken() ? 'inviteLanding' : 'home');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
+  const [inviteToken, setInviteToken] = useState<string | null>(getInitialInviteToken());
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(null);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
@@ -57,7 +78,8 @@ function AppContent() {
       }
       
       if (!isAuthenticated) {
-        // Fail silently if user is not logged in
+        // Store token to process after login
+        setPendingInviteToken(token);
         return;
       }
 
@@ -103,16 +125,33 @@ function AppContent() {
   };
 
   useEffect(() => {
+    // Skip URL processing if we're showing the invite landing screen
+    if (currentScreen === 'inviteLanding' && inviteToken) {
+      return;
+    }
+    
     // Handle initial URL (when app is opened via deep link or web URL)
     if (Platform.OS === 'web') {
       // On web, check the current URL path
       if (typeof window !== 'undefined') {
         const currentUrl = window.location.href;
-        // Process as normal deep link if authenticated
-        // Universal Links will handle opening the app automatically on mobile
-        if (isAuthenticated) {
-          handleDeepLink({ url: currentUrl });
+        const url = new URL(currentUrl);
+        const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+        
+        // If it's an invite link on mobile, show landing page (already handled in initial state)
+        if (pathMatch) {
+          const token = pathMatch[1];
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+          const isAndroid = /Android/.test(navigator.userAgent);
+          if (isIOS || isAndroid && currentScreen !== 'inviteLanding') {
+            setInviteToken(token);
+            setCurrentScreen('inviteLanding');
+            return;
+          }
         }
+        
+        // For desktop or if not showing landing page, process normally
+        handleDeepLink({ url: currentUrl });
       }
     } else {
       // On native, use Linking API
@@ -145,6 +184,15 @@ function AppContent() {
       subscription.remove();
     };
   }, [isAuthenticated]);
+
+  // Process pending invite token after authentication
+  useEffect(() => {
+    if (isAuthenticated && pendingInviteToken) {
+      // Process the invite link now that user is authenticated
+      handleDeepLink({ url: `https://geschenk.mteschke.com/join/${pendingInviteToken}` });
+      setPendingInviteToken(null);
+    }
+  }, [isAuthenticated, pendingInviteToken]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -223,6 +271,29 @@ function AppContent() {
       };
     }
   }, [isAuthenticated]);
+
+  // Show invite landing screen on mobile web (before authentication check)
+  if (currentScreen === 'inviteLanding' && inviteToken) {
+    return (
+      <InviteLandingScreen
+        token={inviteToken}
+        onOpenApp={() => {
+          // Use Universal Links - navigate to HTTPS URL
+          // iOS/Android will automatically open the app if installed, or open in browser if not
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            const appUrl = `https://geschenk.mteschke.com/join/${inviteToken}`;
+            window.location.href = appUrl;
+          }
+        }}
+        onContinueWeb={() => {
+          // User chose to continue on web - store token and show login
+          setPendingInviteToken(inviteToken);
+          setCurrentScreen('home');
+          setInviteToken(null);
+        }}
+      />
+    );
+  }
 
   if (isLoading) {
     return (

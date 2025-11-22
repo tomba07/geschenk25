@@ -21,46 +21,12 @@ export default function InviteLandingScreen({
   onOpenApp,
   onContinueWeb,
 }: InviteLandingScreenProps) {
-  const [showFallback, setShowFallback] = useState(false);
   const isIOS = Platform.OS === 'ios' || (typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
   const isAndroid = Platform.OS === 'android' || (typeof navigator !== 'undefined' && /Android/.test(navigator.userAgent));
 
-  useEffect(() => {
-    // Show fallback options after 3 seconds
-    const timer = setTimeout(() => {
-      setShowFallback(true);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleOpenApp = () => {
-    // On web, use window.location or create an anchor tag
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const appScheme = `geschenk25://join/${token}`;
-      try {
-        // Method 1: Try using window.location (user-initiated, so Safari allows it)
-        const link = document.createElement('a');
-        link.href = appScheme;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-          if (link.parentNode) {
-            document.body.removeChild(link);
-          }
-        }, 100);
-      } catch (error) {
-        console.error('Error opening app:', error);
-      }
-    } else {
-      // On native, use Linking
-      onOpenApp();
-    }
-    // Show fallback options after attempting to open app
-    setTimeout(() => {
-      setShowFallback(true);
-    }, 1000);
+    // Call the parent handler - it will use Universal Links
+    onOpenApp();
   };
 
   const handleOpenStore = () => {
@@ -92,27 +58,22 @@ export default function InviteLandingScreen({
           <Text style={commonStyles.buttonText}>Open in App</Text>
         </TouchableOpacity>
 
-        {showFallback && (
-          <View style={styles.fallbackContainer}>
-            <Text style={styles.fallbackText}>
-              Don't have the app?
+        <View style={styles.fallbackContainer}>
+          <TouchableOpacity
+            style={[commonStyles.button, styles.storeButton]}
+            onPress={handleOpenStore}
+          >
+            <Text style={commonStyles.buttonText}>
+              {isIOS ? 'Download from App Store' : 'Download from Play Store'}
             </Text>
-            <TouchableOpacity
-              style={[commonStyles.button, styles.storeButton]}
-              onPress={handleOpenStore}
-            >
-              <Text style={commonStyles.buttonText}>
-                {isIOS ? 'Download from App Store' : 'Download from Play Store'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.webLink}
-              onPress={onContinueWeb}
-            >
-              <Text style={styles.webLinkText}>Continue on Web</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.webLink}
+            onPress={onContinueWeb}
+          >
+            <Text style={styles.webLinkText}>Continue on Web</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
