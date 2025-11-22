@@ -107,56 +107,140 @@ function AppContent() {
     if (Platform.OS === 'web') {
       // On web, check the current URL path
       if (typeof window !== 'undefined') {
-        const currentUrl = window.location.href;
-        const url = new URL(currentUrl);
-        
-        // Check if this is a /join/:token route
-        const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
-        if (pathMatch) {
-          const token = pathMatch[1];
+        // Wait for DOM to be ready before processing
+        const processUrl = () => {
+          const currentUrl = window.location.href;
+          const url = new URL(currentUrl);
           
-          // Detect mobile device
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-          const isAndroid = /Android/.test(navigator.userAgent);
-          
-          if (isIOS || isAndroid) {
-            // Try to open the app using custom scheme
-            const appScheme = `geschenk25://join/${token}`;
+          // Check if this is a /join/:token route
+          const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+          if (pathMatch) {
+            const token = pathMatch[1];
             
-            // Try to open the app
-            window.location.href = appScheme;
+            // Detect mobile device
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+            const isAndroid = /Android/.test(navigator.userAgent);
             
-            // Set a timeout to redirect to App Store/Play Store if app doesn't open
-            const redirectTimeout = setTimeout(() => {
-              if (isIOS) {
-                window.location.href = APP_STORE_URL;
-              } else if (isAndroid) {
-                window.location.href = PLAY_STORE_URL;
-              }
-            }, 2500); // 2.5 second timeout
-            
-            // Clear timeout if page becomes hidden (app opened successfully)
-            const handleVisibilityChange = () => {
-              if (document.hidden) {
-                clearTimeout(redirectTimeout);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-              }
-            };
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-            
-            // Also clear timeout if user navigates away
-            const handleBlur = () => {
-              clearTimeout(redirectTimeout);
-              window.removeEventListener('blur', handleBlur);
-            };
-            window.addEventListener('blur', handleBlur);
-            
-            return; // Don't process as normal deep link
+            if (isIOS || isAndroid) {
+              // Try to open the app using custom scheme
+              const appScheme = `geschenk25://join/${token}`;
+              
+              // Use a more Safari-friendly approach: try multiple methods
+              let redirectTimeout: NodeJS.Timeout;
+              let iframe: HTMLIFrameElement | null = null;
+              
+              const cleanup = () => {
+                if (redirectTimeout) clearTimeout(redirectTimeout);
+                if (iframe && iframe.parentNode) {
+                  document.body.removeChild(iframe);
+                }
+              };
+              
+              // Wait a bit for the page to fully render before attempting redirect
+              setTimeout(() => {
+                // Method 1: Try using a hidden iframe (works better in Safari)
+                try {
+                  iframe = document.createElement('iframe');
+                  iframe.style.display = 'none';
+                  iframe.style.width = '1px';
+                  iframe.style.height = '1px';
+                  iframe.style.position = 'absolute';
+                  iframe.style.left = '-9999px';
+                  iframe.style.border = 'none';
+                  document.body.appendChild(iframe);
+                  
+                  // Set iframe src after a small delay to ensure it's in the DOM
+                  setTimeout(() => {
+                    if (iframe && iframe.parentNode) {
+                      try {
+                        iframe.src = appScheme;
+                      } catch (e) {
+                        console.log('Error setting iframe src:', e);
+                      }
+                    }
+                  }, 50);
+                } catch (e) {
+                  console.log('Iframe method failed:', e);
+                }
+                
+                // Method 2: Also try using a link click (more reliable in some browsers)
+                setTimeout(() => {
+                  try {
+                    const link = document.createElement('a');
+                    link.href = appScheme;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                      if (link.parentNode) {
+                        document.body.removeChild(link);
+                      }
+                    }, 100);
+                  } catch (e) {
+                    console.log('Link click method failed:', e);
+                  }
+                }, 100);
+              }, 500); // Wait 500ms for page to render
+              
+              // Set a timeout to redirect to App Store/Play Store if app doesn't open
+              redirectTimeout = setTimeout(() => {
+                cleanup();
+                if (isIOS) {
+                  window.location.href = APP_STORE_URL;
+                } else if (isAndroid) {
+                  window.location.href = PLAY_STORE_URL;
+                }
+              }, 2500); // 2.5 second timeout
+              
+              // Clear timeout if page becomes hidden (app opened successfully)
+              const handleVisibilityChange = () => {
+                if (document.hidden) {
+                  cleanup();
+                  document.removeEventListener('visibilitychange', handleVisibilityChange);
+                  window.removeEventListener('blur', handleBlur);
+                }
+              };
+              document.addEventListener('visibilitychange', handleVisibilityChange);
+              
+              // Also clear timeout if user navigates away
+              const handleBlur = () => {
+                cleanup();
+                window.removeEventListener('blur', handleBlur);
+              };
+              window.addEventListener('blur', handleBlur);
+              
+              return; // Don't process as normal deep link
+            }
           }
-        }
+          
+          // Normal web app flow
+          handleDeepLink({ url: currentUrl });
+        };
         
-        // Normal web app flow
-        handleDeepLink({ url: currentUrl });
+        // Wait for DOM to be ready and ensure React has initialized
+        const initRedirect = () => {
+          try {
+            processUrl();
+          } catch (error) {
+            console.error('Error processing URL:', error);
+            // Fallback: just process as normal deep link
+            try {
+              handleDeepLink({ url: window.location.href });
+            } catch (e) {
+              console.error('Error in fallback deep link handling:', e);
+            }
+          }
+        };
+        
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            // Wait a bit more for React to initialize
+            setTimeout(initRedirect, 200);
+          });
+        } else {
+          // DOM is already ready, but wait a bit for React to initialize
+          setTimeout(initRedirect, 200);
+        }
       }
     } else {
       // On native, use Linking API
