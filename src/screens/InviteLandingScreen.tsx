@@ -37,13 +37,7 @@ export default function InviteLandingScreen({
 
   const handleOpenStore = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      let storeUrl: string;
-      if (isIOS) {
-        // Use itms-apps:// scheme for better iOS compatibility
-        storeUrl = 'itms-apps://apps.apple.com/us/app/id6755076791';
-      } else {
-        storeUrl = PLAY_STORE_URL;
-      }
+      const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
       
       try {
         const link = document.createElement('a');
