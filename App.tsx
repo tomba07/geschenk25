@@ -14,8 +14,9 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import InviteLandingScreen from './src/screens/InviteLandingScreen';
 
-type Screen = 'home' | 'groupDetail' | 'profile';
+type Screen = 'home' | 'groupDetail' | 'profile' | 'inviteLanding';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -23,12 +24,12 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
   // Handle deep linking for invite links
-  useEffect(() => {
-    const handleDeepLink = async (event: { url: string }) => {
+  const handleDeepLink = async (event: { url: string }) => {
       const parsed = Linking.parse(event.url);
       
       let token: string | null = null;
@@ -101,8 +102,9 @@ function AppContent() {
             },
         ]
       );
-    };
+  };
 
+  useEffect(() => {
     // Handle initial URL (when app is opened via deep link or web URL)
     if (Platform.OS === 'web') {
       // On web, check the current URL path
@@ -122,94 +124,14 @@ function AppContent() {
             const isAndroid = /Android/.test(navigator.userAgent);
             
             if (isIOS || isAndroid) {
-              // Try to open the app using custom scheme
-              const appScheme = `geschenk25://join/${token}`;
-              
-              // Use a more Safari-friendly approach: try multiple methods
-              let redirectTimeout: NodeJS.Timeout;
-              let iframe: HTMLIFrameElement | null = null;
-              
-              const cleanup = () => {
-                if (redirectTimeout) clearTimeout(redirectTimeout);
-                if (iframe && iframe.parentNode) {
-                  document.body.removeChild(iframe);
-                }
-              };
-              
-              // Wait a bit for the page to fully render before attempting redirect
-              setTimeout(() => {
-                // Method 1: Try using a hidden iframe (works better in Safari)
-                try {
-                  iframe = document.createElement('iframe');
-                  iframe.style.display = 'none';
-                  iframe.style.width = '1px';
-                  iframe.style.height = '1px';
-                  iframe.style.position = 'absolute';
-                  iframe.style.left = '-9999px';
-                  iframe.style.border = 'none';
-                  document.body.appendChild(iframe);
-                  
-                  // Set iframe src after a small delay to ensure it's in the DOM
-                  setTimeout(() => {
-                    if (iframe && iframe.parentNode) {
-                      try {
-                        iframe.src = appScheme;
-                      } catch (e) {
-                        console.log('Error setting iframe src:', e);
-                      }
-                    }
-                  }, 50);
-                } catch (e) {
-                  console.log('Iframe method failed:', e);
-                }
-                
-                // Method 2: Also try using a link click (more reliable in some browsers)
-                setTimeout(() => {
-                  try {
-                    const link = document.createElement('a');
-                    link.href = appScheme;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    setTimeout(() => {
-                      if (link.parentNode) {
-                        document.body.removeChild(link);
-                      }
-                    }, 100);
-                  } catch (e) {
-                    console.log('Link click method failed:', e);
-                  }
-                }, 100);
-              }, 500); // Wait 500ms for page to render
-              
-              // Set a timeout to redirect to App Store/Play Store if app doesn't open
-              redirectTimeout = setTimeout(() => {
-                cleanup();
-                if (isIOS) {
-                  window.location.href = APP_STORE_URL;
-                } else if (isAndroid) {
-                  window.location.href = PLAY_STORE_URL;
-                }
-              }, 2500); // 2.5 second timeout
-              
-              // Clear timeout if page becomes hidden (app opened successfully)
-              const handleVisibilityChange = () => {
-                if (document.hidden) {
-                  cleanup();
-                  document.removeEventListener('visibilitychange', handleVisibilityChange);
-                  window.removeEventListener('blur', handleBlur);
-                }
-              };
-              document.addEventListener('visibilitychange', handleVisibilityChange);
-              
-              // Also clear timeout if user navigates away
-              const handleBlur = () => {
-                cleanup();
-                window.removeEventListener('blur', handleBlur);
-              };
-              window.addEventListener('blur', handleBlur);
-              
+              // On mobile, show the landing page instead of automatic redirect
+              setInviteToken(token);
+              setCurrentScreen('inviteLanding');
               return; // Don't process as normal deep link
+            } else {
+              // On desktop, process as normal deep link (web app)
+              handleDeepLink({ url: currentUrl });
+              return;
             }
           }
           
@@ -357,6 +279,41 @@ function AppContent() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
+
+  // Handle invite landing screen (shown on mobile web before authentication)
+  if (currentScreen === 'inviteLanding' && inviteToken) {
+    return (
+      <InviteLandingScreen
+        token={inviteToken}
+        onOpenApp={async () => {
+          // When user clicks "Open in App", process the deep link
+          // This will work on native, and on web it will attempt to open the app
+          const appScheme = `geschenk25://join/${inviteToken}`;
+          try {
+            await Linking.openURL(appScheme);
+            // On native, this will open the app and the deep link handler will process it
+            // On web, this will attempt to open the native app
+          } catch (error) {
+            console.error('Error opening app:', error);
+          }
+        }}
+        onContinueWeb={async () => {
+          // When user clicks "Continue on Web", navigate to home
+          // The invite link will be processed after authentication if needed
+          const token = inviteToken;
+          setCurrentScreen('home');
+          setInviteToken(null);
+          // If authenticated, process the invite link
+          if (isAuthenticated && token) {
+            // Use setTimeout to ensure state updates are processed first
+            setTimeout(() => {
+              handleDeepLink({ url: `geschenk25://join/${token}` });
+            }, 100);
+          }
+        }}
+      />
     );
   }
 
