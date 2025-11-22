@@ -52,7 +52,23 @@ export default function InviteLandingScreen({
   const handleOpenStore = () => {
     const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.location.href = storeUrl;
+      // Use link click method for better compatibility
+      try {
+        const link = document.createElement('a');
+        link.href = storeUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+      } catch (error) {
+        // Fallback to window.location
+        window.location.href = storeUrl;
+      }
     } else {
       Linking.openURL(storeUrl).catch((err) => {
         console.error('Error opening store:', err);
