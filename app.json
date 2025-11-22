@@ -23,6 +23,10 @@
         "NSPhotoLibraryUsageDescription": "Geschenk accesses your photo library to let you select and upload images for your Secret Santa groups and profile picture. For example, when creating a new Secret Santa group, you can choose a photo from your library which will be uploaded and displayed as the group image for all members to see."
       },
       "scheme": "geschenk25",
+      "associatedDomains": [
+        "applinks:geschenk.mteschke.com",
+        "applinks:geschenk25.vercel.app"
+      ],
       "plugins": [
         [
           "expo-notifications",
@@ -47,6 +51,25 @@
         "backgroundColor": "#ffffff"
       },
       "scheme": "geschenk25",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "geschenk.mteschke.com",
+              "pathPrefix": "/join"
+            },
+            {
+              "scheme": "https",
+              "host": "geschenk25.vercel.app",
+              "pathPrefix": "/join"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "plugins": [
