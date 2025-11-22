@@ -343,7 +343,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     if (!inviteLinks || !group) return;
     
     try {
-      const message = `Join my Secret Santa group "${group.name}"!\n\n📱 Mobile: ${inviteLinks.native}\n🌐 Web: ${inviteLinks.web}`;
+      const message = `Join my Secret Santa group "${group.name}"!\n\n${inviteLinks.web}`;
       await Share.share({
         message,
         url: inviteLinks.web, // Use web link as primary for sharing

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { registerForPushNotifications, setupNotificationHandlers } from './src/services/notifications';
 import { apiClient } from './src/lib/api';
 import { getErrorMessage } from './src/utils/errors';
+import { APP_STORE_URL, PLAY_STORE_URL } from './src/utils/constants';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -107,6 +108,54 @@ function AppContent() {
       // On web, check the current URL path
       if (typeof window !== 'undefined') {
         const currentUrl = window.location.href;
+        const url = new URL(currentUrl);
+        
+        // Check if this is a /join/:token route
+        const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+        if (pathMatch) {
+          const token = pathMatch[1];
+          
+          // Detect mobile device
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+          const isAndroid = /Android/.test(navigator.userAgent);
+          
+          if (isIOS || isAndroid) {
+            // Try to open the app using custom scheme
+            const appScheme = `geschenk25://join/${token}`;
+            
+            // Try to open the app
+            window.location.href = appScheme;
+            
+            // Set a timeout to redirect to App Store/Play Store if app doesn't open
+            const redirectTimeout = setTimeout(() => {
+              if (isIOS) {
+                window.location.href = APP_STORE_URL;
+              } else if (isAndroid) {
+                window.location.href = PLAY_STORE_URL;
+              }
+            }, 2500); // 2.5 second timeout
+            
+            // Clear timeout if page becomes hidden (app opened successfully)
+            const handleVisibilityChange = () => {
+              if (document.hidden) {
+                clearTimeout(redirectTimeout);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+              }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Also clear timeout if user navigates away
+            const handleBlur = () => {
+              clearTimeout(redirectTimeout);
+              window.removeEventListener('blur', handleBlur);
+            };
+            window.addEventListener('blur', handleBlur);
+            
+            return; // Don't process as normal deep link
+          }
+        }
+        
+        // Normal web app flow
         handleDeepLink({ url: currentUrl });
       }
     } else {
