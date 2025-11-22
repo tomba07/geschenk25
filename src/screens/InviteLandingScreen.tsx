@@ -25,34 +25,26 @@ export default function InviteLandingScreen({
   const isAndroid = Platform.OS === 'android' || (typeof navigator !== 'undefined' && /Android/.test(navigator.userAgent));
 
   const handleOpenApp = () => {
-    // On web, try to open the app using custom scheme (user-initiated, so Safari allows it)
+    // Use Universal Links - navigate to HTTPS URL
+    // iOS will automatically open the app if installed via Universal Links
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const appScheme = `geschenk25://join/${token}`;
-      try {
-        // Create a link and click it - this works for user-initiated actions
-        const link = document.createElement('a');
-        link.href = appScheme;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-          if (link.parentNode) {
-            document.body.removeChild(link);
-          }
-        }, 100);
-      } catch (error) {
-        console.error('Error opening app:', error);
-      }
+      const appUrl = `https://geschenk.mteschke.com/join/${token}`;
+      window.location.href = appUrl;
     } else {
-      // On native, use Linking
       onOpenApp();
     }
   };
 
   const handleOpenStore = () => {
-    const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // Use link click method for better compatibility
+      let storeUrl: string;
+      if (isIOS) {
+        // Use itms-apps:// scheme for better iOS compatibility
+        storeUrl = 'itms-apps://apps.apple.com/us/app/id6755076791';
+      } else {
+        storeUrl = PLAY_STORE_URL;
+      }
+      
       try {
         const link = document.createElement('a');
         link.href = storeUrl;
@@ -70,7 +62,7 @@ export default function InviteLandingScreen({
         window.location.href = storeUrl;
       }
     } else {
-      Linking.openURL(storeUrl).catch((err) => {
+      Linking.openURL(isIOS ? APP_STORE_URL : PLAY_STORE_URL).catch((err) => {
         console.error('Error opening store:', err);
       });
     }
