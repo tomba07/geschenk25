@@ -35,7 +35,28 @@ export default function InviteLandingScreen({
   }, []);
 
   const handleOpenApp = () => {
-    onOpenApp();
+    // On web, use window.location or create an anchor tag
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const appScheme = `geschenk25://join/${token}`;
+      try {
+        // Method 1: Try using window.location (user-initiated, so Safari allows it)
+        const link = document.createElement('a');
+        link.href = appScheme;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error opening app:', error);
+      }
+    } else {
+      // On native, use Linking
+      onOpenApp();
+    }
     // Show fallback options after attempting to open app
     setTimeout(() => {
       setShowFallback(true);
@@ -44,9 +65,13 @@ export default function InviteLandingScreen({
 
   const handleOpenStore = () => {
     const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
-    Linking.openURL(storeUrl).catch((err) => {
-      console.error('Error opening store:', err);
-    });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.location.href = storeUrl;
+    } else {
+      Linking.openURL(storeUrl).catch((err) => {
+        console.error('Error opening store:', err);
+      });
+    }
   };
 
   return (

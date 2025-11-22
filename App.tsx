@@ -21,10 +21,29 @@ type Screen = 'home' | 'groupDetail' | 'profile' | 'inviteLanding';
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [showSignup, setShowSignup] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  
+  // Initialize screen state based on URL (for mobile web invite links)
+  const getInitialScreen = (): { screen: Screen; token: string | null } => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+      if (pathMatch) {
+        const token = pathMatch[1];
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        if (isIOS || isAndroid) {
+          return { screen: 'inviteLanding', token };
+        }
+      }
+    }
+    return { screen: 'home', token: null };
+  };
+  
+  const initialScreenState = getInitialScreen();
+  const [currentScreen, setCurrentScreen] = useState<Screen>(initialScreenState.screen);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState<string | null>(initialScreenState.token);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
@@ -105,63 +124,48 @@ function AppContent() {
   };
 
   useEffect(() => {
+    // Skip URL processing if we're already showing the invite landing screen
+    // (it was set during initial state to prevent any redirects)
+    if (currentScreen === 'inviteLanding' && inviteToken) {
+      // Don't process any deep links - just show the landing page
+      return;
+    }
+    
     // Handle initial URL (when app is opened via deep link or web URL)
     if (Platform.OS === 'web') {
       // On web, check the current URL path
       if (typeof window !== 'undefined') {
-        // Wait for DOM to be ready before processing
-        const processUrl = () => {
-          const currentUrl = window.location.href;
-          const url = new URL(currentUrl);
+        const currentUrl = window.location.href;
+        const url = new URL(currentUrl);
+        
+        // Check if this is a /join/:token route
+        const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
+        if (pathMatch) {
+          const token = pathMatch[1];
           
-          // Check if this is a /join/:token route
-          const pathMatch = url.pathname.match(/^\/join\/([^/]+)$/);
-          if (pathMatch) {
-            const token = pathMatch[1];
-            
-            // Detect mobile device
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-            const isAndroid = /Android/.test(navigator.userAgent);
-            
-            if (isIOS || isAndroid) {
-              // On mobile, show the landing page instead of automatic redirect
-              setInviteToken(token);
-              setCurrentScreen('inviteLanding');
-              return; // Don't process as normal deep link
-            } else {
-              // On desktop, process as normal deep link (web app)
+          // Detect mobile device
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+          const isAndroid = /Android/.test(navigator.userAgent);
+          
+          if (isIOS || isAndroid) {
+            // On mobile, show the landing page - no automatic redirects
+            setInviteToken(token);
+            setCurrentScreen('inviteLanding');
+            // Don't process as normal deep link - return early
+            return;
+          } else {
+            // On desktop, process as normal deep link (web app)
+            // But only if authenticated, otherwise it will fail silently
+            if (isAuthenticated) {
               handleDeepLink({ url: currentUrl });
-              return;
             }
+            return;
           }
-          
-          // Normal web app flow
+        }
+        
+        // Normal web app flow - only process if authenticated
+        if (isAuthenticated) {
           handleDeepLink({ url: currentUrl });
-        };
-        
-        // Wait for DOM to be ready and ensure React has initialized
-        const initRedirect = () => {
-          try {
-            processUrl();
-          } catch (error) {
-            console.error('Error processing URL:', error);
-            // Fallback: just process as normal deep link
-            try {
-              handleDeepLink({ url: window.location.href });
-            } catch (e) {
-              console.error('Error in fallback deep link handling:', e);
-            }
-          }
-        };
-        
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => {
-            // Wait a bit more for React to initialize
-            setTimeout(initRedirect, 200);
-          });
-        } else {
-          // DOM is already ready, but wait a bit for React to initialize
-          setTimeout(initRedirect, 200);
         }
       }
     } else {
@@ -274,15 +278,8 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  // Handle invite landing screen (shown on mobile web before authentication)
+  // Handle invite landing screen FIRST (shown on mobile web before authentication)
+  // This must be checked before isLoading to prevent any redirects
   if (currentScreen === 'inviteLanding' && inviteToken) {
     return (
       <InviteLandingScreen
@@ -314,6 +311,14 @@ function AppContent() {
           }
         }}
       />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
     );
   }
 
