@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -21,18 +21,8 @@ export default function InviteLandingScreen({
   onOpenApp,
   onContinueWeb,
 }: InviteLandingScreenProps) {
-  const [showFallback, setShowFallback] = useState(false);
   const isIOS = Platform.OS === 'ios' || (typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
   const isAndroid = Platform.OS === 'android' || (typeof navigator !== 'undefined' && /Android/.test(navigator.userAgent));
-
-  useEffect(() => {
-    // Show fallback options after 3 seconds
-    const timer = setTimeout(() => {
-      setShowFallback(true);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleOpenApp = () => {
     // On web, use window.location or create an anchor tag
@@ -57,16 +47,28 @@ export default function InviteLandingScreen({
       // On native, use Linking
       onOpenApp();
     }
-    // Show fallback options after attempting to open app
-    setTimeout(() => {
-      setShowFallback(true);
-    }, 1000);
   };
 
   const handleOpenStore = () => {
     const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.location.href = storeUrl;
+      // Use link click method for better compatibility
+      try {
+        const link = document.createElement('a');
+        link.href = storeUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+      } catch (error) {
+        // Fallback to window.location
+        window.location.href = storeUrl;
+      }
     } else {
       Linking.openURL(storeUrl).catch((err) => {
         console.error('Error opening store:', err);
@@ -92,27 +94,22 @@ export default function InviteLandingScreen({
           <Text style={commonStyles.buttonText}>Open in App</Text>
         </TouchableOpacity>
 
-        {showFallback && (
-          <View style={styles.fallbackContainer}>
-            <Text style={styles.fallbackText}>
-              Don't have the app?
+        <View style={styles.fallbackContainer}>
+          <TouchableOpacity
+            style={[commonStyles.button, styles.storeButton]}
+            onPress={handleOpenStore}
+          >
+            <Text style={commonStyles.buttonText}>
+              {isIOS ? 'Download from App Store' : 'Download from Play Store'}
             </Text>
-            <TouchableOpacity
-              style={[commonStyles.button, styles.storeButton]}
-              onPress={handleOpenStore}
-            >
-              <Text style={commonStyles.buttonText}>
-                {isIOS ? 'Download from App Store' : 'Download from Play Store'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.webLink}
-              onPress={onContinueWeb}
-            >
-              <Text style={styles.webLinkText}>Continue on Web</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.webLink}
+            onPress={onContinueWeb}
+          >
+            <Text style={styles.webLinkText}>Continue on Web</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
