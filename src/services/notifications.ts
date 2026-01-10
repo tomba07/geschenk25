@@ -39,7 +39,17 @@ export async function registerForPushNotifications() {
     console.log('Push notification token registered:', token.data);
     return token.data;
   } catch (error) {
-    console.error('Error registering for push notifications:', error);
+    // On Android, Firebase Cloud Messaging (FCM) must be configured for push notifications
+    // If Firebase isn't set up, this is expected and we can continue without push notifications
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isFirebaseNotConfigured = errorMessage.includes('FirebaseApp is not initialized') || 
+                                     errorMessage.includes('FCM-credentials');
+    
+    if (isFirebaseNotConfigured && Platform.OS === 'android') {
+      console.log('Push notifications not available: Firebase Cloud Messaging not configured. This is expected if FCM credentials are not set up.');
+    } else {
+      console.error('Error registering for push notifications:', error);
+    }
     return null;
   }
 }
