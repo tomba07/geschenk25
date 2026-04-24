@@ -62,48 +62,63 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   };
 
   const hasChanges = newDisplayName.trim() !== (displayName || '') || editingImage !== (imageUrl || null);
+  const initial = (displayName || username || 'U').charAt(0).toUpperCase();
 
   return (
-    <section className="screen">
-      <header className="topbar">
-        <button className="link-button" type="button" onClick={onBack}>Back</button>
-        <h1>Profile</h1>
-        <div className="topbar-spacer" />
+    <section className="screen profile-screen">
+      <header className="topbar profile-topbar">
+        <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
+        <h1>Edit Profile</h1>
+        <div />
       </header>
 
-      <form className="content-form" onSubmit={handleSave}>
-        <section className="form-section">
-          <h2>Profile Image</h2>
-          {editingImage ? <img className="profile-preview" src={editingImage} alt="" /> : <div className="profile-placeholder">{(displayName || username || 'U').charAt(0).toUpperCase()}</div>}
-          <div className="button-row">
-            <label className="secondary-button file-button">
-              Change
-              <input type="file" accept="image/*" onChange={handleImageChange} />
-            </label>
-            <button className="secondary-button" type="button" onClick={() => setEditingImage(null)}>Remove</button>
+      <form className="profile-layout" onSubmit={handleSave}>
+        <section className="profile-card profile-summary-card">
+          <div className="profile-photo-block">
+            {editingImage ? <img className="profile-preview" src={editingImage} alt="" /> : <div className="profile-placeholder">{initial}</div>}
+            <div className="button-row profile-image-actions">
+              <label className="secondary-button file-button">
+                Change Photo
+                <input type="file" accept="image/*" onChange={handleImageChange} />
+              </label>
+              <button className="secondary-button danger-outline-button" type="button" onClick={() => setEditingImage(null)}>Remove Photo</button>
+            </div>
+          </div>
+          <div className="profile-summary-copy">
+            <h2>{newDisplayName.trim() || displayName || username || 'User'}</h2>
+            <p>@{username}</p>
           </div>
         </section>
 
-        <section className="form-section">
-          <h2>Username</h2>
-          <p>@{username}</p>
-          <small>Your username cannot be changed.</small>
+        <section className="profile-card profile-fields-card">
+          <div className="profile-card-heading">
+            <h2>Account</h2>
+            <p>Update how your name appears to other group members.</p>
+          </div>
+
+          <div className="readonly-field">
+            <span>Username</span>
+            <strong>@{username}</strong>
+            <small>Your username cannot be changed.</small>
+          </div>
+
+          <label>
+            <span>Display Name</span>
+            <input value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} maxLength={100} disabled={loading} />
+          </label>
+
+          <div className="profile-save-row">
+            <button className="primary-button" type="submit" disabled={loading || !hasChanges}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </section>
 
-        <label>
-          <span>Display Name</span>
-          <input value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} maxLength={100} disabled={loading} />
-        </label>
-
-        {hasChanges && (
-          <button className="primary-button" type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        )}
-
-        <section className="danger-zone">
-          <h2>Danger Zone</h2>
-          <p>Deleting your account will permanently remove your data.</p>
+        <section className="profile-card profile-danger-card">
+          <div>
+            <h2>Danger Zone</h2>
+            <p>Deleting your account will permanently remove your data, groups, memberships, and gift ideas.</p>
+          </div>
           <button className="danger-button" type="button" onClick={handleDeleteAccount} disabled={deleting}>
             {deleting ? 'Deleting...' : 'Delete Account'}
           </button>

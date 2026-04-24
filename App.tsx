@@ -40,6 +40,25 @@ function routePath(route: Route): string {
   return '/';
 }
 
+function LoadingScreen({ route }: { route: Route }) {
+  const screenClass =
+    route.name === 'profile'
+      ? 'profile-screen'
+      : route.name === 'group'
+        ? 'group-detail-screen'
+        : route.name === 'home'
+          ? 'overview-screen'
+          : 'auth-screen';
+
+  return (
+    <section className={`screen app-loading-screen ${screenClass}`}>
+      <div className="app-loading-card">
+        <span className="spinner" />
+      </div>
+    </section>
+  );
+}
+
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [route, setRoute] = useState<Route>(() => parseRoute());
@@ -112,7 +131,7 @@ function AppContent() {
 
   const content = useMemo(() => {
     if (isLoading) {
-      return <div className="center-state"><span className="spinner" /></div>;
+      return <LoadingScreen route={route} />;
     }
 
     if (route.name === 'join') {
