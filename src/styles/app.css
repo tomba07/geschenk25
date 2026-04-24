@@ -611,21 +611,18 @@ select:focus {
 
 .group-detail-screen {
   padding-bottom: 56px;
+  background: #f4f7fa;
 }
 
 .detail-topbar {
-  min-height: 92px;
+  min-height: 78px;
   grid-template-columns: 112px 1fr 112px;
-  padding: max(22px, env(safe-area-inset-top)) 24px 18px;
+  padding: max(16px, env(safe-area-inset-top)) 24px 16px;
   background: #fff;
 }
 
 .detail-topbar h1 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
 }
 
@@ -649,7 +646,7 @@ select:focus {
 .detail-nav-button {
   padding: 6px 0;
   color: #3478f6;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   text-align: left;
 }
@@ -661,15 +658,134 @@ select:focus {
 .detail-section {
   display: grid;
   gap: 18px;
-  margin: 36px 24px 0;
+  margin: 0;
 }
 
 .detail-section h2 {
   margin: 0;
   color: #050505;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.15;
   font-weight: 800;
+}
+
+.detail-layout {
+  width: min(100% - 40px, 1040px);
+  margin: 0 auto;
+  padding: 24px 0 42px;
+  display: grid;
+  gap: 22px;
+}
+
+.detail-main,
+.detail-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+}
+
+.detail-page-hero {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+}
+
+.detail-page-hero .group-image.large {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+}
+
+.detail-page-hero h2,
+.detail-page-hero p {
+  margin: 0;
+}
+
+.detail-page-hero h2 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.detail-page-hero p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.detail-page-hero small {
+  display: block;
+  margin-top: 8px;
+}
+
+.detail-loading-layout {
+  pointer-events: none;
+}
+
+.detail-skeleton-card {
+  overflow: hidden;
+}
+
+.skeleton-avatar,
+.skeleton-line,
+.skeleton-block,
+.skeleton-row {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e8eef4 0%, #f5f8fb 45%, #e8eef4 90%);
+  background-size: 220% 100%;
+  animation: shimmer 1.25s ease-in-out infinite;
+}
+
+.skeleton-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.skeleton-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.skeleton-line {
+  width: 54%;
+  height: 16px;
+}
+
+.skeleton-line.wide {
+  width: 76%;
+  height: 24px;
+}
+
+.skeleton-line.heading {
+  width: 160px;
+  height: 22px;
+}
+
+.skeleton-block {
+  height: 128px;
+  border-radius: 8px;
+}
+
+.skeleton-row {
+  height: 64px;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .native-section-header {
@@ -689,13 +805,13 @@ select:focus {
 
 .native-card {
   border: 1px solid #dedede;
-  border-radius: 18px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
 .empty-card {
-  min-height: 158px;
+  min-height: 142px;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -706,7 +822,7 @@ select:focus {
 }
 
 .assignment-card {
-  min-height: 128px;
+  min-height: 122px;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -716,6 +832,17 @@ select:focus {
   text-align: center;
 }
 
+.assigned-ideas-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.assigned-ideas-panel h3 {
+  margin: 0;
+  color: #17202a;
+  font-size: 17px;
+}
+
 .empty-card-icon {
   font-size: 34px;
   line-height: 1;
@@ -723,10 +850,10 @@ select:focus {
 
 .empty-card p,
 .assignment-card p {
-  max-width: 330px;
+  max-width: 520px;
   margin: 0;
   color: #6f6f6f;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.35;
 }
 
@@ -740,7 +867,7 @@ select:focus {
 }
 
 .member-native-card {
-  min-height: 84px;
+  min-height: 76px;
   display: grid;
   grid-template-columns: 58px 1fr auto;
   align-items: center;
@@ -749,8 +876,8 @@ select:focus {
 }
 
 .member-native-card .small-avatar {
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
   background: #3478f6;
 }
 
@@ -773,13 +900,13 @@ select:focus {
   white-space: nowrap;
   text-overflow: ellipsis;
   color: #050505;
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
 .member-native-text small {
   color: #6f6f6f;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .owner-badge {
@@ -1096,6 +1223,83 @@ hr {
     grid-template-columns: 150px 1fr 1fr auto;
   }
 
+  .app-shell:has(.group-detail-screen) {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .group-detail-screen,
+  .app-shell:has(.group-detail-screen) .screen {
+    min-height: 100vh;
+  }
+
+  .detail-topbar {
+    padding-inline: max(24px, calc((100vw - 1040px) / 2 + 24px));
+  }
+
+  .detail-topbar h1 {
+    text-align: center;
+  }
+
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-areas:
+      "hero sidebar"
+      "main sidebar";
+    align-items: start;
+    gap: 24px;
+    padding-top: 28px;
+  }
+
+  .detail-page-hero {
+    grid-area: hero;
+  }
+
+  .detail-main {
+    grid-area: main;
+  }
+
+  .detail-sidebar {
+    grid-area: sidebar;
+    position: sticky;
+    top: 24px;
+  }
+
+  .assignments-section,
+  .ideas-section,
+  .members-section,
+  .pending-section,
+  .exclusions-section {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    padding: 18px;
+  }
+
+  .assignments-section .native-card,
+  .ideas-section .native-card,
+  .members-section .native-card,
+  .exclusions-section .native-card {
+    box-shadow: none;
+  }
+
+  .empty-card,
+  .assignment-card {
+    border-style: dashed;
+  }
+
+  .detail-section h2 {
+    font-size: 20px;
+  }
+
+  .pill-action {
+    min-height: 34px;
+    font-size: 15px;
+  }
+
   .overview-header-inner {
     min-height: 82px;
     grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
@@ -1135,6 +1339,13 @@ hr {
   .overview-header-inner,
   .overview-content {
     max-width: 980px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .detail-layout {
+    max-width: 1120px;
+    grid-template-columns: minmax(0, 1fr) 380px;
   }
 }
 

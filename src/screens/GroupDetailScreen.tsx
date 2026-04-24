@@ -23,6 +23,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [group, setGroup] = useState<Group | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
+  const [assignedPersonGiftIdeas, setAssignedPersonGiftIdeas] = useState<GiftIdea[]>([]);
   const [exclusions, setExclusions] = useState<Exclusion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -57,8 +58,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         groupService.getGiftIdeas(groupId),
         apiClient.getExclusions(Number(groupId)),
       ]);
+      const receiverIdeas = assignmentData
+        ? await groupService.getGiftIdeas(groupId, assignmentData.receiver_id)
+        : [];
       setAssignment(assignmentData);
       setGiftIdeas(userId ? ideas.filter((idea) => idea.created_by_id === userId) : ideas);
+      setAssignedPersonGiftIdeas(receiverIdeas);
       if (exclusionsResponse.data) setExclusions(exclusionsResponse.data.exclusions);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
@@ -93,6 +98,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
+  const assignmentsLocked = Boolean(assignment);
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
@@ -257,13 +263,38 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   if (loading || !group) {
     return (
-      <section className="screen">
-        <header className="topbar">
-          <button className="link-button" type="button" onClick={onBack}>Back</button>
+      <section className="screen group-detail-screen">
+        <header className="topbar detail-topbar">
+          <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
           <h1>Group</h1>
-          <div className="topbar-spacer" />
+          <div />
         </header>
-        <div className="center-state"><span className="spinner" /></div>
+        <div className="detail-layout detail-loading-layout">
+          <section className="detail-page-hero detail-skeleton-card">
+            <div className="skeleton-avatar" />
+            <div className="skeleton-stack">
+              <span className="skeleton-line wide" />
+              <span className="skeleton-line" />
+            </div>
+          </section>
+          <div className="detail-main">
+            <section className="detail-section assignments-section detail-skeleton-card">
+              <span className="skeleton-line heading" />
+              <span className="skeleton-block" />
+            </section>
+            <section className="detail-section ideas-section detail-skeleton-card">
+              <span className="skeleton-line heading" />
+              <span className="skeleton-block" />
+            </section>
+          </div>
+          <aside className="detail-sidebar">
+            <section className="detail-section members-section detail-skeleton-card">
+              <span className="skeleton-line heading" />
+              <span className="skeleton-row" />
+              <span className="skeleton-row" />
+            </section>
+          </aside>
+        </div>
       </section>
     );
   }
@@ -272,131 +303,179 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     <section className="screen group-detail-screen">
       <header className="topbar detail-topbar">
         <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
-        <h1>
-          <span className="title-gift">{group.image_url ? <img src={group.image_url} alt="" /> : '🎁'}</span>
-          <span>{group.name}</span>
-        </h1>
+        <h1>{group.name}</h1>
         <button className="link-button detail-nav-button right" type="button" onClick={openDetails}>Details</button>
       </header>
 
-      <section className="detail-section assignments-section">
-        <h2>Assignments</h2>
-        {assignment ? (
-          <article className="native-card assignment-card">
-            <div className="empty-card-icon">🎁</div>
-            <p>You are buying for <strong>{assignment.receiver_display_name || assignment.receiver_username}</strong>.</p>
-          </article>
-        ) : (
-          <article className="native-card empty-card">
-            <div className="empty-card-icon">🎁</div>
-            <p>
-              {members.length < 2
-                ? 'Add at least one more member to create Secret Santa assignments.'
-                : 'Assignments have not been created yet.'}
-            </p>
-            {isOwner && members.length >= 2 && (
-              <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy}>Assign</button>
-            )}
-          </article>
-        )}
-        {isOwner && assignment && (
-          <button className="secondary-button compact standalone-action" type="button" onClick={handleDeleteAssignments} disabled={busy}>
-            Clear Assignments
-          </button>
-        )}
-      </section>
-
-      <section className="detail-section ideas-section">
-        <div className="native-section-header">
-          <h2>My Gift Ideas</h2>
-          <button className="primary-button compact pill-action" type="button" onClick={() => setGiftIdeaOpen(true)}>+ Add Idea</button>
-        </div>
-        {giftIdeas.length === 0 ? (
-          <article className="native-card empty-card">
-            <div className="empty-card-icon">💡</div>
-            <p>You haven't created any gift ideas yet. Add some ideas for group members!</p>
-          </article>
-        ) : (
-          <div className="native-list">
-            {giftIdeas.map((idea) => (
-              <article className="native-card idea-native-card" key={idea.id}>
-                <div>
-                  <strong>{idea.idea}</strong>
-                  {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
-                  <small>for {idea.for_user.display_name || idea.for_user.username}</small>
-                </div>
-                <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="detail-section members-section">
-        <div className="native-section-header">
-          <h2>Members</h2>
-          {isOwner && <button className="primary-button compact pill-action" type="button" onClick={() => setInviteOpen(true)}>+ Invite</button>}
-        </div>
-        <div className="native-list">
-          {members.map((member) => (
-            <article className="native-card member-native-card" key={member.id}>
-              <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{(member.display_name || member.username).charAt(0).toUpperCase()}</span>}</div>
-              <div className="member-native-text">
-                <div>
-                  <strong>{member.display_name || member.username}</strong>
-                  {member.id === group.created_by && <span className="owner-badge">Owner</span>}
-                </div>
-                <small>@{member.username}</small>
-              </div>
-              {isOwner && member.id !== userId && (
-                <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.display_name || member.username)}>
-                  Remove
-                </button>
-              )}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {isOwner && group.pending_invitations && group.pending_invitations.length > 0 && (
-        <section className="detail-section pending-section">
-          <h2>Pending Invites</h2>
-          <div className="stack-list">
-            {group.pending_invitations.map((invite) => (
-              <div className="person-row" key={invite.invitation_id}>
-                <div>
-                  <strong>{invite.display_name || invite.username}</strong>
-                  <small>@{invite.username}</small>
-                </div>
-                <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.display_name || invite.username)}>
-                  Remove
-                </button>
-              </div>
-            ))}
+      <div className="detail-layout">
+        <section className="detail-page-hero">
+          <div className="group-image large">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
+          <div>
+            <h2>{group.name}</h2>
+            {group.description && <p>{group.description}</p>}
+            <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
           </div>
         </section>
-      )}
 
-      {isOwner && (
-        <section className="detail-section exclusions-section">
-          <div className="native-section-header">
-            <h2>Exclusions</h2>
-            <button className="primary-button compact pill-action" type="button" onClick={() => setExclusionOpen(true)}>+ Add Pair</button>
-          </div>
-          {exclusions.length === 0 ? (
-            <p className="empty-inline">No exclusions set</p>
-          ) : (
+        <div className="detail-main">
+          <section className="detail-section assignments-section">
+            <h2>Assignments</h2>
+            {assignment ? (
+              <>
+                <article className="native-card assignment-card">
+                  <div className="empty-card-icon">🎁</div>
+                  <p>You are buying for <strong>{assignment.receiver_display_name || assignment.receiver_username}</strong>.</p>
+                </article>
+                <div className="assigned-ideas-panel">
+                  <h3>Gift Ideas for {assignment.receiver_display_name || assignment.receiver_username}</h3>
+                  {assignedPersonGiftIdeas.length === 0 ? (
+                    <p className="empty-inline">No gift ideas shared for this person yet.</p>
+                  ) : (
+                    <div className="native-list">
+                      {assignedPersonGiftIdeas.map((idea) => (
+                        <article className="native-card idea-native-card" key={idea.id}>
+                          <div>
+                            <strong>{idea.idea}</strong>
+                            {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
+                            <small>from {idea.created_by.display_name || idea.created_by.username}</small>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <article className="native-card empty-card">
+                <div className="empty-card-icon">🎁</div>
+                <p>
+                  {members.length < 2
+                    ? 'Add at least one more member to create Secret Santa assignments.'
+                    : 'Assignments have not been created yet.'}
+                </p>
+                {isOwner && members.length >= 2 && (
+                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy}>Assign</button>
+                )}
+              </article>
+            )}
+            {isOwner && assignment && (
+              <button className="secondary-button compact standalone-action" type="button" onClick={handleDeleteAssignments} disabled={busy}>
+                Clear Assignments
+              </button>
+            )}
+          </section>
+
+          <section className="detail-section ideas-section">
+            <div className="native-section-header">
+              <h2>My Gift Ideas</h2>
+              <button className="primary-button compact pill-action" type="button" onClick={() => setGiftIdeaOpen(true)}>+ Add Idea</button>
+            </div>
+            {giftIdeas.length === 0 ? (
+              <article className="native-card empty-card">
+                <div className="empty-card-icon">💡</div>
+                <p>You haven't created any gift ideas yet. Add some ideas for group members!</p>
+              </article>
+            ) : (
+              <div className="native-list">
+                {giftIdeas.map((idea) => (
+                  <article className="native-card idea-native-card" key={idea.id}>
+                    <div>
+                      <strong>{idea.idea}</strong>
+                      {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
+                      <small>for {idea.for_user.display_name || idea.for_user.username}</small>
+                    </div>
+                    <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="detail-sidebar">
+          <section className="detail-section members-section">
+            <div className="native-section-header">
+              <h2>Members</h2>
+              {isOwner && !assignmentsLocked && (
+                <button
+                  className="primary-button compact pill-action"
+                  type="button"
+                  onClick={() => setInviteOpen(true)}
+                >
+                  + Invite
+                </button>
+              )}
+            </div>
             <div className="native-list">
-              {exclusions.map((exclusion) => (
-                <article className="native-card exclusion-native-card" key={exclusion.id}>
-                  <span>{exclusion.giver_display_name || exclusion.giver_username} cannot draw {exclusion.excluded_display_name || exclusion.excluded_username}</span>
-                  <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
+              {members.map((member) => (
+                <article className="native-card member-native-card" key={member.id}>
+                  <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{(member.display_name || member.username).charAt(0).toUpperCase()}</span>}</div>
+                  <div className="member-native-text">
+                    <div>
+                      <strong>{member.display_name || member.username}</strong>
+                      {member.id === group.created_by && <span className="owner-badge">Owner</span>}
+                    </div>
+                    <small>@{member.username}</small>
+                  </div>
+                  {isOwner && !assignmentsLocked && member.id !== userId && (
+                    <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.display_name || member.username)}>
+                      Remove
+                    </button>
+                  )}
                 </article>
               ))}
             </div>
+          </section>
+
+          {isOwner && group.pending_invitations && group.pending_invitations.length > 0 && (
+            <section className="detail-section pending-section">
+              <h2>Pending Invites</h2>
+              <div className="stack-list">
+                {group.pending_invitations.map((invite) => (
+                  <div className="person-row" key={invite.invitation_id}>
+                    <div>
+                      <strong>{invite.display_name || invite.username}</strong>
+                      <small>@{invite.username}</small>
+                    </div>
+                    <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.display_name || invite.username)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
-        </section>
-      )}
+
+          {isOwner && (
+            <section className="detail-section exclusions-section">
+              <div className="native-section-header">
+                <h2>Exclusions</h2>
+                {!assignmentsLocked && (
+                  <button
+                    className="primary-button compact pill-action"
+                    type="button"
+                    onClick={() => setExclusionOpen(true)}
+                  >
+                    + Add Pair
+                  </button>
+                )}
+              </div>
+              {exclusions.length === 0 ? (
+                <p className="empty-inline">No exclusions set</p>
+              ) : (
+                <div className="native-list">
+                  {exclusions.map((exclusion) => (
+                    <article className="native-card exclusion-native-card" key={exclusion.id}>
+                      <span>{exclusion.giver_display_name || exclusion.giver_username} cannot draw {exclusion.excluded_display_name || exclusion.excluded_username}</span>
+                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </aside>
+      </div>
 
       {inviteOpen && (
         <div className="modal-backdrop">
