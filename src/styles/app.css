@@ -546,7 +546,7 @@ select:focus {
   border-bottom: 1px solid var(--border);
 }
 
-.person-row > div,
+.person-row > div:not(.small-avatar),
 .idea-row > div {
   min-width: 0;
   flex: 1;
