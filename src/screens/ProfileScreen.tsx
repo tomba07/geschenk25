@@ -1,21 +1,6 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  StyleSheet,
-  Platform,
-  StatusBar,
-  Image,
-  ScrollView,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, typography, commonStyles } from '../styles/theme';
+import { fileToDataUrl } from '../utils/file';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -26,360 +11,104 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [newDisplayName, setNewDisplayName] = useState(displayName || '');
   const [editingImage, setEditingImage] = useState<string | null>(imageUrl || null);
   const [loading, setLoading] = useState(false);
-  const [updatingImage, setUpdatingImage] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handlePickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'We need access to your photos to upload a profile image.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setEditingImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
+  const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setEditingImage(await fileToDataUrl(file));
   };
 
-  const handleRemoveImage = () => {
-    setEditingImage(null);
-  };
-
-  const handleSave = async () => {
+  const handleSave = async (event: FormEvent) => {
+    event.preventDefault();
     if (newDisplayName.trim().length > 100) {
-      Alert.alert('Error', 'Display name must be 100 characters or less');
+      window.alert('Display name must be 100 characters or less');
       return;
     }
 
     setLoading(true);
     const errors: string[] = [];
 
-    // Save display name if changed
-    const displayNameChanged = newDisplayName.trim() !== (displayName || '');
-    if (displayNameChanged) {
-      const { error } = await updateDisplayName(newDisplayName.trim() || '');
-      if (error) {
-        errors.push(`Display name: ${error.message || 'Failed to update'}`);
-      }
+    if (newDisplayName.trim() !== (displayName || '')) {
+      const { error } = await updateDisplayName(newDisplayName.trim());
+      if (error) errors.push(`Display name: ${error.message || 'Failed to update'}`);
     }
 
-    // Save image if changed
-    const imageChanged = editingImage !== (imageUrl || null);
-    if (imageChanged) {
-      setUpdatingImage(true);
-      try {
-        let imageBase64: string | undefined;
-        if (editingImage) {
-          try {
-            const base64 = await FileSystem.readAsStringAsync(editingImage, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
-            imageBase64 = `data:image/jpeg;base64,${base64}`;
-          } catch (error) {
-            console.error('Error converting image to base64:', error);
-            errors.push('Image: Failed to process image');
-            setUpdatingImage(false);
-            setLoading(false);
-            if (errors.length > 0) {
-              Alert.alert('Error', errors.join('\n'));
-            }
-            return;
-          }
-        }
-
-        const { error } = await updateProfileImage(imageBase64);
-        if (error) {
-          errors.push(`Image: ${error.message || 'Failed to update'}`);
-        }
-      } catch (error) {
-        errors.push('Image: Failed to update profile image');
-      }
-      setUpdatingImage(false);
+    if (editingImage !== (imageUrl || null)) {
+      const { error } = await updateProfileImage(editingImage || undefined);
+      if (error) errors.push(`Image: ${error.message || 'Failed to update'}`);
     }
 
     setLoading(false);
-
-    if (errors.length > 0) {
-      Alert.alert('Error', errors.join('\n'));
+    if (errors.length) {
+      window.alert(errors.join('\n'));
+    } else {
+      onBack();
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This will permanently delete:\n\n• All your groups\n• All your group memberships\n• All gift ideas you created\n• All your data\n\nThis action cannot be undone.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setDeleting(true);
-            const { error } = await deleteAccount();
-            setDeleting(false);
+  const handleDeleteAccount = async () => {
+    const message = 'This will permanently delete all your groups, memberships, gift ideas, and profile data. This action cannot be undone.';
+    if (!window.confirm(`Delete Account\n\n${message}`)) return;
 
-            if (error) {
-              Alert.alert('Error', error.message || 'Failed to delete account');
-            } else {
-              // Account deleted and user signed out, navigation will be handled by App.tsx
-              Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
-            }
-          },
-        },
-      ]
-    );
+    setDeleting(true);
+    const { error } = await deleteAccount();
+    setDeleting(false);
+    if (error) {
+      window.alert(error.message || 'Failed to delete account');
+    } else {
+      window.alert('Your account has been permanently deleted.');
+    }
   };
 
-  const paddingTop = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0;
+  const hasChanges = newDisplayName.trim() !== (displayName || '') || editingImage !== (imageUrl || null);
 
   return (
-    <View style={[commonStyles.container, { paddingTop }]}>
-      <View style={commonStyles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <section className="screen">
+      <header className="topbar">
+        <button className="link-button" type="button" onClick={onBack}>Back</button>
+        <h1>Profile</h1>
+        <div className="topbar-spacer" />
+      </header>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={true}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.section}>
-          <Text style={styles.label}>Profile Image</Text>
-          {editingImage || imageUrl ? (
-            <View style={styles.imagePreviewContainer}>
-              <Image 
-                source={{ uri: editingImage || imageUrl || '' }} 
-                style={styles.profileImagePreview} 
-              />
-              <View style={styles.imageActions}>
-                <TouchableOpacity
-                  style={styles.imageActionButton}
-                  onPress={handlePickImage}
-                  disabled={updatingImage}
-                >
-                  <Text style={styles.imageActionButtonText}>Change</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.imageActionButton, styles.removeImageButton]}
-                  onPress={handleRemoveImage}
-                  disabled={updatingImage}
-                >
-                  <Text style={styles.imageActionButtonText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.imagePickerButton}
-              onPress={handlePickImage}
-              disabled={updatingImage}
-            >
-              <Text style={styles.imagePickerButtonText}>📷 Choose Image</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      <form className="content-form" onSubmit={handleSave}>
+        <section className="form-section">
+          <h2>Profile Image</h2>
+          {editingImage ? <img className="profile-preview" src={editingImage} alt="" /> : <div className="profile-placeholder">{(displayName || username || 'U').charAt(0).toUpperCase()}</div>}
+          <div className="button-row">
+            <label className="secondary-button file-button">
+              Change
+              <input type="file" accept="image/*" onChange={handleImageChange} />
+            </label>
+            <button className="secondary-button" type="button" onClick={() => setEditingImage(null)}>Remove</button>
+          </div>
+        </section>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Username</Text>
-          <Text style={styles.value}>@{username}</Text>
-          <Text style={styles.hint}>Your username cannot be changed</Text>
-        </View>
+        <section className="form-section">
+          <h2>Username</h2>
+          <p>@{username}</p>
+          <small>Your username cannot be changed.</small>
+        </section>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Display Name</Text>
-          <TextInput
-            style={commonStyles.input}
-            placeholder="Enter display name (optional)"
-            value={newDisplayName}
-            onChangeText={setNewDisplayName}
-            autoCapitalize="words"
-            editable={!loading}
-            maxLength={100}
-          />
-          <Text style={styles.hint}>
-            This is how your name appears to others. Leave empty to use your username.
-          </Text>
-        </View>
+        <label>
+          <span>Display Name</span>
+          <input value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} maxLength={100} disabled={loading} />
+        </label>
 
-        {((newDisplayName.trim() !== (displayName || '')) || (editingImage !== (imageUrl || null))) && (
-          <TouchableOpacity
-            style={[commonStyles.button, (loading || updatingImage) && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={loading || updatingImage}
-          >
-            {(loading || updatingImage) ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={commonStyles.buttonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
+        {hasChanges && (
+          <button className="primary-button" type="submit" disabled={loading}>
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
         )}
 
-        <View style={styles.dangerSection}>
-          <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
-          <Text style={styles.dangerSectionDescription}>
-            Deleting your account will permanently remove all your data, including groups, memberships, and gift ideas. This action cannot be undone.
-          </Text>
-          <TouchableOpacity
-            style={[styles.deleteAccountButton, deleting && styles.buttonDisabled]}
-            onPress={handleDeleteAccount}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+        <section className="danger-zone">
+          <h2>Danger Zone</h2>
+          <p>Deleting your account will permanently remove your data.</p>
+          <button className="danger-button" type="button" onClick={handleDeleteAccount} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete Account'}
+          </button>
+        </section>
+      </form>
+    </section>
   );
 }
-
-const styles = StyleSheet.create({
-  backButton: {
-    padding: spacing.sm,
-  },
-  backButtonText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  title: {
-    ...typography.h3,
-    flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 60,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxl * 2,
-  },
-  section: {
-    marginBottom: spacing.xxl,
-  },
-  label: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  value: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  hint: {
-    ...typography.bodySmall,
-    color: colors.textTertiary,
-    marginTop: spacing.xs,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  dangerSection: {
-    marginTop: spacing.xxl * 2,
-    paddingTop: spacing.xxl,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  dangerSectionTitle: {
-    ...typography.h3,
-    color: colors.danger,
-    marginBottom: spacing.sm,
-  },
-  dangerSectionDescription: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    lineHeight: 20,
-  },
-  deleteAccountButton: {
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    padding: spacing.lg,
-    alignItems: 'center',
-  },
-  deleteAccountButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  imagePreviewContainer: {
-    marginTop: spacing.sm,
-    alignItems: 'center',
-  },
-  profileImagePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  imageActionButton: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flex: 1,
-  },
-  removeImageButton: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-  },
-  imageActionButtonText: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  imagePickerButton: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  imagePickerButtonText: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '600',
-  },
-});
-

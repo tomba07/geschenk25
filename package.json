@@ -1,31 +1,23 @@
 {
   "name": "geschenk",
   "version": "1.0.0",
-  "main": "index.ts",
+  "type": "module",
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
-    "build:web": "expo export --platform web"
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "build:web": "npm run build"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^1.24.0",
-    "expo": "~54.0.23",
-    "expo-dev-client": "~6.0.17",
-    "expo-file-system": "~19.0.17",
-    "expo-image-picker": "~17.0.8",
-    "expo-linking": "^8.0.8",
-    "expo-notifications": "^0.32.12",
-    "expo-status-bar": "~3.0.8",
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^7.0.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-web": "^0.21.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "babel-preset-expo": "^54.0.7",
+    "@types/react-dom": "~19.1.9",
     "typescript": "~5.9.2"
   },
   "private": true

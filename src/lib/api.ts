@@ -1,6 +1,6 @@
 import { parseError, logError, AppError, ErrorType } from '../utils/errors';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -337,4 +337,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient(API_URL);
-

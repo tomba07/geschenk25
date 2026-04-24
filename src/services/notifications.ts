@@ -1,76 +1,21 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
 import { apiClient } from '../lib/api';
 
-// Configure how notifications are handled when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
 export async function registerForPushNotifications() {
-  try {
-    // Request permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return null;
-    }
-
-    // Get the push token
-    const token = await Notifications.getExpoPushTokenAsync({
-      projectId: '463ad690-1cdb-4c10-80b7-45d83535eb32',
-    });
-
-    // Register token with backend
-    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-    await apiClient.registerDeviceToken(token.data, platform);
-
-    console.log('Push notification token registered:', token.data);
-    return token.data;
-  } catch (error) {
-    // On Android, Firebase Cloud Messaging (FCM) must be configured for push notifications
-    // If Firebase isn't set up, this is expected and we can continue without push notifications
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const isFirebaseNotConfigured = errorMessage.includes('FirebaseApp is not initialized') || 
-                                     errorMessage.includes('FCM-credentials');
-    
-    if (isFirebaseNotConfigured && Platform.OS === 'android') {
-      console.log('Push notifications not available: Firebase Cloud Messaging not configured. This is expected if FCM credentials are not set up.');
-    } else {
-      console.error('Error registering for push notifications:', error);
-    }
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return null;
   }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') return null;
+
+  // Web Push requires a VAPID public key and backend subscription endpoint.
+  // Keep this as a no-op until that backend contract is added.
+  await apiClient.registerDeviceToken('web-push-not-configured', 'web');
+  return null;
 }
 
-export function setupNotificationHandlers(
-  onNotificationReceived: (notification: Notifications.Notification) => void,
-  onNotificationTapped: (response: Notifications.NotificationResponse) => void
-) {
-  // Handle notifications received while app is foregrounded
-  const receivedSubscription = Notifications.addNotificationReceivedListener(onNotificationReceived);
-
-  // Handle user tapping on a notification
-  const responseSubscription = Notifications.addNotificationResponseReceivedListener(onNotificationTapped);
-
+export function setupNotificationHandlers() {
   return {
-    receivedSubscription,
-    responseSubscription,
-    cleanup: () => {
-      receivedSubscription.remove();
-      responseSubscription.remove();
-    },
+    cleanup: () => undefined,
   };
 }
-
