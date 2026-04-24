@@ -279,7 +279,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <button className="link-button detail-nav-button right" type="button" onClick={openDetails}>Details</button>
       </header>
 
-      <section className="detail-section">
+      <section className="detail-section assignments-section">
         <h2>Assignments</h2>
         {assignment ? (
           <article className="native-card assignment-card">
@@ -306,7 +306,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         )}
       </section>
 
-      <section className="detail-section">
+      <section className="detail-section ideas-section">
         <div className="native-section-header">
           <h2>My Gift Ideas</h2>
           <button className="primary-button compact pill-action" type="button" onClick={() => setGiftIdeaOpen(true)}>+ Add Idea</button>
@@ -332,7 +332,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         )}
       </section>
 
-      <section className="detail-section">
+      <section className="detail-section members-section">
         <div className="native-section-header">
           <h2>Members</h2>
           {isOwner && <button className="primary-button compact pill-action" type="button" onClick={() => setInviteOpen(true)}>+ Invite</button>}
@@ -359,7 +359,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       </section>
 
       {isOwner && group.pending_invitations && group.pending_invitations.length > 0 && (
-        <section className="detail-section">
+        <section className="detail-section pending-section">
           <h2>Pending Invites</h2>
           <div className="stack-list">
             {group.pending_invitations.map((invite) => (
@@ -378,7 +378,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       )}
 
       {isOwner && (
-        <section className="detail-section">
+        <section className="detail-section exclusions-section">
           <div className="native-section-header">
             <h2>Exclusions</h2>
             <button className="primary-button compact pill-action" type="button" onClick={() => setExclusionOpen(true)}>+ Add Pair</button>

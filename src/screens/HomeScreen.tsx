@@ -98,75 +98,87 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const initials = (displayName || username || 'U').charAt(0).toUpperCase();
 
   return (
-    <section className="screen">
-      <header className="topbar">
-        <button className="avatar-button" type="button" onClick={() => setMenuVisible(true)} aria-label="Open profile menu">
-          {imageUrl ? <img src={imageUrl} alt="" /> : <span>{initials}</span>}
-        </button>
-        <h1>My Groups</h1>
-        <button className="primary-button compact" type="button" onClick={() => setModalVisible(true)}>
-          New
-        </button>
-      </header>
-
-      {invitations.length > 0 && (
-        <section className="band">
-          <div className="section-title-row">
-            <h2>Pending Invitations</h2>
-            <span className="badge">{invitations.length}</span>
-          </div>
-          <div className="horizontal-list">
-            {invitations.map((invitation) => (
-              <article className="item-card invitation-card" key={invitation.id}>
-                <div>
-                  <h3>{invitation.group_name}</h3>
-                  <p>from {invitation.inviter_display_name}</p>
-                </div>
-                <div className="button-row">
-                  <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>
-                    Accept
-                  </button>
-                  <button className="secondary-button compact" type="button" onClick={() => handleRejectInvitation(invitation.id)}>
-                    Reject
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {loading ? (
-        <div className="center-state"><span className="spinner" /></div>
-      ) : groups.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">G</div>
-          <h2>No groups yet</h2>
-          <p>Create your first group to start organizing your Secret Santa exchange.</p>
-          <button className="primary-button" type="button" onClick={() => setModalVisible(true)}>
-            Create Your First Group
+    <section className="screen overview-screen">
+      <header className="overview-header">
+        <div className="overview-header-inner">
+          <button className="overview-profile-button" type="button" onClick={() => setMenuVisible(true)} aria-label="Open profile menu">
+            <span className="avatar-button">
+              {imageUrl ? <img src={imageUrl} alt="" /> : <span>{initials}</span>}
+            </span>
+            <span className="overview-profile-text">
+              <strong>{displayName || username || 'User'}</strong>
+              {username && <small>@{username}</small>}
+            </span>
+          </button>
+          <h1>Groups</h1>
+          <button className="overview-refresh-button" type="button" onClick={loadData} aria-label="Refresh groups">
+            ↻
           </button>
         </div>
-      ) : (
-        <div className="group-list">
-          {groups.map((group) => {
-            const memberCount = group.member_count ?? group.members?.length;
-            return (
-              <button className="item-card group-card" type="button" key={group.id} onClick={() => onGroupPress(String(group.id))}>
-                <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
-                <div>
-                  <h2>{group.name}</h2>
-                  {group.description && <p>{group.description}</p>}
-                  <small>
-                    {memberCount != null ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'} · ` : ''}
-                    {new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </small>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      </header>
+
+      <div className="overview-content">
+        {invitations.length > 0 && (
+          <section className="overview-invitations">
+            <div>
+              <h2>Pending Invitations</h2>
+              <p>{invitations.length} {invitations.length === 1 ? 'group is' : 'groups are'} waiting for your response.</p>
+            </div>
+            <div className="overview-invitation-list">
+              {invitations.map((invitation) => (
+                <article className="overview-invitation-card" key={invitation.id}>
+                  <div>
+                    <h3>{invitation.group_name}</h3>
+                    <p>from {invitation.inviter_display_name}</p>
+                  </div>
+                  <div className="button-row">
+                    <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>
+                      Accept
+                    </button>
+                    <button className="secondary-button compact" type="button" onClick={() => handleRejectInvitation(invitation.id)}>
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {loading ? (
+          <div className="center-state"><span className="spinner" /></div>
+        ) : groups.length === 0 ? (
+          <div className="overview-empty-state">
+            <div className="empty-icon">G</div>
+            <h2>No groups yet</h2>
+            <p>Create your first group to start organizing your Secret Santa exchange.</p>
+            <button className="primary-button" type="button" onClick={() => setModalVisible(true)}>
+              Create Your First Group
+            </button>
+          </div>
+        ) : (
+          <section className="overview-groups-section">
+            <div className="overview-group-grid">
+              {groups.map((group) => {
+                const memberCount = group.member_count ?? group.members?.length;
+                return (
+                  <button className="overview-group-card" type="button" key={group.id} onClick={() => onGroupPress(String(group.id))}>
+                    <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
+                    <div className="overview-group-card-body">
+                      <h3>{group.name}</h3>
+                      {group.description ? <p>{group.description}</p> : <p className="muted">No description</p>}
+                      <div className="overview-group-meta">
+                        <span>{memberCount != null ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'}` : 'Members'}</span>
+                        <span>{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
 
       {menuVisible && (
         <div className="modal-backdrop" onMouseDown={() => setMenuVisible(false)}>
@@ -215,6 +227,11 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           </form>
         </div>
       )}
+
+      <button className="overview-fab" type="button" onClick={() => setModalVisible(true)} aria-label="Create new group">
+        <span>+</span>
+        <strong>New Group</strong>
+      </button>
     </section>
   );
 }
