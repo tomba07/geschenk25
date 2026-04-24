@@ -111,9 +111,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             </span>
           </button>
           <h1>Groups</h1>
-          <button className="overview-refresh-button" type="button" onClick={loadData} aria-label="Refresh groups">
-            ↻
-          </button>
         </div>
       </header>
 
@@ -146,7 +143,20 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         )}
 
         {loading ? (
-          <div className="center-state"><span className="spinner" /></div>
+          <section className="overview-groups-section overview-loading-section">
+            <div className="overview-group-grid">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <article className="overview-group-card overview-skeleton-card" key={index}>
+                  <span className="skeleton-avatar overview-skeleton-avatar" />
+                  <span className="skeleton-stack">
+                    <span className="skeleton-line wide" />
+                    <span className="skeleton-line" />
+                    <span className="skeleton-line short" />
+                  </span>
+                </article>
+              ))}
+            </div>
+          </section>
         ) : groups.length === 0 ? (
           <div className="overview-empty-state">
             <div className="empty-icon">G</div>
@@ -166,7 +176,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                     <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
                     <div className="overview-group-card-body">
                       <h3>{group.name}</h3>
-                      {group.description ? <p>{group.description}</p> : <p className="muted">No description</p>}
+                      {group.description && <p>{group.description}</p>}
                       <div className="overview-group-meta">
                         <span>{memberCount != null ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'}` : 'Members'}</span>
                         <span>{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
