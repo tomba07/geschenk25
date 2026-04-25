@@ -78,6 +78,7 @@ Authenticated pages use the shared [AppShell](/Users/mirkoteschke/Dev/geschenk25
 Desktop:
 
 - fixed left sidebar
+- sidebar uses `/menu-background.png` as a restrained lower background image
 - main content area scrolls
 - sidebar contains brand, Groups, Profile, Settings, Sign out
 - no redundant user card at bottom
