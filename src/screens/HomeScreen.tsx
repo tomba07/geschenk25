@@ -1,5 +1,4 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
@@ -12,11 +11,9 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeScreenProps) {
-  const { username, displayName, imageUrl, signOut } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
@@ -95,52 +92,43 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     });
   };
 
-  const initials = (displayName || username || 'U').charAt(0).toUpperCase();
-
   return (
-    <section className="screen overview-screen">
-      <header className="overview-header">
-        <div className="overview-header-inner">
-          <button className="overview-profile-button" type="button" onClick={() => setMenuVisible(true)} aria-label="Open profile menu">
-            <span className="avatar-button">
-              {imageUrl ? <img src={imageUrl} alt="" /> : <span>{initials}</span>}
-            </span>
-            <span className="overview-profile-text">
-              <strong>{displayName || username || 'User'}</strong>
-              {username && <small>@{username}</small>}
-            </span>
-          </button>
-          <h1>Groups</h1>
-        </div>
-      </header>
+    <section className="overview-screen">
+      <div className="overview-main">
+        <header className="overview-page-header">
+          <div>
+            <h1>Groups</h1>
+            <p>Create, manage, and join your gift exchange groups.</p>
+          </div>
+        </header>
 
-      <div className="overview-content">
-        {invitations.length > 0 && (
-          <section className="overview-invitations">
-            <div>
-              <h2>Pending Invitations</h2>
-              <p>{invitations.length} {invitations.length === 1 ? 'group is' : 'groups are'} waiting for your response.</p>
-            </div>
-            <div className="overview-invitation-list">
-              {invitations.map((invitation) => (
-                <article className="overview-invitation-card" key={invitation.id}>
-                  <div>
-                    <h3>{invitation.group_name}</h3>
-                    <p>from {invitation.inviter_display_name}</p>
-                  </div>
-                  <div className="button-row">
-                    <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>
-                      Accept
-                    </button>
-                    <button className="secondary-button compact" type="button" onClick={() => handleRejectInvitation(invitation.id)}>
-                      Reject
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+        <div className="overview-content">
+          {invitations.length > 0 && (
+            <section className="overview-invitations">
+              <div>
+                <h2>Pending Invitations</h2>
+                <p>{invitations.length} {invitations.length === 1 ? 'group is' : 'groups are'} waiting for your response.</p>
+              </div>
+              <div className="overview-invitation-list">
+                {invitations.map((invitation) => (
+                  <article className="overview-invitation-card" key={invitation.id}>
+                    <div>
+                      <h3>{invitation.group_name}</h3>
+                      <p>from {invitation.inviter_display_name}</p>
+                    </div>
+                    <div className="button-row">
+                      <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>
+                        Accept
+                      </button>
+                      <button className="secondary-button compact" type="button" onClick={() => handleRejectInvitation(invitation.id)}>
+                        Reject
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
         {loading ? (
           <section className="overview-groups-section overview-loading-section">
@@ -188,27 +176,8 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             </div>
           </section>
         )}
-      </div>
-
-      {menuVisible && (
-        <div className="modal-backdrop" onMouseDown={() => setMenuVisible(false)}>
-          <div className="menu-popover" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="profile-summary">
-              <div className="large-avatar">{imageUrl ? <img src={imageUrl} alt="" /> : <span>{initials}</span>}</div>
-              <strong>{displayName || username || 'User'}</strong>
-              {username && <small>@{username}</small>}
-            </div>
-            <button type="button" onClick={onNavigateToProfile}>Edit Profile</button>
-            <button
-              className="danger-text"
-              type="button"
-              onClick={() => confirmDestructive('Sign Out', 'Are you sure you want to sign out?', 'Sign Out', signOut)}
-            >
-              Sign Out
-            </button>
-          </div>
         </div>
-      )}
+      </div>
 
       {modalVisible && (
         <div className="modal-backdrop">

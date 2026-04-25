@@ -8,6 +8,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import InviteLandingScreen from './src/screens/InviteLandingScreen';
+import AppShell from './src/components/AppShell';
 
 type Route =
   | { name: 'home' }
@@ -151,19 +152,29 @@ function AppContent() {
     }
 
     if (route.name === 'group') {
-      return <GroupDetailScreen groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />;
+      return (
+        <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+          <GroupDetailScreen groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />
+        </AppShell>
+      );
     }
 
     if (route.name === 'profile') {
-      return <ProfileScreen onBack={() => navigate({ name: 'home' })} />;
+      return (
+        <AppShell active="profile" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+          <ProfileScreen onBack={() => navigate({ name: 'home' })} />
+        </AppShell>
+      );
     }
 
     return (
-      <HomeScreen
-        key={refreshHomeKey}
-        onGroupPress={(groupId) => navigate({ name: 'group', groupId })}
-        onNavigateToProfile={() => navigate({ name: 'profile' })}
-      />
+      <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <HomeScreen
+          key={refreshHomeKey}
+          onGroupPress={(groupId) => navigate({ name: 'group', groupId })}
+          onNavigateToProfile={() => navigate({ name: 'profile' })}
+        />
+      </AppShell>
     );
   }, [isAuthenticated, isLoading, refreshHomeKey, route]);
 
