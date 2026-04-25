@@ -9,6 +9,7 @@ import GroupDetailScreen from './src/screens/GroupDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import InviteLandingScreen from './src/screens/InviteLandingScreen';
 import AppShell from './src/components/AppShell';
+import LandingScreen from './src/screens/LandingScreen';
 
 type Route =
   | { name: 'home' }
@@ -83,7 +84,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['login', 'signup', 'join'].includes(route.name)) {
+    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'join'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
   }, [isAuthenticated, isLoading, route.name]);
@@ -145,6 +146,14 @@ function AppContent() {
     }
 
     if (!isAuthenticated) {
+      if (route.name === 'home') {
+        return (
+          <LandingScreen
+            onLogin={() => navigate({ name: 'login' })}
+            onSignup={() => navigate({ name: 'signup' })}
+          />
+        );
+      }
       if (route.name === 'signup') {
         return <SignupScreen onSwitchToLogin={() => navigate({ name: 'login' })} />;
       }

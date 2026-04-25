@@ -1,7 +1,6 @@
-- login page
-- include images
-- icons
 - landing page
+- remove settings tab
 - monorepo
 - adjust username/email etc.
 - wipe db
+- highlight own wishes
