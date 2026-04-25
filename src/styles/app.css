@@ -1460,14 +1460,19 @@ select:focus {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: #08245a;
   font-size: 24px;
   font-weight: 800;
+  line-height: 1;
 }
 
-.sidebar-brand span {
-  font-size: 24px;
+.sidebar-brand img {
+  width: 34px;
+  height: 34px;
+  display: block;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .sidebar-nav {
@@ -1487,6 +1492,7 @@ select:focus {
   padding: 0 14px;
   text-align: left;
   font-weight: 600;
+  font-size: 16px;
 }
 
 .sidebar-nav-item.active {
@@ -1567,16 +1573,17 @@ select:focus {
 .sidebar-signout {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .sidebar-icon {
-  width: 22px;
-  display: inline-grid;
-  place-items: center;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
-  font-size: 19px;
-  line-height: 1;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .overview-page-header {
@@ -1946,14 +1953,19 @@ hr {
   .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     color: #08245a;
     font-size: 24px;
     font-weight: 800;
+    line-height: 1;
   }
 
-  .sidebar-brand span {
-    font-size: 24px;
+  .sidebar-brand img {
+    width: 34px;
+    height: 34px;
+    display: block;
+    object-fit: contain;
+    flex: 0 0 auto;
   }
 
   .sidebar-nav {
@@ -1975,17 +1987,18 @@ hr {
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-size: 16px;
   }
 
   .sidebar-icon {
-    width: 22px;
-    display: inline-grid;
-    place-items: center;
+    width: 20px;
+    height: 20px;
     flex: 0 0 auto;
-    font-size: 19px;
-    line-height: 1;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .sidebar-nav-item.active {
