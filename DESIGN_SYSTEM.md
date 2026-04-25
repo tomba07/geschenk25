@@ -1,36 +1,156 @@
 # Geschenk Design System
 
-## Principles
+## Direction
 
-- Warm utility: functional first, with subtle seasonal warmth.
-- Scannable hierarchy: assignments, groups, and actions should be obvious at a glance.
-- Private by default: UI should feel calm and trustworthy.
-- Desktop-native, mobile-native: avoid stretching one layout across both.
-- Soft, not cute: gift-giving cues through color, copy, and small icons, not decoration.
+Geschenk now follows the blue winter reference mockup: calm, crisp, friendly, and app-like. The feel is closer to a polished gift-exchange tool than a generic SaaS dashboard.
 
-## Visual Tone
+The UI should feel:
 
-Geschenk should feel friendly, calm, and slightly festive. The visual language should resemble winter stationery, paper cards, evergreen neutrals, soft red accents, and warm off-white surfaces.
+- wintery without becoming decorative
+- trustworthy and private
+- clear at a glance
+- desktop-native on wide screens
+- mobile-native on small screens
 
-Avoid mascot-style illustration, candy colors, heavy gradients, decorative blobs, confetti, and generic SaaS blue/purple dominance.
+Avoid:
+
+- red/green holiday overload
+- decorative blobs, confetti, or mascot art
+- stretched mobile layouts on desktop
+- heavy shadows or oversized border radii
+- generic purple/blue gradient SaaS styling
 
 ## Tokens
 
 Core tokens live in [src/styles/app.css](/Users/mirkoteschke/Dev/geschenk25/src/styles/app.css) under `:root`.
 
-Primary token groups:
+Current palette:
 
-- Color: base, text, brand, evergreen, gold, state, focus
-- Typography: text sizes, line heights, font weights
-- Spacing: 4px to 64px scale
-- Radius: 4px to 16px plus full
-- Shadow: small, medium, large
+```css
+--color-bg: #eef5ff;
+--color-surface: #ffffff;
+--color-surface-muted: #f2f6fc;
+--color-border: #d8e4f5;
+
+--color-text: #08245a;
+--color-text-muted: #3f5578;
+--color-text-soft: #7b8ca8;
+--color-text-inverse: #ffffff;
+
+--color-brand: #1559b7;
+--color-brand-hover: #0f4796;
+--color-brand-soft: #dcebff;
+
+--color-danger: #c9362c;
+--color-focus: #1559b7;
+```
+
+Compatibility aliases still exist for older component CSS:
+
+```css
+--primary: var(--color-brand);
+--primary-hover: var(--color-brand-hover);
+--danger: var(--color-danger);
+--surface: var(--color-surface-muted);
+--border: var(--color-border);
+--muted: var(--color-text-muted);
+```
+
+## Typography
+
+Use the existing token scale in `app.css`:
+
+- page title: `--text-2xl` to `--text-3xl`
+- section title: `--text-xl`
+- card title: `--text-lg`
+- body: `--text-md`
+- metadata: `--text-sm`
+- labels: `--text-sm`, medium weight
+
+Headings should be strong and compact. Metadata should stay quiet, not faint.
+
+## Layout Patterns
+
+### App Frame
+
+Authenticated pages use the shared [AppShell](/Users/mirkoteschke/Dev/geschenk25/src/components/AppShell.tsx).
+
+Desktop:
+
+- fixed left sidebar
+- main content area scrolls
+- sidebar contains brand, Groups, Profile, Settings, Sign out
+- no redundant user card at bottom
+
+Mobile:
+
+- compact top bar
+- drawer sidebar opened by menu button
+- floating primary action where useful
+
+### Group Overview
+
+Reference classes:
+
+- `.app-frame`
+- `.app-sidebar`
+- `.app-frame-main`
+- `.overview-screen`
+- `.overview-page-header`
+- `.overview-group-grid`
+- `.overview-group-card`
+- `.overview-fab`
+
+Rules:
+
+- `+ New Group` is floating, not in the header.
+- Desktop uses a compact two-column card grid.
+- Cards should be dense, with image/initial, title, metadata, and optional description.
+- Do not show placeholder text like “No description.”
+
+### Group Detail
+
+Reference classes:
+
+- `.group-detail-screen`
+- `.detail-topbar`
+- `.detail-layout`
+- `.detail-page-hero`
+- `.detail-main`
+- `.detail-sidebar`
+
+Rules:
+
+- Desktop uses main/sidebar layout.
+- Sidebar holds members, pending invites, and exclusions.
+- Assignment and gift ideas sit in the main column.
+- Invite, member removal, and exclusion edits are hidden once assignments exist.
+
+### Profile
+
+Reference classes:
+
+- `.profile-screen`
+- `.profile-topbar`
+- `.profile-layout`
+- `.profile-card`
+- `.profile-summary-card`
+- `.profile-fields-card`
+- `.profile-danger-card`
+
+Rules:
+
+- Profile uses the same app frame/sidebar as other authenticated pages.
+- Photo actions sit directly beneath the image.
+- “Remove Photo” remains a bordered danger-outline button.
+- Save is disabled until changes exist.
 
 ## Components
 
-Current shared component classes:
+Shared component classes currently in use:
 
 - Buttons: `.primary-button`, `.secondary-button`, `.danger-button`, `.link-button`, `.danger-outline-button`
+- Sidebar: `.app-sidebar`, `.sidebar-nav-item`, `.sidebar-icon`, `.sidebar-signout`
 - Cards: `.native-card`, `.profile-card`, `.overview-group-card`, `.modal-panel`
 - Forms: `label`, `input`, `textarea`, `select`, `.readonly-field`
 - Avatars/images: `.avatar-button`, `.group-image`, `.small-avatar`, `.profile-preview`, `.profile-placeholder`
@@ -38,18 +158,20 @@ Current shared component classes:
 - Skeletons: `.skeleton-avatar`, `.skeleton-line`, `.skeleton-block`, `.skeleton-row`
 - Modals: `.modal-backdrop`, `.modal-panel`
 
-## Page Patterns
+## Loading
 
-- Group overview: dashboard header, group card grid, floating create action.
-- Group detail: page header, group summary, main column, sidebar.
-- Edit profile: profile summary card plus settings cards.
-- Auth: centered form card.
+Loading states should match the page layout.
+
+- App/session loading uses `.app-loading-screen`.
+- Overview data loading uses skeleton group cards.
+- Group detail loading uses layout skeletons.
+- Avoid old centered spinner-only states inside redesigned authenticated pages.
 
 ## Implementation Rules
 
-- Prefer CSS variables over hard-coded colors and spacing.
-- Use 6-8px radius for most cards and controls.
+- Prefer tokens over hard-coded colors.
+- Use 6-8px radius for cards and controls.
 - Prefer borders plus subtle shadows.
-- Keep mobile layouts single-column and touch-friendly.
-- Use desktop grids only when content has enough room.
-- Do not add decorative blobs, confetti, or oversized seasonal graphics.
+- Make desktop layouts genuinely desktop-native.
+- Keep mobile layouts touch-friendly and single-column.
+- Keep seasonal cues restrained: gift icon, blue winter palette, soft panels.
