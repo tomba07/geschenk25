@@ -48,66 +48,74 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
 
   return (
     <section className="auth-screen">
-      <form className="auth-card" onSubmit={handleSignup}>
-        <div className="brand-mark">G</div>
-        <h1>Sign Up</h1>
-        <p>Create a new account</p>
+      <form className="auth-card signup-card" onSubmit={handleSignup}>
+        <div className="auth-brand-panel">
+          <div className="auth-hero-image" aria-hidden="true">
+            <img src="/geschenk-detailed.png" alt="" />
+          </div>
+        </div>
 
-        <label>
-          <span>Username</span>
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoCapitalize="none"
-            autoComplete="username"
-            disabled={loading}
-            required
-          />
-        </label>
+        <div className="auth-form-panel">
+          <div className="auth-form-heading">
+            <h2>Create account</h2>
+          </div>
 
-        <label>
-          <span>Display Name</span>
-          <input
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-            autoComplete="name"
-            disabled={loading}
-          />
-        </label>
+          <label className="auth-field">
+            <span>Username</span>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoCapitalize="none"
+              autoComplete="username"
+              disabled={loading}
+              required
+            />
+          </label>
 
-        <label>
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="new-password"
-            disabled={loading}
-            required
-          />
-        </label>
+          <label className="auth-field">
+            <span>Display Name</span>
+            <input
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              autoComplete="name"
+              disabled={loading}
+            />
+          </label>
 
-        <label>
-          <span>Confirm Password</span>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            autoComplete="new-password"
-            disabled={loading}
-            required
-          />
-        </label>
+          <label className="auth-field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              disabled={loading}
+              required
+            />
+          </label>
 
-        <button className="primary-button" type="submit" disabled={loading}>
-          {loading ? 'Creating...' : 'Sign Up'}
-        </button>
+          <label className="auth-field">
+            <span>Confirm Password</span>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              autoComplete="new-password"
+              disabled={loading}
+              required
+            />
+          </label>
 
-        <div className="auth-footer">
-          <span>Already have an account?</span>
-          <button type="button" className="link-button" onClick={onSwitchToLogin}>
-            Sign In
+          <button className="primary-button auth-submit" type="submit" disabled={loading}>
+            {loading ? 'Creating...' : 'Create Account'}
           </button>
+
+          <div className="auth-footer">
+            <span>Already have an account?</span>
+            <button type="button" className="link-button" onClick={onSwitchToLogin}>
+              Sign In
+            </button>
+          </div>
         </div>
       </form>
     </section>
