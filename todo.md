@@ -1,0 +1,7 @@
+- login page
+- include images
+- icons
+- landing page
+- monorepo
+- adjust username/email etc.
+- wipe db
