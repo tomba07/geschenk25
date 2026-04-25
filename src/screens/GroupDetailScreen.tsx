@@ -265,9 +265,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     return (
       <section className="screen group-detail-screen">
         <header className="topbar detail-topbar">
-          <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
+          <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
           <h1>Group</h1>
-          <div />
+          <span className="detail-action-spacer" />
         </header>
         <div className="detail-layout detail-loading-layout">
           <section className="detail-page-hero detail-skeleton-card">
@@ -302,9 +302,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   return (
     <section className="screen group-detail-screen">
       <header className="topbar detail-topbar">
-        <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
+        <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
         <h1>{group.name}</h1>
-        <button className="link-button detail-nav-button right" type="button" onClick={openDetails}>Details</button>
+        <button className="secondary-button compact detail-action-button" type="button" onClick={openDetails}>Details</button>
       </header>
 
       <div className="detail-layout">

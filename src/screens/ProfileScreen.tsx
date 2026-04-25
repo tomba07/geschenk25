@@ -66,13 +66,12 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   return (
     <section className="screen profile-screen">
-      <header className="topbar profile-topbar">
-        <button className="link-button detail-nav-button" type="button" onClick={onBack}>← Back</button>
-        <h1>Edit Profile</h1>
-        <div />
-      </header>
-
       <form className="profile-layout" onSubmit={handleSave}>
+        <div className="profile-page-heading">
+          <h1>Edit Profile</h1>
+          <p>Update your photo and display name.</p>
+        </div>
+
         <section className="profile-card profile-summary-card">
           <div className="profile-photo-block">
             {editingImage ? <img className="profile-preview" src={editingImage} alt="" /> : <div className="profile-placeholder">{initial}</div>}
