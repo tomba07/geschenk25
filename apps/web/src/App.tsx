@@ -42,6 +42,10 @@ function routePath(route: Route): string {
   return '/';
 }
 
+function hasStoredAuth() {
+  return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
+}
+
 function LoadingScreen({ route }: { route: Route }) {
   const screenClass =
     route.name === 'profile'
@@ -133,6 +137,14 @@ function AppContent() {
 
   const content = useMemo(() => {
     if (isLoading) {
+      if (hasStoredAuth() && ['home', 'profile', 'group'].includes(route.name)) {
+        return (
+          <AppShell active={route.name === 'profile' ? 'profile' : 'groups'} onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+            <LoadingScreen route={route} />
+          </AppShell>
+        );
+      }
+
       return <LoadingScreen route={route} />;
     }
 
