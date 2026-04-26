@@ -8,10 +8,14 @@
     "apps/api"
   ],
   "scripts": {
-    "dev": "npm run dev:web",
+    "dev": "npm run dev:web:deployed-api",
     "dev:web": "npm run dev --workspace @geschenk/web",
+    "dev:web:deployed-api": "npm run dev:deployed-api --workspace @geschenk/web",
+    "dev:web:local-api": "npm run dev:local-api --workspace @geschenk/web",
     "dev:api": "npm run dev --workspace @geschenk/api",
+    "dev:api:deployed-db": "npm run dev:deployed-db --workspace @geschenk/api",
     "dev:all": "npm run dev:web & npm run dev:api",
+    "dev:local-api": "npm run dev:web:local-api & npm run dev:api:deployed-db",
     "start": "npm run dev:web",
     "build": "npm run build:all",
     "build:web": "npm run build --workspace @geschenk/web",

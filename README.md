@@ -32,6 +32,22 @@ NODE_ENV=development
 RUN_MIGRATIONS_ON_START=false
 ```
 
+For common local UI work against the deployed API, run:
+
+```bash
+npm run dev
+```
+
+This uses `apps/web/.env.deployed`.
+
+For local API work against the deployed database, create `apps/api/.env.deployed-db` from `apps/api/.env.deployed-db.example`, then run:
+
+```bash
+npm run dev:local-api
+```
+
+This starts the web app with `VITE_API_URL=http://localhost:3000` and the API with the deployed database URL.
+
 Optional frontend API override in `apps/web/.env`:
 
 ```env

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:deployed-api": "vite --mode deployed",
+    "dev:local-api": "vite --mode local-api",
     "start": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
