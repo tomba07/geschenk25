@@ -48,6 +48,10 @@ async function sendMagicLink(email: string, link: string) {
   const from = process.env.EMAIL_FROM;
 
   if (!resendApiKey || !from) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email provider is not configured');
+    }
+
     console.log(`Magic link for ${email}: ${link}`);
     return { delivered: false };
   }
@@ -360,6 +364,30 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
   } catch (error: any) {
     console.error('Error updating profile image:', error);
     res.status(500).json({ error: 'Failed to update profile image' });
+  }
+});
+
+// Set or replace optional password.
+router.put('/profile/password', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { password } = req.body;
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ error: 'Failed to update password' });
   }
 });
 

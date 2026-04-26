@@ -7,8 +7,10 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ onBack }: ProfileScreenProps) {
-  const { email, username, imageUrl, updateProfileImage, deleteAccount } = useAuth();
+  const { email, username, imageUrl, updateProfileImage, updatePassword, deleteAccount } = useAuth();
   const [editingImage, setEditingImage] = useState<string | null>(imageUrl || null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -24,6 +26,17 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     setLoading(true);
     const errors: string[] = [];
 
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        errors.push('Password must be at least 6 characters');
+      } else if (newPassword !== confirmPassword) {
+        errors.push('Passwords do not match');
+      } else {
+        const { error } = await updatePassword(newPassword);
+        if (error) errors.push(`Password: ${error.message || 'Failed to update'}`);
+      }
+    }
+
     if (editingImage !== (imageUrl || null)) {
       const { error } = await updateProfileImage(editingImage || undefined);
       if (error) errors.push(`Image: ${error.message || 'Failed to update'}`);
@@ -33,6 +46,8 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     if (errors.length) {
       window.alert(errors.join('\n'));
     } else {
+      setNewPassword('');
+      setConfirmPassword('');
       onBack();
     }
   };
@@ -51,7 +66,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     }
   };
 
-  const hasChanges = editingImage !== (imageUrl || null);
+  const hasChanges = editingImage !== (imageUrl || null) || Boolean(newPassword || confirmPassword);
   const initial = (username || 'U').charAt(0).toUpperCase();
 
   return (
@@ -96,6 +111,30 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <strong>{email || 'Not set'}</strong>
             <small>Your email is used to sign in.</small>
           </div>
+
+          <label>
+            <span>Optional Password</span>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              autoComplete="new-password"
+              placeholder="Set a password"
+              disabled={loading}
+            />
+          </label>
+
+          <label>
+            <span>Confirm Password</span>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              autoComplete="new-password"
+              placeholder="Confirm password"
+              disabled={loading}
+            />
+          </label>
 
           <div className="profile-save-row">
             <button className="primary-button" type="submit" disabled={loading || !hasChanges}>

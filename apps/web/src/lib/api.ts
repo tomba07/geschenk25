@@ -180,6 +180,13 @@ class ApiClient {
     );
   }
 
+  async updatePassword(password: string) {
+    return this.request<{ message: string }>('/api/auth/profile/password', {
+      method: 'PUT',
+      body: JSON.stringify({ password }),
+    });
+  }
+
   async deleteAccount() {
     return this.request<{ message: string }>('/api/auth/account', {
       method: 'DELETE',
