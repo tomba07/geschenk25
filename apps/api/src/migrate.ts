@@ -5,22 +5,26 @@ export async function runMigrations() {
   await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        display_name VARCHAR(100),
+        image_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-  // Add display_name column if it doesn't exist (for existing databases)
+  // Add email column if it doesn't exist (for existing databases).
   await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
           SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'users' AND column_name = 'display_name'
+          WHERE table_name = 'users' AND column_name = 'email'
         ) THEN
-          ALTER TABLE users ADD COLUMN display_name VARCHAR(100);
+          ALTER TABLE users ADD COLUMN email VARCHAR(255);
+          UPDATE users SET email = username || '+legacy@geschenk.local' WHERE email IS NULL;
+          ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+          ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email);
         END IF;
       END $$;
     `);
@@ -168,6 +172,10 @@ export async function runMigrations() {
   // Create indexes
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
     `);
 
   await pool.query(`

@@ -15,7 +15,6 @@ interface GroupDetailScreenProps {
 interface SearchUser {
   id: number;
   username: string;
-  display_name: string;
 }
 
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
@@ -324,10 +323,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <>
                 <article className="native-card assignment-card">
                   <div className="empty-card-icon">🎁</div>
-                  <p>You are buying for <strong>{assignment.receiver_display_name || assignment.receiver_username}</strong>.</p>
+                  <p>You are buying for <strong>@{assignment.receiver_username}</strong>.</p>
                 </article>
                 <div className="assigned-ideas-panel">
-                  <h3>Gift Ideas for {assignment.receiver_display_name || assignment.receiver_username}</h3>
+                  <h3>Gift Ideas for @{assignment.receiver_username}</h3>
                   {assignedPersonGiftIdeas.length === 0 ? (
                     <p className="empty-inline">No gift ideas shared for this person yet.</p>
                   ) : (
@@ -337,7 +336,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                           <div>
                             <strong>{idea.idea}</strong>
                             {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
-                            <small>from {idea.created_by.display_name || idea.created_by.username}</small>
+                            <small>from @{idea.created_by.username}</small>
                           </div>
                         </article>
                       ))}
@@ -382,7 +381,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     <div>
                       <strong>{idea.idea}</strong>
                       {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
-                      <small>for {idea.for_user.display_name || idea.for_user.username}</small>
+                      <small>for @{idea.for_user.username}</small>
                     </div>
                     <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
                   </article>
@@ -409,16 +408,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <div className="native-list">
               {members.map((member) => (
                 <article className="native-card member-native-card" key={member.id}>
-                  <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{(member.display_name || member.username).charAt(0).toUpperCase()}</span>}</div>
+                  <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
                   <div className="member-native-text">
                     <div>
-                      <strong>{member.display_name || member.username}</strong>
+                      <strong>@{member.username}</strong>
                       {member.id === group.created_by && <span className="owner-badge">Owner</span>}
                     </div>
                     <small>@{member.username}</small>
                   </div>
                   {isOwner && !assignmentsLocked && member.id !== userId && (
-                    <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.display_name || member.username)}>
+                    <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
                       Remove
                     </button>
                   )}
@@ -434,10 +433,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 {group.pending_invitations.map((invite) => (
                   <div className="person-row" key={invite.invitation_id}>
                     <div>
-                      <strong>{invite.display_name || invite.username}</strong>
+                      <strong>@{invite.username}</strong>
                       <small>@{invite.username}</small>
                     </div>
-                    <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.display_name || invite.username)}>
+                    <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.username)}>
                       Remove
                     </button>
                   </div>
@@ -466,7 +465,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <div className="native-list">
                   {exclusions.map((exclusion) => (
                     <article className="native-card exclusion-native-card" key={exclusion.id}>
-                      <span>{exclusion.giver_display_name || exclusion.giver_username} cannot draw {exclusion.excluded_display_name || exclusion.excluded_username}</span>
+                      <span>@{exclusion.giver_username} cannot draw @{exclusion.excluded_username}</span>
                       <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
                     </article>
                   ))}
@@ -492,7 +491,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               {searchResults.map((user) => (
                 <button className="person-row selectable" type="button" key={user.id} onClick={() => handleInvite(user.username)} disabled={busy}>
                   <div>
-                    <strong>{user.display_name || user.username}</strong>
+                    <strong>@{user.username}</strong>
                     <small>@{user.username}</small>
                   </div>
                   <span>Invite</span>
@@ -523,7 +522,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <select value={giftIdeaForUserId} onChange={(event) => setGiftIdeaForUserId(event.target.value ? Number(event.target.value) : '')}>
                 <option value="">Me</option>
                 {members.map((member) => (
-                  <option key={member.id} value={member.id}>{member.display_name || member.username}</option>
+                  <option key={member.id} value={member.id}>@{member.username}</option>
                 ))}
               </select>
             </label>
@@ -554,14 +553,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <span>Giver</span>
               <select value={exclusionGiverId} onChange={(event) => setExclusionGiverId(event.target.value ? Number(event.target.value) : '')} required>
                 <option value="">Choose member</option>
-                {members.map((member) => <option key={member.id} value={member.id}>{member.display_name || member.username}</option>)}
+                {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
               </select>
             </label>
             <label>
               <span>Cannot receive</span>
               <select value={exclusionReceiverId} onChange={(event) => setExclusionReceiverId(event.target.value ? Number(event.target.value) : '')} required>
                 <option value="">Choose member</option>
-                {members.map((member) => <option key={member.id} value={member.id}>{member.display_name || member.username}</option>)}
+                {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
               </select>
             </label>
             <div className="button-row end">
@@ -631,7 +630,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               {group.owner && (
                 <div>
                   <dt>Owner</dt>
-                  <dd>{group.owner.display_name || group.owner.username}</dd>
+                  <dd>@{group.owner.username}</dd>
                 </div>
               )}
             </dl>

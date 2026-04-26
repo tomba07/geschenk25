@@ -6,20 +6,20 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
-    if (!username || !password) {
+    if (!email || !password) {
       window.alert('Please fill in all fields');
       return;
     }
 
     setLoading(true);
-    const { error } = await signIn(username, password);
+    const { error } = await signIn(email, password);
     setLoading(false);
     if (error) window.alert(error.message);
   };
@@ -40,12 +40,13 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
 
         <div className="auth-form-panel">
           <label className="auth-field">
-            <span>Username</span>
+            <span>Email</span>
             <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               autoCapitalize="none"
-              autoComplete="username"
+              autoComplete="email"
               disabled={loading}
             />
           </label>

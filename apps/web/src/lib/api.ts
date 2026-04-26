@@ -8,6 +8,19 @@ export interface ApiResponse<T> {
   appError?: AppError;
 }
 
+export interface ApiUser {
+  id: number;
+  email: string;
+  username: string;
+  image_url?: string | null;
+}
+
+export interface SearchUser {
+  id: number;
+  username: string;
+  image_url?: string | null;
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -114,48 +127,38 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(username: string, password: string, display_name?: string) {
-    return this.request<{ token: string; user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
+  async register(email: string, username: string, password: string) {
+    return this.request<{ token: string; user: ApiUser }>(
       '/api/auth/register',
       {
         method: 'POST',
-        body: JSON.stringify({ username, password, display_name }),
+        body: JSON.stringify({ email, username, password }),
       }
     );
   }
 
-  async login(username: string, password: string) {
-    return this.request<{ token: string; user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
+  async login(email: string, password: string) {
+    return this.request<{ token: string; user: ApiUser }>(
       '/api/auth/login',
       {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       }
     );
   }
 
   async getMe() {
-    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>('/api/auth/me');
+    return this.request<{ user: ApiUser }>('/api/auth/me');
   }
 
   async searchUsers(query: string) {
-    return this.request<{ users: { id: number; username: string; display_name: string; image_url?: string | null }[] }>(
+    return this.request<{ users: SearchUser[] }>(
       `/api/auth/search?q=${encodeURIComponent(query)}`
     );
   }
 
-  async updateDisplayName(display_name: string) {
-    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
-      '/api/auth/profile/display-name',
-      {
-        method: 'PUT',
-        body: JSON.stringify({ display_name }),
-      }
-    );
-  }
-
   async updateProfileImage(image_url?: string) {
-    return this.request<{ user: { id: number; username: string; display_name: string; image_url?: string | null } }>(
+    return this.request<{ user: ApiUser }>(
       '/api/auth/profile/image',
       {
         method: 'PUT',
@@ -268,7 +271,7 @@ class ApiClient {
   }
 
   async getAssignment(groupId: number) {
-    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_display_name: string } | null }>(
+    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_image_url?: string | null } | null }>(
       `/api/groups/${groupId}/assignment`
     );
   }

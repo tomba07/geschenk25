@@ -139,7 +139,7 @@ router.get('/invitations/pending', async (req: AuthRequest, res: Response) => {
     const result = await pool.query(
       `SELECT i.id, i.group_id, i.inviter_id, i.created_at,
               g.name as group_name, g.description as group_description,
-              u.username as inviter_username, u.display_name as inviter_display_name
+              u.username as inviter_username
        FROM invitations i
        JOIN groups g ON i.group_id = g.id
        JOIN users u ON i.inviter_id = u.id
@@ -148,13 +148,7 @@ router.get('/invitations/pending', async (req: AuthRequest, res: Response) => {
       [userId]
     );
 
-    // Map results to include display_name
-    const invitations = result.rows.map((row: any) => ({
-      ...row,
-      inviter_display_name: row.inviter_display_name || row.inviter_username,
-    }));
-
-    res.json({ invitations });
+    res.json({ invitations: result.rows });
   } catch (error: any) {
     console.error('Error fetching invitations:', error);
     res.status(500).json({ error: 'Failed to fetch invitations' });
@@ -321,13 +315,13 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
     // Get owner info
     const ownerResult = await pool.query(
-      'SELECT id, username, display_name, image_url FROM users WHERE id = $1',
+      'SELECT id, username, image_url FROM users WHERE id = $1',
       [group.created_by]
     );
 
     // Get active members only (excluding owner and left members)
     const membersResult = await pool.query(
-      `SELECT u.id, u.username, u.display_name, u.image_url, gm.joined_at
+      `SELECT u.id, u.username, u.image_url, gm.joined_at
        FROM group_members gm
        JOIN users u ON gm.user_id = u.id
        WHERE gm.group_id = $1 AND (gm.status IS NULL OR gm.status = 'active')
@@ -340,7 +334,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const ownerMember = {
       id: owner.id,
       username: owner.username,
-      display_name: owner.display_name || owner.username,
       image_url: owner.image_url,
       joined_at: group.created_at, // Use group creation date as joined_at for owner
     };
@@ -350,7 +343,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       ...membersResult.rows.map((m: any) => ({
         id: m.id,
         username: m.username,
-        display_name: m.display_name || m.username,
         image_url: m.image_url,
         joined_at: m.joined_at,
       })),
@@ -367,7 +359,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
       const invitationsResult = await pool.query(
         `SELECT i.id, i.invitee_id, i.created_at,
-                u.username, u.display_name
+                u.username
          FROM invitations i
          JOIN users u ON i.invitee_id = u.id
          WHERE i.group_id = $1 AND i.status = 'pending'
@@ -381,7 +373,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         .map((row: any) => ({
           id: row.invitee_id,
           username: row.username,
-          display_name: row.display_name || row.username,
           invitation_id: row.id,
           invited_at: row.created_at,
         }));
@@ -394,7 +385,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         owner: {
           id: owner.id,
           username: owner.username,
-          display_name: owner.display_name || owner.username,
+          image_url: owner.image_url,
         },
         pending_invitations: pendingInvitations,
       },
@@ -848,7 +839,7 @@ router.get('/:id/assignment', async (req: AuthRequest, res: Response) => {
 
     // Get user's assignment
     const assignmentResult = await pool.query(
-      `SELECT a.receiver_id, u.username as receiver_username, u.display_name as receiver_display_name, u.image_url as receiver_image_url
+      `SELECT a.receiver_id, u.username as receiver_username, u.image_url as receiver_image_url
        FROM assignments a
        JOIN users u ON a.receiver_id = u.id
        WHERE a.group_id = $1 AND a.giver_id = $2`,
@@ -864,7 +855,6 @@ router.get('/:id/assignment', async (req: AuthRequest, res: Response) => {
       assignment: {
         receiver_id: row.receiver_id,
         receiver_username: row.receiver_username,
-        receiver_display_name: row.receiver_display_name || row.receiver_username,
         receiver_image_url: row.receiver_image_url,
       },
     });
@@ -898,9 +888,7 @@ router.get('/:id/assignments', async (req: AuthRequest, res: Response) => {
     const assignmentsResult = await pool.query(
       `SELECT a.giver_id, a.receiver_id,
               giver.username as giver_username,
-              giver.display_name as giver_display_name,
-              receiver.username as receiver_username,
-              receiver.display_name as receiver_display_name
+              receiver.username as receiver_username
        FROM assignments a
        JOIN users giver ON a.giver_id = giver.id
        JOIN users receiver ON a.receiver_id = receiver.id
@@ -909,14 +897,11 @@ router.get('/:id/assignments', async (req: AuthRequest, res: Response) => {
       [groupId]
     );
 
-    // Map results to include display_name
     const assignments = assignmentsResult.rows.map((row: any) => ({
       giver_id: row.giver_id,
       receiver_id: row.receiver_id,
       giver_username: row.giver_username,
-      giver_display_name: row.giver_display_name || row.giver_username,
       receiver_username: row.receiver_username,
-      receiver_display_name: row.receiver_display_name || row.receiver_username,
     }));
 
     res.json({ assignments });
@@ -1009,11 +994,11 @@ router.post('/:id/gift-ideas', async (req: AuthRequest, res: Response) => {
 
     // Get creator and target user info
     const creatorResult = await pool.query(
-      'SELECT id, username, display_name FROM users WHERE id = $1',
+      'SELECT id, username FROM users WHERE id = $1',
       [userId]
     );
     const targetResult = await pool.query(
-      'SELECT id, username, display_name FROM users WHERE id = $1',
+      'SELECT id, username FROM users WHERE id = $1',
       [for_user_id]
     );
 
@@ -1027,12 +1012,10 @@ router.post('/:id/gift-ideas', async (req: AuthRequest, res: Response) => {
         created_by: {
           id: creator.id,
           username: creator.username,
-          display_name: creator.display_name || creator.username,
         },
         for_user: {
           id: target.id,
           username: target.username,
-          display_name: target.display_name || target.username,
         },
       },
     });
@@ -1075,8 +1058,8 @@ router.get('/:id/gift-ideas', async (req: AuthRequest, res: Response) => {
     // Build query - show gift ideas based on context
     let query = `
       SELECT gi.id, gi.group_id, gi.for_user_id, gi.created_by_id, gi.idea, gi.link, gi.created_at, gi.updated_at,
-             creator.username as creator_username, creator.display_name as creator_display_name,
-             target.username as target_username, target.display_name as target_display_name
+             creator.username as creator_username,
+             target.username as target_username
       FROM gift_ideas gi
       JOIN users creator ON gi.created_by_id = creator.id
       JOIN users target ON gi.for_user_id = target.id
@@ -1118,12 +1101,10 @@ router.get('/:id/gift-ideas', async (req: AuthRequest, res: Response) => {
       created_by: {
         id: row.created_by_id,
         username: row.creator_username,
-        display_name: row.creator_display_name || row.creator_username,
       },
       for_user: {
         id: row.for_user_id,
         username: row.target_username,
-        display_name: row.target_display_name || row.target_username,
       },
     }));
 
@@ -1175,11 +1156,11 @@ router.put('/:id/gift-ideas/:ideaId', async (req: AuthRequest, res: Response) =>
 
     // Get creator and target user info
     const creatorResult = await pool.query(
-      'SELECT id, username, display_name FROM users WHERE id = $1',
+      'SELECT id, username FROM users WHERE id = $1',
       [userId]
     );
     const targetResult = await pool.query(
-      'SELECT id, username, display_name FROM users WHERE id = $1',
+      'SELECT id, username FROM users WHERE id = $1',
       [result.rows[0].for_user_id]
     );
 
@@ -1193,12 +1174,10 @@ router.put('/:id/gift-ideas/:ideaId', async (req: AuthRequest, res: Response) =>
         created_by: {
           id: creator.id,
           username: creator.username,
-          display_name: creator.display_name || creator.username,
         },
         for_user: {
           id: target.id,
           username: target.username,
-          display_name: target.display_name || target.username,
         },
       },
     });
@@ -1264,8 +1243,8 @@ router.get('/:id/exclusions', authenticateToken, async (req: AuthRequest, res: R
     // Get exclusions
     const result = await pool.query(
       `SELECT e.id, e.giver_id, e.excluded_user_id,
-              giver.username as giver_username, giver.display_name as giver_display_name,
-              excluded.username as excluded_username, excluded.display_name as excluded_display_name
+              giver.username as giver_username,
+              excluded.username as excluded_username
        FROM exclusions e
        JOIN users giver ON e.giver_id = giver.id
        JOIN users excluded ON e.excluded_user_id = excluded.id

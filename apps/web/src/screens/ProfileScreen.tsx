@@ -7,8 +7,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ onBack }: ProfileScreenProps) {
-  const { username, displayName, imageUrl, updateDisplayName, updateProfileImage, deleteAccount } = useAuth();
-  const [newDisplayName, setNewDisplayName] = useState(displayName || '');
+  const { email, username, imageUrl, updateProfileImage, deleteAccount } = useAuth();
   const [editingImage, setEditingImage] = useState<string | null>(imageUrl || null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -21,18 +20,9 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
-    if (newDisplayName.trim().length > 100) {
-      window.alert('Display name must be 100 characters or less');
-      return;
-    }
 
     setLoading(true);
     const errors: string[] = [];
-
-    if (newDisplayName.trim() !== (displayName || '')) {
-      const { error } = await updateDisplayName(newDisplayName.trim());
-      if (error) errors.push(`Display name: ${error.message || 'Failed to update'}`);
-    }
 
     if (editingImage !== (imageUrl || null)) {
       const { error } = await updateProfileImage(editingImage || undefined);
@@ -61,15 +51,15 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     }
   };
 
-  const hasChanges = newDisplayName.trim() !== (displayName || '') || editingImage !== (imageUrl || null);
-  const initial = (displayName || username || 'U').charAt(0).toUpperCase();
+  const hasChanges = editingImage !== (imageUrl || null);
+  const initial = (username || 'U').charAt(0).toUpperCase();
 
   return (
     <section className="screen profile-screen">
       <form className="profile-layout" onSubmit={handleSave}>
         <div className="profile-page-heading">
           <h1>Edit Profile</h1>
-          <p>Update your photo and display name.</p>
+          <p>Update your photo and account details.</p>
         </div>
 
         <section className="profile-card profile-summary-card">
@@ -84,15 +74,15 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             </div>
           </div>
           <div className="profile-summary-copy">
-            <h2>{newDisplayName.trim() || displayName || username || 'User'}</h2>
-            <p>@{username}</p>
+            <h2>@{username || 'user'}</h2>
+            <p>{email || 'No email set'}</p>
           </div>
         </section>
 
         <section className="profile-card profile-fields-card">
           <div className="profile-card-heading">
             <h2>Account</h2>
-            <p>Update how your name appears to other group members.</p>
+            <p>Your username is how other group members find you.</p>
           </div>
 
           <div className="readonly-field">
@@ -101,10 +91,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <small>Your username cannot be changed.</small>
           </div>
 
-          <label>
-            <span>Display Name</span>
-            <input value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} maxLength={100} disabled={loading} />
-          </label>
+          <div className="readonly-field">
+            <span>Email</span>
+            <strong>{email || 'Not set'}</strong>
+            <small>Your email is used to sign in.</small>
+          </div>
 
           <div className="profile-save-row">
             <button className="primary-button" type="submit" disabled={loading || !hasChanges}>

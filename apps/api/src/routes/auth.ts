@@ -5,17 +5,33 @@ import pool from '../db';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { email, username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'Email, username, and password are required' });
     }
 
-    if (username.length < 3) {
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedUsername = normalizeUsername(username);
+
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    if (normalizedUsername.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters' });
     }
 
@@ -23,13 +39,15 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
       return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
     }
 
-    // Check if username already exists
-    const existingUser = await pool.query('SELECT id FROM users WHERE username = $1', [username.toLowerCase().trim()]);
-    if (existingUser.rows.length > 0) {
+    const existingUser = await pool.query('SELECT id, email, username FROM users WHERE email = $1 OR username = $2', [normalizedEmail, normalizedUsername]);
+    if (existingUser.rows.some((user: any) => user.email === normalizedEmail)) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    if (existingUser.rows.some((user: any) => user.username === normalizedUsername)) {
       return res.status(400).json({ error: 'Username already taken' });
     }
 
@@ -37,13 +55,10 @@ router.post('/register', async (req: Request, res: Response) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const { display_name } = req.body;
-    const displayName = display_name?.trim() || null;
-
     // Create user
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id, username, display_name, image_url, created_at',
-      [username.toLowerCase().trim(), passwordHash, displayName]
+      'INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING id, email, username, image_url, created_at',
+      [normalizedEmail, normalizedUsername, passwordHash]
     );
 
     const user = result.rows[0];
@@ -60,8 +75,8 @@ router.post('/register', async (req: Request, res: Response) => {
       token,
       user: {
         id: user.id,
+        email: user.email,
         username: user.username,
-        display_name: user.display_name || user.username,
         image_url: user.image_url,
       },
     });
@@ -74,19 +89,19 @@ router.post('/register', async (req: Request, res: Response) => {
 // Login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Find user
-    const result = await pool.query('SELECT id, username, password_hash, display_name, image_url FROM users WHERE username = $1', [
-      username.toLowerCase().trim(),
+    const result = await pool.query('SELECT id, email, username, password_hash, image_url FROM users WHERE email = $1', [
+      normalizeEmail(email),
     ]);
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const user = result.rows[0];
@@ -94,7 +109,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Verify password
     const isValid = await bcrypt.compare(password, user.password_hash);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Generate JWT token
@@ -109,8 +124,8 @@ router.post('/login', async (req: Request, res: Response) => {
       token,
       user: {
         id: user.id,
+        email: user.email,
         username: user.username,
-        display_name: user.display_name || user.username,
         image_url: user.image_url,
       },
     });
@@ -140,15 +155,13 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const searchTerm = `%${q.toLowerCase().trim()}%`;
     const result = await pool.query(
-      'SELECT id, username, display_name, image_url FROM users WHERE username LIKE $1 ORDER BY username LIMIT 20',
+      'SELECT id, username, image_url FROM users WHERE username LIKE $1 ORDER BY username LIMIT 20',
       [searchTerm]
     );
 
-    // Map results to include display_name or fallback to username
     const users = result.rows.map((row: any) => ({
       id: row.id,
       username: row.username,
-      display_name: row.display_name || row.username,
       image_url: row.image_url,
     }));
 
@@ -176,7 +189,7 @@ router.get('/me', async (req: Request, res: Response) => {
     const decoded: any = jwt.verify(token, secret);
 
     // Get fresh user data
-    const result = await pool.query('SELECT id, username, display_name, image_url, created_at FROM users WHERE id = $1', [decoded.userId]);
+    const result = await pool.query('SELECT id, email, username, image_url, created_at FROM users WHERE id = $1', [decoded.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -186,8 +199,8 @@ router.get('/me', async (req: Request, res: Response) => {
     res.json({
       user: {
         id: user.id,
+        email: user.email,
         username: user.username,
-        display_name: user.display_name || user.username,
         image_url: user.image_url,
       },
     });
@@ -197,60 +210,6 @@ router.get('/me', async (req: Request, res: Response) => {
     }
     console.error('Token verification error:', error);
     res.status(500).json({ error: 'Failed to verify token' });
-  }
-});
-
-// Update display name
-router.put('/profile/display-name', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'Token required' });
-    }
-
-    const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const decoded: any = jwt.verify(token, secret);
-
-    const { display_name } = req.body;
-    
-    if (display_name !== undefined) {
-      if (typeof display_name !== 'string') {
-        return res.status(400).json({ error: 'Display name must be a string' });
-      }
-      
-      if (display_name.length > 100) {
-        return res.status(400).json({ error: 'Display name must be 100 characters or less' });
-      }
-    }
-
-    const displayName = display_name?.trim() || null;
-
-    const result = await pool.query(
-      'UPDATE users SET display_name = $1 WHERE id = $2 RETURNING id, username, display_name, image_url',
-      [displayName, decoded.userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const user = result.rows[0];
-    res.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name || user.username,
-        image_url: user.image_url,
-      },
-    });
-  } catch (error: any) {
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-    console.error('Update display name error:', error);
-    res.status(500).json({ error: 'Failed to update display name' });
   }
 });
 
@@ -265,7 +224,7 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
     }
 
     const result = await pool.query(
-      'UPDATE users SET image_url = $1 WHERE id = $2 RETURNING id, username, display_name, image_url',
+      'UPDATE users SET image_url = $1 WHERE id = $2 RETURNING id, email, username, image_url',
       [image_url || null, userId]
     );
 
@@ -278,8 +237,8 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
     res.json({
       user: {
         id: user.id,
+        email: user.email,
         username: user.username,
-        display_name: user.display_name || user.username,
         image_url: user.image_url,
       },
     });

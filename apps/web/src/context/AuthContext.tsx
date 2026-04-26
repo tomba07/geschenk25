@@ -5,14 +5,13 @@ import { getErrorMessage } from '../utils/errors';
 interface AuthContextType {
   isAuthenticated: boolean;
   userId: number | null;
+  email: string | null;
   username: string | null;
-  displayName: string | null;
   imageUrl: string | null;
   isLoading: boolean;
-  signIn: (username: string, password: string) => Promise<{ error: any }>;
-  signUp: (username: string, password: string, display_name?: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  updateDisplayName: (display_name: string) => Promise<{ error: any }>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
 }
@@ -30,8 +29,8 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,11 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const setUserState = (user: { id: number; username: string; display_name: string; image_url?: string | null }) => {
+  const setUserState = (user: { id: number; email?: string | null; username: string; image_url?: string | null }) => {
     setIsAuthenticated(true);
     setUserId(user.id);
+    setEmail(user.email || null);
     setUsername(user.username);
-    setDisplayName(user.display_name);
     setImageUrl(user.image_url || null);
   };
 
@@ -53,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     apiClient.setToken(null);
     setIsAuthenticated(false);
     setUserId(null);
+    setEmail(null);
     setUsername(null);
-    setDisplayName(null);
     setImageUrl(null);
   };
 
@@ -81,9 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const response = await apiClient.login(username, password);
+      const response = await apiClient.login(email, password);
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
@@ -100,9 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (username: string, password: string, display_name?: string) => {
+  const signUp = async (email: string, username: string, password: string) => {
     try {
-      const response = await apiClient.register(username, password, display_name);
+      const response = await apiClient.register(email, username, password);
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
@@ -112,24 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem(USER_KEY, JSON.stringify(user));
         apiClient.setToken(token);
         setUserState(user);
-      }
-      return { error: null };
-    } catch (error) {
-      return { error: { message: getErrorMessage(error) } };
-    }
-  };
-
-  const updateDisplayName = async (display_name: string) => {
-    try {
-      const response = await apiClient.updateDisplayName(display_name);
-      if (response.error) {
-        return { error: { message: response.appError?.userMessage || response.error } };
-      }
-      if (response.data) {
-        const { user } = response.data;
-        setDisplayName(user.display_name);
-        setImageUrl(user.image_url || null);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
       }
       return { error: null };
     } catch (error) {
@@ -176,14 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         isAuthenticated,
         userId,
+        email,
         username,
-        displayName,
         imageUrl,
         isLoading,
         signIn,
         signUp,
         signOut,
-        updateDisplayName,
         updateProfileImage,
         deleteAccount,
       }}

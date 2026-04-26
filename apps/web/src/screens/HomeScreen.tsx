@@ -114,7 +114,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                   <article className="overview-invitation-card" key={invitation.id}>
                     <div>
                       <h3>{invitation.group_name}</h3>
-                      <p>from {invitation.inviter_display_name}</p>
+                      <p>from @{invitation.inviter_username}</p>
                     </div>
                     <div className="button-row">
                       <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>

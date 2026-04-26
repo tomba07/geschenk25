@@ -6,8 +6,8 @@ interface SignupScreenProps {
 }
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,8 +16,12 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const handleSignup = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!username || !password || !confirmPassword) {
+    if (!email || !username || !password || !confirmPassword) {
       window.alert('Please fill in all required fields');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      window.alert('Please enter a valid email address');
       return;
     }
     if (username.length < 3) {
@@ -38,7 +42,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     }
 
     setLoading(true);
-    const { error } = await signUp(username, password, displayName.trim() || undefined);
+    const { error } = await signUp(email.trim(), username, password);
     setLoading(false);
 
     if (error) {
@@ -61,6 +65,19 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           </div>
 
           <label className="auth-field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoCapitalize="none"
+              autoComplete="email"
+              disabled={loading}
+              required
+            />
+          </label>
+
+          <label className="auth-field">
             <span>Username</span>
             <input
               value={username}
@@ -69,16 +86,6 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
               autoComplete="username"
               disabled={loading}
               required
-            />
-          </label>
-
-          <label className="auth-field">
-            <span>Display Name</span>
-            <input
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              autoComplete="name"
-              disabled={loading}
             />
           </label>
 

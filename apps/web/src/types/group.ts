@@ -1,7 +1,6 @@
 export interface GroupMember {
   id: number;
   username: string;
-  display_name: string;
   image_url?: string | null;
   joined_at: string;
 }
@@ -9,14 +8,12 @@ export interface GroupMember {
 export interface GroupOwner {
   id: number;
   username: string;
-  display_name: string;
   image_url?: string | null;
 }
 
 export interface PendingInvitation {
   id: number;
   username: string;
-  display_name: string;
   invitation_id: number;
   invited_at: string;
 }
@@ -42,20 +39,17 @@ export interface Invitation {
   group_name: string;
   group_description?: string;
   inviter_username: string;
-  inviter_display_name: string;
 }
 
 export interface Assignment {
   receiver_id: number;
   receiver_username: string;
-  receiver_display_name: string;
   receiver_image_url?: string | null;
 }
 
 export interface GiftIdeaUser {
   id: number;
   username: string;
-  display_name: string;
 }
 
 export interface GiftIdea {
@@ -76,8 +70,5 @@ export interface Exclusion {
   giver_id: number;
   excluded_user_id: number;
   giver_username: string;
-  giver_display_name: string;
   excluded_username: string;
-  excluded_display_name: string;
 }
-
