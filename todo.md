@@ -1,8 +1,6 @@
-- landing page
-- remove settings tab
-- monorepo
+- dev setup
 - adjust username/email etc.
-- wipe db
+- custom domain
+- rename project
 - highlight own wishes
 - "see how it works" video
-- rename project
