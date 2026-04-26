@@ -22,7 +22,7 @@ services:
   - type: web
     name: geschenk25-api
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install --production=false && npm run build:api
     startCommand: npm run start:api
     preDeployCommand: npm run migrate:api
@@ -39,5 +39,6 @@ services:
 databases:
   - name: geschenk25-db
     plan: basic-256mb
+    diskSizeGB: 1
     databaseName: geschenk25
     user: geschenk25_user
