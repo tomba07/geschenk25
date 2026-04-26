@@ -9,6 +9,9 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+const MIGRATION_RETRY_DELAY_MS = 5000;
+const MIGRATION_MAX_ATTEMPTS = 12;
 
 // Middleware
 app.use(cors());
@@ -29,21 +32,36 @@ app.use((err: any, _req: any, res: any, _next: any) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-async function startServer() {
-  if (process.env.RUN_MIGRATIONS_ON_START === 'true') {
-    await runMigrations();
-    console.log('Startup migrations completed successfully');
-  }
+async function runStartupMigrationsWithRetry() {
+  for (let attempt = 1; attempt <= MIGRATION_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await runMigrations();
+      console.log('Startup migrations completed successfully');
+      return;
+    } catch (error) {
+      console.error(`Startup migrations failed (attempt ${attempt}/${MIGRATION_MAX_ATTEMPTS}):`, error);
 
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+      if (attempt === MIGRATION_MAX_ATTEMPTS) {
+        console.error('Startup migrations failed after all retry attempts');
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, MIGRATION_RETRY_DELAY_MS));
+    }
+  }
+}
+
+function startServer() {
+  app.listen(Number(PORT), HOST, () => {
+    console.log(`Server running on ${HOST}:${PORT}`);
+
+    if (process.env.RUN_MIGRATIONS_ON_START === 'true') {
+      runStartupMigrationsWithRetry();
+    }
   }).on('error', (err: any) => {
     console.error('Failed to start server:', err);
     process.exit(1);
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+startServer();
