@@ -22,21 +22,20 @@ export default function LandingScreen({ onLogin, onSignup }: LandingScreenProps)
               <span className="landing-pill-icon" aria-hidden="true">
                 <img src="/snowflake.png" alt="" />
               </span>
-              The simple way to organize Secret Santa
+              Create, invite, and draw names in minutes
             </div>
-            <h1>Stress-free gift exchanges for everyone</h1>
-            <p>Create groups, set exclusions, draw names, and share wish lists. Everything you need for the perfect gift exchange.</p>
+            <h1>Secret Santa, neatly organized</h1>
+            <ol className="landing-steps-list" aria-label="How Geschenk works">
+              <li>Create a group</li>
+              <li>Invite friends and share gift ideas</li>
+              <li>Draw names</li>
+            </ol>
             <div className="landing-hero-actions">
               <button className="landing-primary-button large" type="button" onClick={onSignup}>
                 Get started for free
                 <span aria-hidden="true">→</span>
               </button>
             </div>
-            <ul className="landing-proof-list" aria-label="Benefits">
-              <li>No credit card required</li>
-              <li>Free forever plan</li>
-              <li>Works on all devices</li>
-            </ul>
           </div>
 
           <div className="landing-hero-art" aria-hidden="true">

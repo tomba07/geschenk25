@@ -2,24 +2,24 @@
   "name": "geschenk",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
   "scripts": {
-    "dev": "vite",
-    "start": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "build:web": "npm run build"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "vite": "^7.0.0"
-  },
-  "devDependencies": {
-    "@types/react": "~19.1.0",
-    "@types/react-dom": "~19.1.9",
-    "playwright": "^1.59.1",
-    "typescript": "~5.9.2"
-  },
-  "private": true
+    "dev": "npm run dev:web",
+    "dev:web": "npm run dev --workspace @geschenk/web",
+    "dev:api": "npm run dev --workspace @geschenk/api",
+    "dev:all": "npm run dev:web & npm run dev:api",
+    "start": "npm run dev:web",
+    "build": "npm run build:all",
+    "build:web": "npm run build --workspace @geschenk/web",
+    "build:api": "npm run build --workspace @geschenk/api",
+    "build:all": "npm run build:web && npm run build:api",
+    "preview": "npm run preview --workspace @geschenk/web",
+    "start:api": "npm run start --workspace @geschenk/api",
+    "migrate:api": "npm run migrate --workspace @geschenk/api",
+    "cleanup:api": "npm run cleanup --workspace @geschenk/api"
+  }
 }

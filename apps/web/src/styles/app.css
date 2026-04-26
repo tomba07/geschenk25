@@ -175,7 +175,7 @@ a {
 }
 
 .landing-nav {
-  width: min(100% - 32px, 1280px);
+  width: min(100% - 32px, 1120px);
   min-height: 24px;
   margin: 0 auto;
   display: grid;
@@ -236,7 +236,7 @@ a {
 }
 
 .landing-main {
-  width: min(100% - 32px, 1280px);
+  width: min(100% - 32px, 1120px);
   margin: 0 auto;
   min-height: 100%;
   display: grid;
@@ -292,8 +292,8 @@ a {
   margin: 0;
   color: var(--color-text);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(45px, 8vw, 76px);
-  line-height: 0.98;
+  font-size: clamp(38px, 6.4vw, 64px);
+  line-height: 1.04;
   letter-spacing: 0;
 }
 
@@ -311,31 +311,33 @@ a {
   gap: 16px;
 }
 
-.landing-proof-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
+.landing-steps-list {
+  display: grid;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
   color: var(--color-text-muted);
   font-size: 15px;
   font-weight: 600;
+  counter-reset: landing-step;
 }
 
-.landing-proof-list li {
+.landing-steps-list li {
+  counter-increment: landing-step;
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.landing-proof-list li::before {
-  content: "✓";
-  width: 18px;
-  height: 18px;
+.landing-steps-list li::before {
+  content: counter(landing-step);
+  width: 22px;
+  height: 22px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid var(--color-brand);
+  background: rgb(255 255 255 / 0.7);
+  border: 1px solid rgb(21 89 183 / 0.38);
   border-radius: var(--radius-full);
   color: var(--color-brand);
   font-size: 12px;
@@ -356,8 +358,12 @@ a {
 }
 
 @media (max-width: 559px) {
+  .landing-screen {
+    grid-template-rows: 1fr;
+  }
+
   .landing-nav {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
   .landing-actions {
@@ -366,13 +372,13 @@ a {
 
   .landing-main {
     align-items: start;
-    padding-top: 8px;
+    padding: 18px 0 34px;
   }
 
   .landing-copy {
     justify-items: stretch;
     text-align: left;
-    gap: 18px;
+    gap: 16px;
   }
 
   .landing-pill {
@@ -382,8 +388,8 @@ a {
   }
 
   .landing-copy h1 {
-    font-size: 41px;
-    line-height: 1;
+    font-size: 33px;
+    line-height: 1.05;
   }
 
   .landing-hero-actions > * {
@@ -395,7 +401,7 @@ a {
   }
 
   .landing-hero-art img {
-    width: min(100%, 320px);
+    width: min(100%, 270px);
   }
 }
 
@@ -423,11 +429,11 @@ a {
 
   .landing-hero {
     grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1fr);
-    gap: 64px;
+    gap: 40px;
   }
 
   .landing-hero-art img {
-    width: min(100%, 620px);
+    width: min(100%, 580px);
   }
 }
 

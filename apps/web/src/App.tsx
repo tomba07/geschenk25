@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { apiClient } from './src/lib/api';
-import { getErrorMessage } from './src/utils/errors';
-import LoginScreen from './src/screens/LoginScreen';
-import SignupScreen from './src/screens/SignupScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import GroupDetailScreen from './src/screens/GroupDetailScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import InviteLandingScreen from './src/screens/InviteLandingScreen';
-import AppShell from './src/components/AppShell';
-import LandingScreen from './src/screens/LandingScreen';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { apiClient } from './lib/api';
+import { getErrorMessage } from './utils/errors';
+import LoginScreen from './screens/LoginScreen';
+import SignupScreen from './screens/SignupScreen';
+import HomeScreen from './screens/HomeScreen';
+import GroupDetailScreen from './screens/GroupDetailScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import InviteLandingScreen from './screens/InviteLandingScreen';
+import AppShell from './components/AppShell';
+import LandingScreen from './screens/LandingScreen';
 
 type Route =
   | { name: 'home' }
