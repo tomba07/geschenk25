@@ -5,3 +5,4 @@
 - wipe db
 - highlight own wishes
 - "see how it works" video
+- rename project
