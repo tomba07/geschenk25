@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import groupsRoutes from './routes/groups';
+import { runMigrations } from './migrate';
 
 dotenv.config();
 
@@ -28,11 +29,21 @@ app.use((err: any, _req: any, res: any, _next: any) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-}).on('error', (err: any) => {
-  console.error('Failed to start server:', err);
+async function startServer() {
+  if (process.env.RUN_MIGRATIONS_ON_START === 'true') {
+    await runMigrations();
+    console.log('Startup migrations completed successfully');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  }).on('error', (err: any) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}
+
+startServer().catch((error) => {
+  console.error('Failed to start server:', error);
   process.exit(1);
 });
-

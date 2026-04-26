@@ -1,9 +1,8 @@
 import pool from './db';
 
-async function migrate() {
-  try {
-    // Create users table
-    await pool.query(`
+export async function runMigrations() {
+  // Create users table
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
@@ -13,8 +12,8 @@ async function migrate() {
       )
     `);
 
-    // Add display_name column if it doesn't exist (for existing databases)
-    await pool.query(`
+  // Add display_name column if it doesn't exist (for existing databases)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -26,8 +25,8 @@ async function migrate() {
       END $$;
     `);
 
-    // Add image_url column if it doesn't exist (for existing databases)
-    await pool.query(`
+  // Add image_url column if it doesn't exist (for existing databases)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -39,8 +38,8 @@ async function migrate() {
       END $$;
     `);
 
-    // Create groups table
-    await pool.query(`
+  // Create groups table
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS groups (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -51,8 +50,8 @@ async function migrate() {
       )
     `);
 
-    // Add image_url column if it doesn't exist (for existing databases)
-    await pool.query(`
+  // Add image_url column if it doesn't exist (for existing databases)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -64,8 +63,8 @@ async function migrate() {
       END $$;
     `);
 
-    // Add invite_token column if it doesn't exist (for existing databases)
-    await pool.query(`
+  // Add invite_token column if it doesn't exist (for existing databases)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -77,8 +76,8 @@ async function migrate() {
       END $$;
     `);
 
-    // Create group_members table
-    await pool.query(`
+  // Create group_members table
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS group_members (
         id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -88,8 +87,8 @@ async function migrate() {
       )
     `);
 
-    // Create invitations table
-    await pool.query(`
+  // Create invitations table
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS invitations (
         id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -101,8 +100,8 @@ async function migrate() {
       )
     `);
 
-    // Create assignments table for Secret Santa
-    await pool.query(`
+  // Create assignments table for Secret Santa
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS assignments (
         id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -113,8 +112,8 @@ async function migrate() {
       )
     `);
 
-    // Create gift_ideas table
-    await pool.query(`
+  // Create gift_ideas table
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS gift_ideas (
         id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -127,8 +126,8 @@ async function migrate() {
       )
     `);
 
-    // Create exclusions table for Secret Santa assignments
-    await pool.query(`
+  // Create exclusions table for Secret Santa assignments
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS exclusions (
         id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -140,8 +139,8 @@ async function migrate() {
       )
     `);
 
-    // Add link column if it doesn't exist (for existing databases)
-    await pool.query(`
+  // Add link column if it doesn't exist (for existing databases)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -153,8 +152,8 @@ async function migrate() {
       END $$;
     `);
 
-    // Add status column to group_members if it doesn't exist (for soft leave functionality)
-    await pool.query(`
+  // Add status column to group_members if it doesn't exist (for soft leave functionality)
+  await pool.query(`
       DO $$ 
       BEGIN
         IF NOT EXISTS (
@@ -166,63 +165,67 @@ async function migrate() {
       END $$;
     `);
 
-    // Create indexes
-    await pool.query(`
+  // Create indexes
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_groups_created_by ON groups(created_by)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_invitations_group_id ON invitations(group_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_invitations_invitee_id ON invitations(invitee_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_assignments_group_id ON assignments(group_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_assignments_giver_id ON assignments(giver_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_assignments_receiver_id ON assignments(receiver_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_gift_ideas_group_id ON gift_ideas(group_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_gift_ideas_for_user_id ON gift_ideas(for_user_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_gift_ideas_created_by_id ON gift_ideas(created_by_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_exclusions_group_id ON exclusions(group_id)
     `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_exclusions_giver_id ON exclusions(giver_id)
     `);
+}
 
+async function migrate() {
+  try {
+    await runMigrations();
     console.log('Migration completed successfully');
     process.exit(0);
   } catch (error) {
@@ -231,4 +234,6 @@ async function migrate() {
   }
 }
 
-migrate();
+if (require.main === module) {
+  migrate();
+}

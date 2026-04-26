@@ -29,6 +29,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/geschenk25
 JWT_SECRET=your-super-secret-jwt-key
 PORT=3000
 NODE_ENV=development
+RUN_MIGRATIONS_ON_START=false
 ```
 
 Optional frontend API override in `apps/web/.env`:
