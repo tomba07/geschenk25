@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import pool from '../db';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 
@@ -15,64 +16,181 @@ function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
-// Register
-router.post('/register', async (req: Request, res: Response) => {
-  try {
-    const { email, username, password } = req.body;
+function validateUsername(username: string) {
+  if (username.length < 3) return 'Username must be at least 3 characters';
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return 'Username can only contain letters, numbers, and underscores';
+  return null;
+}
 
-    if (!email || !username || !password) {
-      return res.status(400).json({ error: 'Email, username, and password are required' });
+function createSessionToken(user: any) {
+  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+  return jwt.sign(
+    { userId: user.id, username: user.username },
+    secret,
+    { expiresIn: '7d' }
+  );
+}
+
+function createMagicToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+function hashMagicToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function appBaseUrl() {
+  return process.env.APP_BASE_URL || process.env.WEB_URL || 'http://localhost:5173';
+}
+
+async function sendMagicLink(email: string, link: string) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!resendApiKey || !from) {
+    console.log(`Magic link for ${email}: ${link}`);
+    return { delivered: false };
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: email,
+      subject: 'Sign in to Geschenk',
+      html: `<p>Use this link to sign in to Geschenk:</p><p><a href="${link}">Sign in to Geschenk</a></p><p>This link expires in 15 minutes.</p>`,
+      text: `Use this link to sign in to Geschenk: ${link}\n\nThis link expires in 15 minutes.`,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to send magic link email: ${body}`);
+  }
+
+  return { delivered: true };
+}
+
+// Request magic link for login or signup.
+router.post('/request-link', async (req: Request, res: Response) => {
+  try {
+    const { email, username } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
     }
 
     const normalizedEmail = normalizeEmail(email);
-    const normalizedUsername = normalizeUsername(username);
-
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    if (normalizedUsername.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    const userResult = await pool.query('SELECT id, email, username FROM users WHERE email = $1', [normalizedEmail]);
+    const existingUser = userResult.rows[0];
+    let normalizedUsername: string | null = null;
+
+    if (!existingUser) {
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required to create an account' });
+      }
+
+      normalizedUsername = normalizeUsername(username);
+      const usernameError = validateUsername(normalizedUsername);
+      if (usernameError) {
+        return res.status(400).json({ error: usernameError });
+      }
+
+      const usernameResult = await pool.query('SELECT id FROM users WHERE username = $1', [normalizedUsername]);
+      if (usernameResult.rows.length > 0) {
+        return res.status(400).json({ error: 'Username already taken' });
+      }
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
-      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
-    }
-
-    const existingUser = await pool.query('SELECT id, email, username FROM users WHERE email = $1 OR username = $2', [normalizedEmail, normalizedUsername]);
-    if (existingUser.rows.some((user: any) => user.email === normalizedEmail)) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
-    if (existingUser.rows.some((user: any) => user.username === normalizedUsername)) {
-      return res.status(400).json({ error: 'Username already taken' });
-    }
-
-    // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Create user
-    const result = await pool.query(
-      'INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING id, email, username, image_url, created_at',
-      [normalizedEmail, normalizedUsername, passwordHash]
+    const token = createMagicToken();
+    const tokenHash = hashMagicToken(token);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await pool.query(
+      'INSERT INTO magic_links (email, username, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
+      [normalizedEmail, normalizedUsername, tokenHash, expiresAt]
     );
 
-    const user = result.rows[0];
+    const link = `${appBaseUrl().replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(token)}`;
+    const delivery = await sendMagicLink(normalizedEmail, link);
 
-    // Generate JWT token
-    const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      secret,
-      { expiresIn: '7d' }
+    res.json({
+      message: 'Check your email for a sign-in link.',
+      ...(delivery.delivered ? {} : { devMagicLink: link }),
+    });
+  } catch (error: any) {
+    console.error('Magic link request error:', error);
+    res.status(500).json({ error: 'Failed to send sign-in link' });
+  }
+});
+
+// Verify magic link and create a session.
+router.post('/verify-link', async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const { token } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    const tokenHash = hashMagicToken(token);
+    await client.query('BEGIN');
+
+    const linkResult = await client.query(
+      `SELECT id, email, username
+       FROM magic_links
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()
+       FOR UPDATE`,
+      [tokenHash]
     );
 
-    res.status(201).json({
-      token,
+    if (linkResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'This sign-in link is invalid or expired' });
+    }
+
+    const magicLink = linkResult.rows[0];
+    await client.query('UPDATE magic_links SET used_at = NOW() WHERE id = $1', [magicLink.id]);
+
+    let userResult = await client.query(
+      'SELECT id, email, username, image_url FROM users WHERE email = $1',
+      [magicLink.email]
+    );
+
+    let user = userResult.rows[0];
+    if (!user) {
+      if (!magicLink.username) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'This sign-in link cannot create an account' });
+      }
+
+      userResult = await client.query(
+        `INSERT INTO users (email, username, password_hash, email_verified_at)
+         VALUES ($1, $2, NULL, NOW())
+         RETURNING id, email, username, image_url`,
+        [magicLink.email, magicLink.username]
+      );
+      user = userResult.rows[0];
+    } else {
+      userResult = await client.query(
+        'UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()) WHERE id = $1 RETURNING id, email, username, image_url',
+        [user.id]
+      );
+      user = userResult.rows[0];
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      token: createSessionToken(user),
       user: {
         id: user.id,
         email: user.email,
@@ -81,8 +199,11 @@ router.post('/register', async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to register user' });
+    await client.query('ROLLBACK');
+    console.error('Magic link verification error:', error);
+    res.status(500).json({ error: 'Failed to verify sign-in link' });
+  } finally {
+    client.release();
   }
 });
 
@@ -95,7 +216,6 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user
     const result = await pool.query('SELECT id, email, username, password_hash, image_url FROM users WHERE email = $1', [
       normalizeEmail(email),
     ]);
@@ -105,6 +225,9 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const user = result.rows[0];
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'Use a magic link to sign in, or set a password first.' });
+    }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password_hash);
@@ -112,16 +235,8 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Generate JWT token
-    const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      secret,
-      { expiresIn: '7d' }
-    );
-
     res.json({
-      token,
+      token: createSessionToken(user),
       user: {
         id: user.id,
         email: user.email,

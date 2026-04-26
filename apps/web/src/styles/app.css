@@ -566,6 +566,31 @@ small {
   margin-top: 2px;
 }
 
+.auth-message {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-evergreen-soft);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.auth-message span {
+  color: var(--color-text-muted);
+}
+
+.auth-callback-card {
+  width: min(100%, 420px);
+}
+
+.inline-loading {
+  min-height: 72px;
+  border: 0;
+  box-shadow: none;
+}
+
 @media (min-width: 840px) {
   .auth-screen {
     padding: 48px;

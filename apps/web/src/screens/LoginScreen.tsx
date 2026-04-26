@@ -7,21 +7,28 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [sent, setSent] = useState(false);
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { requestSignInLink } = useAuth();
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
-    if (!email || !password) {
-      window.alert('Please fill in all fields');
+    if (!email) {
+      window.alert('Please enter your email address');
       return;
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error, devMagicLink } = await requestSignInLink(email.trim());
     setLoading(false);
-    if (error) window.alert(error.message);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+
+    setSent(true);
+    setDevMagicLink(devMagicLink || null);
   };
 
   return (
@@ -51,19 +58,16 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
             />
           </label>
 
-          <label className="auth-field">
-            <span>Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              disabled={loading}
-            />
-          </label>
+          {sent && (
+            <div className="auth-message">
+              <strong>Check your email</strong>
+              <span>We sent you a sign-in link.</span>
+              {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
+            </div>
+          )}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Sending...' : 'Send Sign-In Link'}
           </button>
 
           <div className="auth-footer">

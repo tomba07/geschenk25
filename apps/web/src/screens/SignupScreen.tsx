@@ -8,15 +8,15 @@ interface SignupScreenProps {
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [sent, setSent] = useState(false);
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { requestSignUpLink } = useAuth();
 
   const handleSignup = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!email || !username || !password || !confirmPassword) {
+    if (!email || !username) {
       window.alert('Please fill in all required fields');
       return;
     }
@@ -32,22 +32,17 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
       window.alert('Username can only contain letters, numbers, and underscores');
       return;
     }
-    if (password !== confirmPassword) {
-      window.alert('Passwords do not match');
-      return;
-    }
-    if (password.length < 6) {
-      window.alert('Password must be at least 6 characters');
-      return;
-    }
-
     setLoading(true);
-    const { error } = await signUp(email.trim(), username, password);
+    const { error, devMagicLink } = await requestSignUpLink(email.trim(), username);
     setLoading(false);
 
     if (error) {
       window.alert(error.message);
+      return;
     }
+
+    setSent(true);
+    setDevMagicLink(devMagicLink || null);
   };
 
   return (
@@ -89,32 +84,16 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             />
           </label>
 
-          <label className="auth-field">
-            <span>Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              disabled={loading}
-              required
-            />
-          </label>
-
-          <label className="auth-field">
-            <span>Confirm Password</span>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-              disabled={loading}
-              required
-            />
-          </label>
+          {sent && (
+            <div className="auth-message">
+              <strong>Check your email</strong>
+              <span>We sent you a link to finish creating your account.</span>
+              {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
+            </div>
+          )}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Account'}
+            {loading ? 'Sending...' : 'Send Sign-Up Link'}
           </button>
 
           <div className="auth-footer">

@@ -127,21 +127,34 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(email: string, username: string, password: string) {
-    return this.request<{ token: string; user: ApiUser }>(
-      '/api/auth/register',
+  async requestMagicLink(email: string, username?: string) {
+    return this.request<{ message: string; devMagicLink?: string }>(
+      '/api/auth/request-link',
       {
         method: 'POST',
-        body: JSON.stringify({ email, username, password }),
+        requireAuth: false,
+        body: JSON.stringify({ email, username }),
       }
     );
   }
 
-  async login(email: string, password: string) {
+  async verifyMagicLink(token: string) {
+    return this.request<{ token: string; user: ApiUser }>(
+      '/api/auth/verify-link',
+      {
+        method: 'POST',
+        requireAuth: false,
+        body: JSON.stringify({ token }),
+      }
+    );
+  }
+
+  async loginWithPassword(email: string, password: string) {
     return this.request<{ token: string; user: ApiUser }>(
       '/api/auth/login',
       {
         method: 'POST',
+        requireAuth: false,
         body: JSON.stringify({ email, password }),
       }
     );

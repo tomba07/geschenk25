@@ -7,8 +7,9 @@ export async function runMigrations() {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255),
         image_url TEXT,
+        email_verified_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -40,6 +41,45 @@ export async function runMigrations() {
           ALTER TABLE users ADD COLUMN image_url TEXT;
         END IF;
       END $$;
+    `);
+
+  // Passwords are optional when users authenticate by magic link.
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'password_hash' AND is_nullable = 'NO'
+        ) THEN
+          ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+        END IF;
+      END $$;
+    `);
+
+  // Add email verification timestamp if it doesn't exist.
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'email_verified_at'
+        ) THEN
+          ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMP;
+        END IF;
+      END $$;
+    `);
+
+  // Create magic links table
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS magic_links (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        username VARCHAR(50),
+        token_hash VARCHAR(64) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
     `);
 
   // Create groups table
@@ -176,6 +216,14 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_magic_links_token_hash ON magic_links(token_hash)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email)
     `);
 
   await pool.query(`

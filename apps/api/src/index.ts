@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 const MIGRATION_RETRY_DELAY_MS = 5000;
 const MIGRATION_MAX_ATTEMPTS = 12;
+let migrationsReady = process.env.RUN_MIGRATIONS_ON_START !== 'true';
 
 // Middleware
 app.use(cors());
@@ -20,6 +21,15 @@ app.use(express.json({ limit: '10mb' })); // Increase limit to 10MB for image up
 // Health check
 app.get('/health', (_req: any, res: any) => {
   res.json({ status: 'ok' });
+});
+
+app.use((req: any, res: any, next: any) => {
+  if (migrationsReady || req.path === '/health') {
+    next();
+    return;
+  }
+
+  res.status(503).json({ error: 'Server is starting. Please try again shortly.' });
 });
 
 // Routes
@@ -36,6 +46,7 @@ async function runStartupMigrationsWithRetry() {
   for (let attempt = 1; attempt <= MIGRATION_MAX_ATTEMPTS; attempt += 1) {
     try {
       await runMigrations();
+      migrationsReady = true;
       console.log('Startup migrations completed successfully');
       return;
     } catch (error) {

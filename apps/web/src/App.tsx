@@ -10,11 +10,13 @@ import ProfileScreen from './screens/ProfileScreen';
 import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
+import AuthCallbackScreen from './screens/AuthCallbackScreen';
 
 type Route =
   | { name: 'home' }
   | { name: 'login' }
   | { name: 'signup' }
+  | { name: 'auth-callback'; token: string | null }
   | { name: 'profile' }
   | { name: 'group'; groupId: string }
   | { name: 'join'; token: string };
@@ -29,6 +31,7 @@ function parseRoute(): Route {
 
   if (path === '/signup') return { name: 'signup' };
   if (path === '/login') return { name: 'login' };
+  if (path === '/auth/callback') return { name: 'auth-callback', token: new URLSearchParams(window.location.search).get('token') };
   if (path === '/profile') return { name: 'profile' };
   return { name: 'home' };
 }
@@ -38,6 +41,7 @@ function routePath(route: Route): string {
   if (route.name === 'join') return `/join/${route.token}`;
   if (route.name === 'signup') return '/signup';
   if (route.name === 'login') return '/login';
+  if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
   if (route.name === 'profile') return '/profile';
   return '/';
 }
@@ -88,7 +92,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'join'].includes(route.name)) {
+    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'join', 'auth-callback'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
   }, [isAuthenticated, isLoading, route.name]);
@@ -153,6 +157,16 @@ function AppContent() {
         <InviteLandingScreen
           token={route.token}
           onContinueWeb={() => handleJoinInvite(route.token)}
+        />
+      );
+    }
+
+    if (route.name === 'auth-callback') {
+      return (
+        <AuthCallbackScreen
+          token={route.token}
+          onDone={() => navigate({ name: 'home' }, true)}
+          onFailed={() => navigate({ name: 'login' }, true)}
         />
       );
     }

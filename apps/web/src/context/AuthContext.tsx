@@ -9,8 +9,10 @@ interface AuthContextType {
   username: string | null;
   imageUrl: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, username: string, password: string) => Promise<{ error: any }>;
+  requestSignInLink: (email: string) => Promise<{ error: any; devMagicLink?: string }>;
+  requestSignUpLink: (email: string, username: string) => Promise<{ error: any; devMagicLink?: string }>;
+  verifyMagicLink: (token: string) => Promise<{ error: any }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
@@ -80,18 +82,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const storeSession = (token: string, user: { id: number; email?: string | null; username: string; image_url?: string | null }) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    apiClient.setToken(token);
+    setUserState(user);
+  };
+
+  const requestSignInLink = async (email: string) => {
     try {
-      const response = await apiClient.login(email, password);
+      const response = await apiClient.requestMagicLink(email);
+      if (response.error) {
+        return { error: { message: response.appError?.userMessage || response.error } };
+      }
+      return { error: null, devMagicLink: response.data?.devMagicLink };
+    } catch (error) {
+      return { error: { message: getErrorMessage(error) } };
+    }
+  };
+
+  const requestSignUpLink = async (email: string, username: string) => {
+    try {
+      const response = await apiClient.requestMagicLink(email, username);
+      if (response.error) {
+        return { error: { message: response.appError?.userMessage || response.error } };
+      }
+      return { error: null, devMagicLink: response.data?.devMagicLink };
+    } catch (error) {
+      return { error: { message: getErrorMessage(error) } };
+    }
+  };
+
+  const verifyMagicLink = async (token: string) => {
+    try {
+      const response = await apiClient.verifyMagicLink(token);
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
       if (response.data) {
-        const { token, user } = response.data;
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-        apiClient.setToken(token);
-        setUserState(user);
+        storeSession(response.data.token, response.data.user);
       }
       return { error: null };
     } catch (error) {
@@ -99,18 +128,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, username: string, password: string) => {
+  const signInWithPassword = async (email: string, password: string) => {
     try {
-      const response = await apiClient.register(email, username, password);
+      const response = await apiClient.loginWithPassword(email, password);
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
       if (response.data) {
-        const { token, user } = response.data;
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-        apiClient.setToken(token);
-        setUserState(user);
+        storeSession(response.data.token, response.data.user);
       }
       return { error: null };
     } catch (error) {
@@ -161,8 +186,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username,
         imageUrl,
         isLoading,
-        signIn,
-        signUp,
+        requestSignInLink,
+        requestSignUpLink,
+        verifyMagicLink,
+        signInWithPassword,
         signOut,
         updateProfileImage,
         deleteAccount,
