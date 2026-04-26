@@ -4,3 +4,4 @@
 - adjust username/email etc.
 - wipe db
 - highlight own wishes
+- "see how it works" video
