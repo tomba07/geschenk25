@@ -39,15 +39,20 @@ function hashMagicToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+function shortHash(value: string) {
+  return value.slice(0, 10);
+}
+
 function appBaseUrl() {
   return process.env.APP_BASE_URL || process.env.WEB_URL || 'http://localhost:5173';
 }
 
 async function sendMagicLink(email: string, link: string) {
+  const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true' || process.env.NODE_ENV !== 'production';
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
 
-  if (!resendApiKey || !from) {
+  if (emailDeliveryDisabled || !resendApiKey || !from) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Email provider is not configured');
     }
@@ -123,6 +128,12 @@ router.post('/request-link', async (req: Request, res: Response) => {
     );
 
     const link = `${appBaseUrl().replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(token)}`;
+    console.log('Magic link created:', {
+      email: normalizedEmail,
+      token: shortHash(tokenHash),
+      expiresAt: expiresAt.toISOString(),
+      appBaseUrl: appBaseUrl(),
+    });
     const delivery = await sendMagicLink(normalizedEmail, link);
 
     res.json({
@@ -146,23 +157,53 @@ router.post('/verify-link', async (req: Request, res: Response) => {
     }
 
     const tokenHash = hashMagicToken(token);
+    console.log('Magic link verify requested:', { token: shortHash(tokenHash) });
     await client.query('BEGIN');
 
     const linkResult = await client.query(
-      `SELECT id, email, username
+      `SELECT id, email, username, expires_at, used_at
        FROM magic_links
-       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()
+       WHERE token_hash = $1
        FOR UPDATE`,
       [tokenHash]
     );
 
     if (linkResult.rows.length === 0) {
+      const debugResult = await client.query(
+        `SELECT expires_at, used_at, NOW() as now
+         FROM magic_links
+         WHERE token_hash = $1`,
+        [tokenHash]
+      );
+      console.log('Magic link verify failed:', {
+        token: shortHash(tokenHash),
+        found: debugResult.rows.length > 0,
+        ...(debugResult.rows[0] || {}),
+      });
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'This sign-in link is invalid or expired' });
     }
 
     const magicLink = linkResult.rows[0];
-    await client.query('UPDATE magic_links SET used_at = NOW() WHERE id = $1', [magicLink.id]);
+    const now = Date.now();
+    const expiresAt = new Date(magicLink.expires_at).getTime();
+    const usedAt = magicLink.used_at ? new Date(magicLink.used_at).getTime() : null;
+    const usedGraceMs = 2 * 60 * 1000;
+
+    if (expiresAt <= now || (usedAt !== null && usedAt <= now - usedGraceMs)) {
+      console.log('Magic link verify rejected:', {
+        token: shortHash(tokenHash),
+        expiresAt: new Date(expiresAt).toISOString(),
+        usedAt: usedAt ? new Date(usedAt).toISOString() : null,
+        now: new Date(now).toISOString(),
+      });
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'This sign-in link is invalid or expired' });
+    }
+
+    if (!magicLink.used_at) {
+      await client.query('UPDATE magic_links SET used_at = NOW() WHERE id = $1', [magicLink.id]);
+    }
 
     let userResult = await client.query(
       'SELECT id, email, username, image_url FROM users WHERE email = $1',

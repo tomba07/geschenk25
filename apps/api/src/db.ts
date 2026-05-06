@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -13,13 +13,12 @@ if (!databaseUrl) {
 
 console.log('Database URL configured:', databaseUrl ? `${databaseUrl.split('@')[0]}@***` : 'NOT SET');
 
+const databaseHost = new URL(databaseUrl).hostname;
+const isLocalDatabase = ['localhost', '127.0.0.1', '::1'].includes(databaseHost);
+
 const pool = new Pool({
   connectionString: databaseUrl,
-  // Enable SSL for Render databases (required) and production
-  // For local PostgreSQL, SSL will be ignored if not configured
-  ssl: databaseUrl?.includes('render.com') || databaseUrl?.includes('onrender.com') || process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
 });
 
 // Test connection
@@ -28,4 +27,3 @@ pool.on('error', (err: any) => {
 });
 
 export default pool;
-

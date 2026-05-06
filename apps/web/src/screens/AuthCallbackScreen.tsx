@@ -7,6 +7,8 @@ interface AuthCallbackScreenProps {
   onFailed: () => void;
 }
 
+const verificationRequests = new Map<string, Promise<{ error: any }>>();
+
 export default function AuthCallbackScreen({ token, onDone, onFailed }: AuthCallbackScreenProps) {
   const { verifyMagicLink } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,13 @@ export default function AuthCallbackScreen({ token, onDone, onFailed }: AuthCall
         return;
       }
 
-      const result = await verifyMagicLink(token);
+      let request = verificationRequests.get(token);
+      if (!request) {
+        request = verifyMagicLink(token);
+        verificationRequests.set(token, request);
+      }
+
+      const result = await request;
       if (cancelled) return;
 
       if (result.error) {

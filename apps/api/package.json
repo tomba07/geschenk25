@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "dev:deployed-db": "tsx --env-file=.env.deployed-db watch src/index.ts",
+    "dev:deployed-db": "DOTENV_CONFIG_PATH=.env.deployed-db tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
     "migrate": "node dist/migrate.js",
