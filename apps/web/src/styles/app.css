@@ -1717,6 +1717,7 @@ select:focus {
 .app-frame {
   height: 100vh;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   background: #eef5ff;
   overflow: hidden;
 }
@@ -1859,23 +1860,33 @@ select:focus {
 }
 
 .mobile-overview-bar {
-  min-height: 62px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+  padding: max(8px, env(safe-area-inset-top)) 16px 8px;
   border-bottom: 1px solid #d8e4f5;
   background: #fff;
 }
 
 .mobile-menu-button {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border: 1px solid #d8e4f5;
   border-radius: 8px;
   background: #fff;
   color: #08245a;
   font-size: 20px;
+}
+
+.mobile-overview-bar .sidebar-brand {
+  gap: 10px;
+  font-size: 22px;
+}
+
+.mobile-overview-bar .sidebar-brand img {
+  width: 30px;
+  height: 30px;
 }
 
 .sidebar-nav-item,
@@ -2242,6 +2253,7 @@ hr {
 
   .app-frame {
     grid-template-columns: 230px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .mobile-overview-bar,
