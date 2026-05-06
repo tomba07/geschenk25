@@ -10,6 +10,8 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [usePassword, setUsePassword] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
+  const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
   const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { requestSignInLink, signInWithPassword } = useAuth();
@@ -36,7 +38,8 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
       return;
     }
 
-    const { error, devMagicLink } = await requestSignInLink(email.trim());
+    const trimmedEmail = email.trim();
+    const { error, devMagicLink, expiresInMinutes } = await requestSignInLink(trimmedEmail);
     setLoading(false);
     if (error) {
       window.alert(error.message);
@@ -45,8 +48,28 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
 
     {
       setSent(true);
+      setSentEmail(trimmedEmail);
+      setExpiresInMinutes(expiresInMinutes || null);
       setDevMagicLink(devMagicLink || null);
     }
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (sent) {
+      setSent(false);
+      setSentEmail('');
+      setExpiresInMinutes(null);
+      setDevMagicLink(null);
+    }
+  };
+
+  const togglePasswordMode = () => {
+    setUsePassword((value) => !value);
+    setSent(false);
+    setSentEmail('');
+    setExpiresInMinutes(null);
+    setDevMagicLink(null);
   };
 
   return (
@@ -69,7 +92,7 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => handleEmailChange(event.target.value)}
               autoCapitalize="none"
               autoComplete="email"
               disabled={loading}
@@ -92,16 +115,19 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
           {sent && (
             <div className="auth-message">
               <strong>Check your email</strong>
-              <span>We sent you a sign-in link.</span>
+              <span>
+                We sent a sign-in link to {sentEmail}.
+                {expiresInMinutes ? ` It expires in ${expiresInMinutes} minutes.` : ''}
+              </span>
               {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
             </div>
           )}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? (usePassword ? 'Signing in...' : 'Sending...') : (usePassword ? 'Sign In' : 'Send Sign-In Link')}
+            {loading ? (usePassword ? 'Signing in...' : 'Sending...') : (usePassword ? 'Sign In' : sent ? 'Resend Sign-In Link' : 'Send Sign-In Link')}
           </button>
 
-          <button className="link-button auth-mode-button" type="button" onClick={() => setUsePassword((value) => !value)}>
+          <button className="link-button auth-mode-button" type="button" onClick={togglePasswordMode}>
             {usePassword ? 'Use a sign-in link instead' : 'Use password instead'}
           </button>
 

@@ -9,6 +9,8 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [sent, setSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
+  const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
   const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { requestSignUpLink } = useAuth();
@@ -33,7 +35,8 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
       return;
     }
     setLoading(true);
-    const { error, devMagicLink } = await requestSignUpLink(email.trim(), username);
+    const trimmedEmail = email.trim();
+    const { error, devMagicLink, expiresInMinutes } = await requestSignUpLink(trimmedEmail, username);
     setLoading(false);
 
     if (error) {
@@ -42,7 +45,17 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     }
 
     setSent(true);
+    setSentEmail(trimmedEmail);
+    setExpiresInMinutes(expiresInMinutes || null);
     setDevMagicLink(devMagicLink || null);
+  };
+
+  const resetSentState = () => {
+    if (!sent) return;
+    setSent(false);
+    setSentEmail('');
+    setExpiresInMinutes(null);
+    setDevMagicLink(null);
   };
 
   return (
@@ -64,7 +77,10 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                resetSentState();
+              }}
               autoCapitalize="none"
               autoComplete="email"
               disabled={loading}
@@ -76,7 +92,10 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             <span>Username</span>
             <input
               value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                resetSentState();
+              }}
               autoCapitalize="none"
               autoComplete="username"
               disabled={loading}
@@ -87,13 +106,16 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           {sent && (
             <div className="auth-message">
               <strong>Check your email</strong>
-              <span>We sent you a link to finish creating your account.</span>
+              <span>
+                We sent a link to {sentEmail}.
+                {expiresInMinutes ? ` It expires in ${expiresInMinutes} minutes.` : ''}
+              </span>
               {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
             </div>
           )}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Sending...' : 'Send Sign-Up Link'}
+            {loading ? 'Sending...' : sent ? 'Resend Sign-Up Link' : 'Send Sign-Up Link'}
           </button>
 
           <div className="auth-footer">

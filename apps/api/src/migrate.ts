@@ -9,8 +9,8 @@ export async function runMigrations() {
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255),
         image_url TEXT,
-        email_verified_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        email_verified_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -64,7 +64,26 @@ export async function runMigrations() {
           SELECT 1 FROM information_schema.columns 
           WHERE table_name = 'users' AND column_name = 'email_verified_at'
         ) THEN
-          ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMP;
+          ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMPTZ;
+        END IF;
+      END $$;
+    `);
+
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'email_verified_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE users ALTER COLUMN email_verified_at TYPE TIMESTAMPTZ USING email_verified_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'created_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC';
         END IF;
       END $$;
     `);
@@ -76,10 +95,36 @@ export async function runMigrations() {
         email VARCHAR(255) NOT NULL,
         username VARCHAR(50),
         token_hash VARCHAR(64) UNIQUE NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        used_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'magic_links' AND column_name = 'expires_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE magic_links ALTER COLUMN expires_at TYPE TIMESTAMPTZ USING expires_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'magic_links' AND column_name = 'used_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE magic_links ALTER COLUMN used_at TYPE TIMESTAMPTZ USING used_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'magic_links' AND column_name = 'created_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE magic_links ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC';
+        END IF;
+      END $$;
     `);
 
   // Create groups table

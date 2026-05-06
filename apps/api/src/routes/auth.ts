@@ -43,12 +43,22 @@ function shortHash(value: string) {
   return value.slice(0, 10);
 }
 
+function shouldLogMagicLinkDetails() {
+  return process.env.DEBUG_MAGIC_LINKS === 'true';
+}
+
 function appBaseUrl() {
   return process.env.APP_BASE_URL || process.env.WEB_URL || 'http://localhost:5173';
 }
 
+function magicLinkBaseUrl(req: Request) {
+  const origin = req.get('origin');
+  const isLocalOrigin = origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return process.env.NODE_ENV !== 'production' && isLocalOrigin ? origin : appBaseUrl();
+}
+
 async function sendMagicLink(email: string, link: string) {
-  const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true' || process.env.NODE_ENV !== 'production';
+  const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
 
@@ -123,21 +133,30 @@ router.post('/request-link', async (req: Request, res: Response) => {
     const tokenHash = hashMagicToken(token);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await pool.query(
+      'UPDATE magic_links SET used_at = NOW() WHERE email = $1 AND used_at IS NULL',
+      [normalizedEmail]
+    );
+
+    await pool.query(
       'INSERT INTO magic_links (email, username, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
       [normalizedEmail, normalizedUsername, tokenHash, expiresAt]
     );
 
-    const link = `${appBaseUrl().replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(token)}`;
-    console.log('Magic link created:', {
-      email: normalizedEmail,
-      token: shortHash(tokenHash),
-      expiresAt: expiresAt.toISOString(),
-      appBaseUrl: appBaseUrl(),
-    });
+    const baseUrl = magicLinkBaseUrl(req);
+    const link = `${baseUrl.replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(token)}`;
+    if (shouldLogMagicLinkDetails()) {
+      console.log('Magic link created:', {
+        email: normalizedEmail,
+        token: shortHash(tokenHash),
+        expiresAt: expiresAt.toISOString(),
+        appBaseUrl: baseUrl,
+      });
+    }
     const delivery = await sendMagicLink(normalizedEmail, link);
 
     res.json({
       message: 'Check your email for a sign-in link.',
+      expires_in_minutes: 15,
       ...(delivery.delivered ? {} : { devMagicLink: link }),
     });
   } catch (error: any) {
@@ -157,7 +176,9 @@ router.post('/verify-link', async (req: Request, res: Response) => {
     }
 
     const tokenHash = hashMagicToken(token);
-    console.log('Magic link verify requested:', { token: shortHash(tokenHash) });
+    if (shouldLogMagicLinkDetails()) {
+      console.log('Magic link verify requested:', { token: shortHash(tokenHash) });
+    }
     await client.query('BEGIN');
 
     const linkResult = await client.query(
@@ -175,11 +196,13 @@ router.post('/verify-link', async (req: Request, res: Response) => {
          WHERE token_hash = $1`,
         [tokenHash]
       );
-      console.log('Magic link verify failed:', {
-        token: shortHash(tokenHash),
-        found: debugResult.rows.length > 0,
-        ...(debugResult.rows[0] || {}),
-      });
+      if (shouldLogMagicLinkDetails()) {
+        console.log('Magic link verify failed:', {
+          token: shortHash(tokenHash),
+          found: debugResult.rows.length > 0,
+          ...(debugResult.rows[0] || {}),
+        });
+      }
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'This sign-in link is invalid or expired' });
     }
@@ -191,12 +214,14 @@ router.post('/verify-link', async (req: Request, res: Response) => {
     const usedGraceMs = 2 * 60 * 1000;
 
     if (expiresAt <= now || (usedAt !== null && usedAt <= now - usedGraceMs)) {
-      console.log('Magic link verify rejected:', {
-        token: shortHash(tokenHash),
-        expiresAt: new Date(expiresAt).toISOString(),
-        usedAt: usedAt ? new Date(usedAt).toISOString() : null,
-        now: new Date(now).toISOString(),
-      });
+      if (shouldLogMagicLinkDetails()) {
+        console.log('Magic link verify rejected:', {
+          token: shortHash(tokenHash),
+          expiresAt: new Date(expiresAt).toISOString(),
+          usedAt: usedAt ? new Date(usedAt).toISOString() : null,
+          now: new Date(now).toISOString(),
+        });
+      }
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'This sign-in link is invalid or expired' });
     }

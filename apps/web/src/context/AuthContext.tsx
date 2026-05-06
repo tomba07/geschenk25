@@ -9,8 +9,8 @@ interface AuthContextType {
   username: string | null;
   imageUrl: string | null;
   isLoading: boolean;
-  requestSignInLink: (email: string) => Promise<{ error: any; devMagicLink?: string }>;
-  requestSignUpLink: (email: string, username: string) => Promise<{ error: any; devMagicLink?: string }>;
+  requestSignInLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
+  requestSignUpLink: (email: string, username: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
   verifyMagicLink: (token: string) => Promise<{ error: any }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
-      return { error: null, devMagicLink: response.data?.devMagicLink };
+      return { error: null, devMagicLink: response.data?.devMagicLink, expiresInMinutes: response.data?.expires_in_minutes };
     } catch (error) {
       return { error: { message: getErrorMessage(error) } };
     }
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
-      return { error: null, devMagicLink: response.data?.devMagicLink };
+      return { error: null, devMagicLink: response.data?.devMagicLink, expiresInMinutes: response.data?.expires_in_minutes };
     } catch (error) {
       return { error: { message: getErrorMessage(error) } };
     }

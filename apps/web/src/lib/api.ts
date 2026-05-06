@@ -128,7 +128,7 @@ class ApiClient {
 
   // Auth endpoints
   async requestMagicLink(email: string, username?: string) {
-    return this.request<{ message: string; devMagicLink?: string }>(
+    return this.request<{ message: string; expires_in_minutes: number; devMagicLink?: string }>(
       '/api/auth/request-link',
       {
         method: 'POST',
