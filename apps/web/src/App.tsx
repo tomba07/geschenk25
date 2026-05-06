@@ -53,17 +53,8 @@ function hasStoredAuth() {
 const PENDING_INVITE_KEY = 'geschenk.pending_invite_token';
 
 function LoadingScreen({ route }: { route: Route }) {
-  const screenClass =
-    route.name === 'profile'
-      ? 'profile-screen'
-      : route.name === 'group'
-        ? 'group-detail-screen'
-        : route.name === 'home'
-          ? 'overview-screen'
-          : 'auth-screen';
-
   return (
-    <section className={`screen app-loading-screen ${screenClass}`}>
+    <section className={`screen app-loading-screen app-loading-screen-${route.name}`}>
       <div className="app-loading-card">
         <span className="spinner" />
       </div>
