@@ -1,6 +1,4 @@
 - dev setup
-- adjust username/email etc.
 - custom domain
 - rename project
-- highlight own wishes
 - "see how it works" video
