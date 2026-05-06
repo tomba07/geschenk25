@@ -265,7 +265,7 @@ class ApiClient {
 
   async getGroupByInviteToken(token: string) {
     // Public endpoint, no auth required
-    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null } }>(
+    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null; member_count: number } }>(
       `/api/groups/invite/${token}`,
       { requireAuth: false }
     );

@@ -50,6 +50,8 @@ function hasStoredAuth() {
   return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
 }
 
+const PENDING_INVITE_KEY = 'geschenk.pending_invite_token';
+
 function LoadingScreen({ route }: { route: Route }) {
   const screenClass =
     route.name === 'profile'
@@ -72,7 +74,7 @@ function LoadingScreen({ route }: { route: Route }) {
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [route, setRoute] = useState<Route>(() => parseRoute());
-  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(null);
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => localStorage.getItem(PENDING_INVITE_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
 
   const navigate = (nextRoute: Route, replace = false) => {
@@ -101,12 +103,14 @@ function AppContent() {
     if (isAuthenticated && pendingInviteToken) {
       handleJoinInvite(pendingInviteToken);
       setPendingInviteToken(null);
+      localStorage.removeItem(PENDING_INVITE_KEY);
     }
   }, [isAuthenticated, pendingInviteToken]);
 
   const handleJoinInvite = async (token: string) => {
     if (!isAuthenticated) {
       setPendingInviteToken(token);
+      localStorage.setItem(PENDING_INVITE_KEY, token);
       navigate({ name: 'login' }, true);
       return;
     }
@@ -120,11 +124,6 @@ function AppContent() {
       }
 
       const group = groupResponse.data.group;
-      if (!window.confirm(`Join Group\n\nDo you want to join "${group.name}"?`)) {
-        navigate({ name: 'home' }, true);
-        return;
-      }
-
       const joinResponse = await apiClient.joinGroupByToken(token);
       if (joinResponse.error) {
         window.alert(joinResponse.error);
@@ -132,6 +131,7 @@ function AppContent() {
       }
 
       setRefreshHomeKey((key) => key + 1);
+      localStorage.removeItem(PENDING_INVITE_KEY);
       navigate({ name: 'group', groupId: String(joinResponse.data?.group_id || group.id) }, true);
     } catch (error) {
       window.alert(getErrorMessage(error));

@@ -33,6 +33,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [inviteLink, setInviteLink] = useState('');
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [imageDirty, setImageDirty] = useState(false);
   const [giftIdeaText, setGiftIdeaText] = useState('');
@@ -127,12 +129,35 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const handleGetInviteLink = async () => {
     if (inviteLink) return;
+    setInviteLinkLoading(true);
     const response = await apiClient.getInviteLink(Number(groupId));
+    setInviteLinkLoading(false);
     if (response.error) {
       window.alert(response.error);
       return;
     }
     if (response.data) setInviteLink(`${window.location.origin}/join/${response.data.invite_token}`);
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    window.setTimeout(() => setInviteCopied(false), 1800);
+  };
+
+  const handleShareInviteLink = async () => {
+    if (!inviteLink) return;
+    if (navigator.share) {
+      await navigator.share({
+        title: group ? `Join ${group.name} on Geschenk` : 'Join my Geschenk group',
+        text: group ? `Join my Secret Santa group "${group.name}".` : 'Join my Secret Santa group.',
+        url: inviteLink,
+      });
+      return;
+    }
+
+    await handleCopyInviteLink();
   };
 
   const handleInvite = async (username: string) => {
@@ -483,29 +508,48 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <h2>Invite People</h2>
               <button type="button" className="icon-button" onClick={() => setInviteOpen(false)} aria-label="Close">x</button>
             </header>
-            <label>
-              <span>Search username</span>
-              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="@username" />
-            </label>
-            <div className="stack-list">
-              {searchResults.map((user) => (
-                <button className="person-row selectable" type="button" key={user.id} onClick={() => handleInvite(user.username)} disabled={busy}>
-                  <div>
-                    <strong>@{user.username}</strong>
-                    <small>@{user.username}</small>
-                  </div>
-                  <span>Invite</span>
-                </button>
-              ))}
-            </div>
-            <hr />
-            <button className="secondary-button" type="button" onClick={handleGetInviteLink}>Create Invite Link</button>
-            {inviteLink && (
-              <div className="copy-field">
-                <input value={inviteLink} readOnly />
-                <button className="primary-button compact" type="button" onClick={() => navigator.clipboard.writeText(inviteLink)}>Copy</button>
+            <section className="invite-link-panel">
+              <div>
+                <h3>Share invite link</h3>
+                <p>Anyone with this link can join this group.</p>
               </div>
-            )}
+              {!inviteLink ? (
+                <button className="primary-button" type="button" onClick={handleGetInviteLink} disabled={inviteLinkLoading}>
+                  {inviteLinkLoading ? 'Creating...' : 'Create Invite Link'}
+                </button>
+              ) : (
+                <>
+                  <div className="copy-field">
+                    <input value={inviteLink} readOnly />
+                    <button className="primary-button compact" type="button" onClick={handleCopyInviteLink}>
+                      {inviteCopied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <button className="secondary-button" type="button" onClick={handleShareInviteLink}>
+                    Share Link
+                  </button>
+                </>
+              )}
+            </section>
+
+            <details className="invite-search-details">
+              <summary>Invite by username</summary>
+              <label>
+                <span>Search username</span>
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="@username" />
+              </label>
+              <div className="stack-list">
+                {searchResults.map((user) => (
+                  <button className="person-row selectable" type="button" key={user.id} onClick={() => handleInvite(user.username)} disabled={busy}>
+                    <div>
+                      <strong>@{user.username}</strong>
+                      <small>@{user.username}</small>
+                    </div>
+                    <span>Invite</span>
+                  </button>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
       )}

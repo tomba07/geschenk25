@@ -1,3 +1,4 @@
+- invite links
 - rename project
-- check email notifications
+- better email notifications
 - "see how it works" video

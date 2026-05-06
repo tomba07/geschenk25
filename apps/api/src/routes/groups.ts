@@ -17,7 +17,10 @@ router.get('/invite/:token', async (req: Request, res: Response) => {
     const token = req.params.token;
 
     const result = await pool.query(
-      'SELECT id, name, description, image_url FROM groups WHERE invite_token = $1',
+      `SELECT g.id, g.name, g.description, g.image_url,
+              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count
+       FROM groups g
+       WHERE g.invite_token = $1`,
       [token]
     );
 
@@ -26,7 +29,15 @@ router.get('/invite/:token', async (req: Request, res: Response) => {
     }
 
     const group = result.rows[0];
-    res.json({ group: { id: group.id, name: group.name, description: group.description, image_url: group.image_url } });
+    res.json({
+      group: {
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        image_url: group.image_url,
+        member_count: parseInt(group.member_count, 10),
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching group from invite token:', error);
     res.status(500).json({ error: 'Failed to fetch group info' });
@@ -76,12 +87,12 @@ router.post('/join/:token', async (req: AuthRequest, res: Response) => {
         );
         return res.json({ message: 'Successfully rejoined group', group_id: groupId });
       }
-      return res.status(400).json({ error: 'You are already a member of this group' });
+      return res.json({ message: 'You are already a member of this group', group_id: groupId });
     }
 
     // Check if user is the owner
     if (group.created_by === userId) {
-      return res.status(400).json({ error: 'You are the owner of this group' });
+      return res.json({ message: 'You are the owner of this group', group_id: groupId });
     }
 
     // Add user to group (or reactivate if they were left)
