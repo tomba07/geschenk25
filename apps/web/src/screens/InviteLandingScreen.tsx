@@ -77,13 +77,11 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
                 <div className="group-image large">
                   {group.image_url ? <img src={group.image_url} alt="" /> : <span>{initial}</span>}
                 </div>
-                <div>
-                  <span>Group invite</span>
-                  <h1>{group.name}</h1>
-                  <p>
-                    {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
-                  </p>
-                </div>
+                <span>Group invite</span>
+                <h1>{group.name}</h1>
+                <p>
+                  {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
+                </p>
               </div>
 
               {group.description && <p className="invite-description">{group.description}</p>}

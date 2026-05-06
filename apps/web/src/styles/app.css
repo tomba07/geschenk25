@@ -586,16 +586,18 @@ small {
 }
 
 .invite-landing-card {
-  max-width: 760px;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  max-width: 720px;
+  grid-template-columns: minmax(220px, 300px) minmax(260px, 340px);
   align-items: center;
+  justify-content: center;
+  gap: 36px;
 }
 
 .invite-preview {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
 }
 
 .invite-preview span {
@@ -611,15 +613,15 @@ small {
 }
 
 .invite-preview h1 {
-  overflow: hidden;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: #08245a;
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.1;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .invite-description {
+  text-align: center;
   color: var(--muted);
   line-height: 1.45;
 }
@@ -631,7 +633,7 @@ small {
   }
 
   .invite-preview {
-    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
   }
 
   .invite-preview .group-image.large {
