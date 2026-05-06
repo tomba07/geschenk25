@@ -1,4 +1,3 @@
-- dev setup
-- custom domain
 - rename project
+- check email notifications
 - "see how it works" video
