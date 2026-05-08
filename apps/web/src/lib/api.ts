@@ -21,6 +21,13 @@ export interface SearchUser {
   image_url?: string | null;
 }
 
+export interface Friend {
+  id: number;
+  username: string;
+  image_url?: string | null;
+  created_at?: string;
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -223,10 +230,35 @@ class ApiClient {
   }
 
   // Invitation endpoints
-  async inviteUserToGroup(groupId: number, username: string) {
+  async inviteUserToGroup(groupId: number, userId: number) {
     return this.request<{ message: string }>(`/api/groups/${groupId}/invite`, {
       method: 'POST',
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ user_id: userId }),
+    });
+  }
+
+  // Friends endpoints
+  async getFriends() {
+    return this.request<{ friends: Friend[] }>('/api/friends');
+  }
+
+  async getFriendInviteLink() {
+    return this.request<{ invite_token: string }>('/api/friends/invite-link');
+  }
+
+  async getFriendInviteByToken(token: string) {
+    return this.request<{ user: Friend }>(`/api/friends/invite/${token}`, { requireAuth: false });
+  }
+
+  async joinFriendByToken(token: string) {
+    return this.request<{ message: string; friend_id: number }>(`/api/friends/join/${token}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeFriend(friendId: number) {
+    return this.request<{ message: string }>(`/api/friends/${friendId}`, {
+      method: 'DELETE',
     });
   }
 

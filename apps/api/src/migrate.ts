@@ -189,6 +189,29 @@ export async function runMigrations() {
       )
     `);
 
+  // Create friendships table. A friendship is stored once with the smaller
+  // user id in user_id and the larger user id in friend_id.
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS friendships (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, friend_id),
+        CHECK (user_id < friend_id)
+      )
+    `);
+
+  // Create reusable friend invite tokens.
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS friend_invites (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token VARCHAR(32) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
   // Create assignments table for Secret Santa
   await pool.query(`
       CREATE TABLE IF NOT EXISTS assignments (
@@ -289,6 +312,22 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_invitations_invitee_id ON invitations(invitee_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friend_invites_token ON friend_invites(token)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friend_invites_user_id ON friend_invites(user_id)
     `);
 
   await pool.query(`

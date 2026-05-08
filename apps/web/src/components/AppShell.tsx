@@ -2,12 +2,13 @@ import React, { ReactNode, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { confirmDestructive } from '../utils/confirm';
 
-type SidebarIconName = 'groups' | 'profile' | 'signout';
+type SidebarIconName = 'groups' | 'friends' | 'profile' | 'signout';
 
 interface AppShellProps {
-  active: 'groups' | 'profile';
+  active: 'groups' | 'friends' | 'profile';
   children: ReactNode;
   onNavigateGroups: () => void;
+  onNavigateFriends: () => void;
   onNavigateProfile: () => void;
 }
 
@@ -27,6 +28,14 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
           <path d="M4.75 20.25a7.25 7.25 0 0 1 14.5 0" />
         </>
       )}
+      {name === 'friends' && (
+        <>
+          <path d="M8.75 11.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" />
+          <path d="M15.75 11.25a2.75 2.75 0 1 0 0-5.5" />
+          <path d="M3.75 20.25a5 5 0 0 1 10 0" />
+          <path d="M14.75 15.25a4.25 4.25 0 0 1 5.5 4" />
+        </>
+      )}
       {name === 'signout' && (
         <>
           <path d="M14.25 5.25h-7.5v13.5h7.5" />
@@ -38,7 +47,7 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
   );
 }
 
-export default function AppShell({ active, children, onNavigateGroups, onNavigateProfile }: AppShellProps) {
+export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile }: AppShellProps) {
   const { signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
@@ -67,6 +76,9 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
         <nav className="sidebar-nav">
           <button className={`sidebar-nav-item ${active === 'groups' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateGroups(); }}>
             <SidebarIcon name="groups" /> Groups
+          </button>
+          <button className={`sidebar-nav-item ${active === 'friends' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateFriends(); }}>
+            <SidebarIcon name="friends" /> Friends
           </button>
           <button className={`sidebar-nav-item ${active === 'profile' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateProfile(); }}>
             <SidebarIcon name="profile" /> Profile

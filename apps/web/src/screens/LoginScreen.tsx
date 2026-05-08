@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 
 interface LoginScreenProps {
   onSwitchToSignup: () => void;
+  friendInviteMode?: boolean;
 }
 
-export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
+export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [usePassword, setUsePassword] = useState(false);
@@ -82,7 +83,11 @@ export default function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
           <div className="auth-heading">
             <p>Welcome to</p>
             <h1>Geschenk</h1>
-            <span>The simple way to organize Secret Santa with friends and family.</span>
+            <span>
+              {friendInviteMode
+                ? 'Sign in to accept the friend request and add each other on Geschenk.'
+                : 'The simple way to organize Secret Santa with friends and family.'}
+            </span>
           </div>
         </div>
 

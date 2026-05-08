@@ -379,36 +379,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       })),
     ];
 
-    // Get pending invitations for this group (only if user is owner)
-    let pendingInvitations: any[] = [];
-    if (group.created_by === userId) {
-      // Get member IDs to exclude from pending invitations
-      const memberIds = new Set([
-        group.created_by,
-        ...membersResult.rows.map((m: any) => m.id)
-      ]);
-
-      const invitationsResult = await pool.query(
-        `SELECT i.id, i.invitee_id, i.created_at,
-                u.username
-         FROM invitations i
-         JOIN users u ON i.invitee_id = u.id
-         WHERE i.group_id = $1 AND i.status = 'pending'
-         ORDER BY i.created_at DESC`,
-        [groupId]
-      );
-
-      // Filter out users who are already members
-      pendingInvitations = invitationsResult.rows
-        .filter((row: any) => !memberIds.has(row.invitee_id))
-        .map((row: any) => ({
-          id: row.invitee_id,
-          username: row.username,
-          invitation_id: row.id,
-          invited_at: row.created_at,
-        }));
-    }
-
     res.json({
       group: {
         ...group,
@@ -418,7 +388,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
           username: owner.username,
           image_url: owner.image_url,
         },
-        pending_invitations: pendingInvitations,
+        pending_invitations: [],
       },
     });
   } catch (error: any) {
@@ -576,10 +546,10 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const groupId = parseInt(req.params.id);
-    const { username } = req.body;
+    const { user_id, username } = req.body;
 
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
+    if (!user_id && !username) {
+      return res.status(400).json({ error: 'Friend is required' });
     }
 
     // Check if user is owner or active member of the group
@@ -598,11 +568,9 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: assignmentLockError() });
     }
 
-    // Find the user to invite
-    const inviteeResult = await pool.query(
-      'SELECT id, username FROM users WHERE username = $1',
-      [username.toLowerCase().trim()]
-    );
+    const inviteeResult = user_id
+      ? await pool.query('SELECT id, username FROM users WHERE id = $1', [Number(user_id)])
+      : await pool.query('SELECT id, username FROM users WHERE username = $1', [username.toLowerCase().trim()]);
 
     if (inviteeResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -612,6 +580,17 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
 
     if (inviteeId === userId) {
       return res.status(400).json({ error: 'Cannot invite yourself' });
+    }
+
+    const firstId = Math.min(userId, inviteeId);
+    const secondId = Math.max(userId, inviteeId);
+    const friendshipCheck = await pool.query(
+      'SELECT 1 FROM friendships WHERE user_id = $1 AND friend_id = $2',
+      [firstId, secondId]
+    );
+
+    if (friendshipCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'You can only add friends to a group' });
     }
 
     // Check if user is already an active member
@@ -624,35 +603,12 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'User is already a member of this group' });
     }
 
-    // Check if there's already a pending invitation
-    const existingInvite = await pool.query(
-      'SELECT id, status FROM invitations WHERE group_id = $1 AND invitee_id = $2',
+    await pool.query(
+      "INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active') ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'",
       [groupId, inviteeId]
     );
 
-    let invitationId: number;
-
-    if (existingInvite.rows.length > 0) {
-      const invite = existingInvite.rows[0];
-      if (invite.status === 'pending') {
-        return res.status(400).json({ error: 'Invitation already sent' });
-      }
-      // If rejected, update to pending
-      invitationId = invite.id;
-      await pool.query(
-        'UPDATE invitations SET status = $1, inviter_id = $2, created_at = CURRENT_TIMESTAMP WHERE id = $3',
-        ['pending', userId, invite.id]
-      );
-    } else {
-      // Create new invitation and get the ID
-      const insertResult = await pool.query(
-        'INSERT INTO invitations (group_id, inviter_id, invitee_id, status) VALUES ($1, $2, $3, $4) RETURNING id',
-        [groupId, userId, inviteeId, 'pending']
-      );
-      invitationId = insertResult.rows[0].id;
-    }
-
-    res.json({ message: 'Invitation sent successfully' });
+    res.json({ message: 'Friend added to group successfully' });
   } catch (error: any) {
     console.error('Error inviting user:', error);
     res.status(500).json({ error: 'Failed to invite user' });
@@ -788,19 +744,6 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
 
     if (members.length < 3) {
       return res.status(400).json({ error: 'Need at least 3 members to create assignments' });
-    }
-
-    // Check if there are pending invitations - prevent assignment if so
-    const pendingInvitesResult = await pool.query(
-      'SELECT COUNT(*) as count FROM invitations WHERE group_id = $1 AND status = $2',
-      [groupId, 'pending']
-    );
-
-    const pendingCount = parseInt(pendingInvitesResult.rows[0].count, 10);
-    if (pendingCount > 0) {
-      return res.status(400).json({ 
-        error: `Cannot create assignments while there ${pendingCount === 1 ? 'is' : 'are'} ${pendingCount} pending invitation${pendingCount === 1 ? '' : 's'}. Please wait for all invitations to be accepted or rejected, or cancel them first.` 
-      });
     }
 
     // Get exclusions for this group

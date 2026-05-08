@@ -1,9 +1,8 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
-import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
-import { Group, Invitation } from '../types/group';
+import { Group } from '../types/group';
 
 interface HomeScreenProps {
   onGroupPress: (groupId: string) => void;
@@ -12,7 +11,6 @@ interface HomeScreenProps {
 
 export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeScreenProps) {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -23,12 +21,8 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [userGroups, pendingInvitations] = await Promise.all([
-        groupService.getGroups(),
-        groupService.getPendingInvitations(),
-      ]);
+      const userGroups = await groupService.getGroups();
       setGroups(userGroups);
-      setInvitations(pendingInvitations);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -72,26 +66,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     }
   };
 
-  const handleAcceptInvitation = async (invitationId: number) => {
-    try {
-      await groupService.acceptInvitation(invitationId);
-      await loadData();
-    } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
-    }
-  };
-
-  const handleRejectInvitation = async (invitationId: number) => {
-    confirmDestructive('Reject Invitation', 'Are you sure you want to reject this invitation?', 'Reject', async () => {
-      try {
-        await groupService.rejectInvitation(invitationId);
-        await loadData();
-      } catch (error) {
-        window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
-      }
-    });
-  };
-
   return (
     <section className="overview-screen">
       <div className="overview-main">
@@ -103,33 +77,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         </header>
 
         <div className="overview-content">
-          {invitations.length > 0 && (
-            <section className="overview-invitations">
-              <div>
-                <h2>Pending Invitations</h2>
-                <p>{invitations.length} {invitations.length === 1 ? 'group is' : 'groups are'} waiting for your response.</p>
-              </div>
-              <div className="overview-invitation-list">
-                {invitations.map((invitation) => (
-                  <article className="overview-invitation-card" key={invitation.id}>
-                    <div>
-                      <h3>{invitation.group_name}</h3>
-                      <p>from @{invitation.inviter_username}</p>
-                    </div>
-                    <div className="button-row">
-                      <button className="primary-button compact" type="button" onClick={() => handleAcceptInvitation(invitation.id)}>
-                        Accept
-                      </button>
-                      <button className="secondary-button compact" type="button" onClick={() => handleRejectInvitation(invitation.id)}>
-                        Reject
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
         {loading ? (
           <section className="overview-groups-section overview-loading-section">
             <div className="overview-group-grid">

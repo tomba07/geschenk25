@@ -137,7 +137,7 @@ export const groupService = {
   },
 
   // Invite user to group
-  async inviteUser(groupId: string, username: string): Promise<void> {
+  async inviteUser(groupId: string, userId: number): Promise<void> {
     const id = parseInt(groupId);
     if (isNaN(id)) {
       const appError: AppError = {
@@ -149,7 +149,7 @@ export const groupService = {
       throw new GroupServiceError(appError);
     }
 
-    const response = await apiClient.inviteUserToGroup(id, username);
+    const response = await apiClient.inviteUserToGroup(id, userId);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);

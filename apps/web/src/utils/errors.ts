@@ -53,7 +53,7 @@ function getUserMessage(type: ErrorType, message: string, statusCode?: number): 
         return 'Invalid password. Please try again.';
       }
       if (message.toLowerCase().includes('invitation')) {
-        return 'Unable to send invitation. The user may already be a member or have a pending invitation.';
+        return 'Unable to add this person. They may already be in the group.';
       }
       if (message.toLowerCase().includes('assignment')) {
         return 'Unable to create assignments. Please ensure there are at least 3 members in the group.';

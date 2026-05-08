@@ -1,3 +1,4 @@
+- back to password
 - group creation lifecycle
 - group creation navigation
 - friends list (you can directly invite friends)

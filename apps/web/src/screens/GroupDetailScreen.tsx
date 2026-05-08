@@ -1,6 +1,6 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
 import { groupService, GroupServiceError } from '../services/groupService';
-import { apiClient } from '../lib/api';
+import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
@@ -10,11 +10,6 @@ import { Assignment, Exclusion, GiftIdea, Group } from '../types/group';
 interface GroupDetailScreenProps {
   groupId: string;
   onBack: () => void;
-}
-
-interface SearchUser {
-  id: number;
-  username: string;
 }
 
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
@@ -30,8 +25,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteOpen, setInviteOpen] = useState(false);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
   const [exclusionOpen, setExclusionOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
@@ -85,31 +79,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   }, [toastMessage]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(async () => {
-      const cleanQuery = searchQuery.trim().replace(/^@/, '');
-      if (!inviteOpen || cleanQuery.length < 2 || !group) {
-        setSearchResults([]);
-        return;
-      }
+    if (!inviteOpen) return;
 
-      const response = await apiClient.searchUsers(cleanQuery);
-      const memberIds = new Set(group.members?.map((member) => member.id) || []);
-      setSearchResults(
-        (response.data?.users || []).filter(
-          (user) => user.id !== userId && user.id !== group.created_by && !memberIds.has(user.id)
-        )
-      );
-    }, 300);
+    let cancelled = false;
+    async function loadFriends() {
+      const response = await apiClient.getFriends();
+      if (!cancelled) setFriends(response.data?.friends || []);
+    }
 
-    return () => window.clearTimeout(timeout);
-  }, [group, inviteOpen, searchQuery, userId]);
+    loadFriends();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteOpen]);
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
   const pendingInvites = group?.pending_invitations || [];
   const assignmentsLocked = Boolean(assignment);
-  const hasPendingInvites = pendingInvites.length > 0;
-  const canDrawAssignments = isOwner && members.length >= 3 && !hasPendingInvites && !assignmentsLocked;
+  const canDrawAssignments = isOwner && members.length >= 3 && !assignmentsLocked;
   const assignmentCreatedDate = assignment?.created_at
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
@@ -143,7 +131,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const handleGetInviteLink = async () => {
     if (inviteLink) return;
     setInviteLinkLoading(true);
-    const response = await apiClient.getInviteLink(Number(groupId));
+    const response = await apiClient.getFriendInviteLink();
     setInviteLinkLoading(false);
     if (response.error) {
       window.alert(response.error);
@@ -163,8 +151,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     if (!inviteLink) return;
     if (navigator.share) {
       await navigator.share({
-        title: group ? `Join ${group.name} on Geschenk` : 'Join my Geschenk group',
-        text: group ? `Join my Secret Santa group "${group.name}".` : 'Join my Secret Santa group.',
+        title: 'Add me on Geschenk',
+        text: 'Add me as a friend on Geschenk so I can invite you to groups.',
         url: inviteLink,
       });
       return;
@@ -173,14 +161,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     await handleCopyInviteLink();
   };
 
-  const handleInvite = async (username: string) => {
+  const handleInvite = async (friend: Friend) => {
     setBusy(true);
     try {
-      await groupService.inviteUser(groupId, username);
+      await groupService.inviteUser(groupId, friend.id);
       setInviteOpen(false);
-      setSearchQuery('');
       await loadGroup();
-      setToastMessage(`Invitation sent to @${username}`);
+      setToastMessage(`@${friend.username} added to ${group?.name || 'group'}`);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -404,16 +391,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <h3>
                     {members.length < 3
                       ? 'Add more members'
-                      : hasPendingInvites
-                        ? 'Pending invites'
-                        : 'Ready to draw names'}
+                      : 'Ready to draw names'}
                   </h3>
                   <p>
                     {members.length < 3
                       ? 'Secret Santa needs at least three members.'
-                      : hasPendingInvites
-                        ? `${pendingInvites.length} ${pendingInvites.length === 1 ? 'invite is' : 'invites are'} still pending.`
-                        : 'Draw names when the member list looks right.'}
+                      : 'Draw names when the member list looks right.'}
                   </p>
                 </div>
                 {canDrawAssignments && (
@@ -553,12 +536,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </header>
             <section className="invite-link-panel">
               <div>
-                <h3>Share invite link</h3>
-                <p>Anyone with this link can join this group.</p>
+                <h3>Friend invite link</h3>
+                <p>Share this link so someone can add you as a friend.</p>
               </div>
               {!inviteLink ? (
                 <button className="primary-button" type="button" onClick={handleGetInviteLink} disabled={inviteLinkLoading}>
-                  {inviteLinkLoading ? 'Creating...' : 'Create Invite Link'}
+                  {inviteLinkLoading ? 'Creating...' : 'Create Friend Link'}
                 </button>
               ) : (
                 <>
@@ -575,22 +558,23 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               )}
             </section>
 
-            <details className="invite-search-details">
-              <summary>Invite by username</summary>
-              <label>
-                <span>Search username</span>
-                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="@username" />
-              </label>
+            <details className="invite-search-details" open>
+              <summary>Add friends to group</summary>
               <div className="stack-list">
-                {searchResults.map((user) => (
-                  <button className="person-row selectable" type="button" key={user.id} onClick={() => handleInvite(user.username)} disabled={busy}>
+                {friends
+                  .filter((friend) => !members.some((member) => member.id === friend.id) && friend.id !== group.created_by)
+                  .map((friend) => (
+                  <button className="person-row selectable" type="button" key={friend.id} onClick={() => handleInvite(friend)} disabled={busy}>
                     <div>
-                      <strong>@{user.username}</strong>
-                      <small>@{user.username}</small>
+                      <strong>@{friend.username}</strong>
+                      <small>@{friend.username}</small>
                     </div>
-                    <span>Invite</span>
+                    <span>Add</span>
                   </button>
                 ))}
+                {friends.filter((friend) => !members.some((member) => member.id === friend.id) && friend.id !== group.created_by).length === 0 && (
+                  <p className="empty-inline">No friends available to add.</p>
+                )}
               </div>
             </details>
           </div>

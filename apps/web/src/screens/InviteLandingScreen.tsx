@@ -6,17 +6,14 @@ interface InviteLandingScreenProps {
   onContinueWeb: () => void;
 }
 
-interface InviteGroup {
+interface InviteUser {
   id: number;
-  name: string;
-  description?: string;
+  username: string;
   image_url?: string | null;
-  member_count: number;
-  assignments_created?: boolean;
 }
 
 export default function InviteLandingScreen({ token, onContinueWeb }: InviteLandingScreenProps) {
-  const [group, setGroup] = useState<InviteGroup | null>(null);
+  const [inviter, setInviter] = useState<InviteUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,15 +22,15 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
 
     async function loadInvite() {
       setLoading(true);
-      const response = await apiClient.getGroupByInviteToken(token);
+      const response = await apiClient.getFriendInviteByToken(token);
       if (cancelled) return;
 
       if (response.error || !response.data) {
         setError(response.error || 'This invite link is invalid.');
-        setGroup(null);
+        setInviter(null);
       } else {
         setError(null);
-        setGroup(response.data.group);
+        setInviter(response.data.user);
       }
 
       setLoading(false);
@@ -46,7 +43,7 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
     };
   }, [token]);
 
-  const initial = (group?.name || 'G').charAt(0).toUpperCase();
+  const initial = (inviter?.username || 'G').charAt(0).toUpperCase();
 
   return (
     <section className="auth-screen invite-landing-screen">
@@ -72,28 +69,20 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
                 Go to Geschenk
               </a>
             </>
-          ) : group ? (
+          ) : inviter ? (
             <>
               <div className="invite-preview">
                 <div className="group-image large">
-                  {group.image_url ? <img src={group.image_url} alt="" /> : <span>{initial}</span>}
+                  {inviter.image_url ? <img src={inviter.image_url} alt="" /> : <span>{initial}</span>}
                 </div>
-                <span>Group invite</span>
-                <h1>{group.name}</h1>
-                <p>
-                  {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
-                </p>
+                <span>Friend invite</span>
+                <h1>@{inviter.username}</h1>
+                <p>Add each other as friends on Geschenk.</p>
               </div>
 
-              {group.description && <p className="invite-description">{group.description}</p>}
-
-              {group.assignments_created ? (
-                <p className="invite-description">Names have already been drawn for this group.</p>
-              ) : (
-                <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
-                  Continue to Join
-                </button>
-              )}
+              <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
+                Continue
+              </button>
             </>
           ) : null}
         </div>

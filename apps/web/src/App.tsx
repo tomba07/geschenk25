@@ -7,6 +7,7 @@ import SignupScreen from './screens/SignupScreen';
 import HomeScreen from './screens/HomeScreen';
 import GroupDetailScreen from './screens/GroupDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import FriendsScreen from './screens/FriendsScreen';
 import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
@@ -15,10 +16,11 @@ import { CONFIRM_EVENT, ConfirmDialogRequest } from './utils/confirm';
 
 type Route =
   | { name: 'home' }
-  | { name: 'login' }
+  | { name: 'login'; friendInvite?: boolean }
   | { name: 'signup' }
   | { name: 'auth-callback'; token: string | null }
   | { name: 'profile' }
+  | { name: 'friends' }
   | { name: 'group'; groupId: string }
   | { name: 'join'; token: string };
 
@@ -31,8 +33,10 @@ function parseRoute(): Route {
   if (joinMatch) return { name: 'join', token: joinMatch[1] };
 
   if (path === '/signup') return { name: 'signup' };
+  if (path === '/login/friend-invite') return { name: 'login', friendInvite: true };
   if (path === '/login') return { name: 'login' };
   if (path === '/auth/callback') return { name: 'auth-callback', token: new URLSearchParams(window.location.search).get('token') };
+  if (path === '/friends') return { name: 'friends' };
   if (path === '/profile') return { name: 'profile' };
   return { name: 'home' };
 }
@@ -41,8 +45,9 @@ function routePath(route: Route): string {
   if (route.name === 'group') return `/groups/${route.groupId}`;
   if (route.name === 'join') return `/join/${route.token}`;
   if (route.name === 'signup') return '/signup';
-  if (route.name === 'login') return '/login';
+  if (route.name === 'login') return route.friendInvite ? '/login/friend-invite' : '/login';
   if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
+  if (route.name === 'friends') return '/friends';
   if (route.name === 'profile') return '/profile';
   return '/';
 }
@@ -51,7 +56,7 @@ function hasStoredAuth() {
   return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
 }
 
-const PENDING_INVITE_KEY = 'geschenk.pending_invite_token';
+const PENDING_INVITE_KEY = 'geschenk.pending_friend_invite_token';
 
 function LoadingScreen({ route }: { route: Route }) {
   return (
@@ -105,6 +110,7 @@ function AppContent() {
   const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => localStorage.getItem(PENDING_INVITE_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -147,24 +153,29 @@ function AppContent() {
     }
   }, [isAuthenticated, pendingInviteToken]);
 
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timeout = window.setTimeout(() => setToastMessage(null), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
+
   const handleJoinInvite = async (token: string) => {
     if (!isAuthenticated) {
       setPendingInviteToken(token);
       localStorage.setItem(PENDING_INVITE_KEY, token);
-      navigate({ name: 'login' }, true);
+      navigate({ name: 'login', friendInvite: true }, true);
       return;
     }
 
     try {
-      const groupResponse = await apiClient.getGroupByInviteToken(token);
-      if (groupResponse.error || !groupResponse.data) {
-        window.alert(groupResponse.error || 'Invalid invite link');
+      const inviteResponse = await apiClient.getFriendInviteByToken(token);
+      if (inviteResponse.error || !inviteResponse.data) {
+        window.alert(inviteResponse.error || 'Invalid invite link');
         navigate({ name: 'home' }, true);
         return;
       }
 
-      const group = groupResponse.data.group;
-      const joinResponse = await apiClient.joinGroupByToken(token);
+      const joinResponse = await apiClient.joinFriendByToken(token);
       if (joinResponse.error) {
         window.alert(joinResponse.error);
         return;
@@ -172,7 +183,8 @@ function AppContent() {
 
       setRefreshHomeKey((key) => key + 1);
       localStorage.removeItem(PENDING_INVITE_KEY);
-      navigate({ name: 'group', groupId: String(joinResponse.data?.group_id || group.id) }, true);
+      setToastMessage(joinResponse.data?.message || 'Friend added');
+      navigate({ name: 'friends' }, true);
     } catch (error) {
       window.alert(getErrorMessage(error));
       navigate({ name: 'home' }, true);
@@ -181,9 +193,14 @@ function AppContent() {
 
   const content = useMemo(() => {
     if (isLoading) {
-      if (hasStoredAuth() && ['home', 'profile', 'group'].includes(route.name)) {
+      if (hasStoredAuth() && ['home', 'friends', 'profile', 'group'].includes(route.name)) {
         return (
-          <AppShell active={route.name === 'profile' ? 'profile' : 'groups'} onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+          <AppShell
+            active={route.name === 'profile' ? 'profile' : route.name === 'friends' ? 'friends' : 'groups'}
+            onNavigateGroups={() => navigate({ name: 'home' })}
+            onNavigateFriends={() => navigate({ name: 'friends' })}
+            onNavigateProfile={() => navigate({ name: 'profile' })}
+          >
             <LoadingScreen route={route} />
           </AppShell>
         );
@@ -223,27 +240,35 @@ function AppContent() {
       if (route.name === 'signup') {
         return <SignupScreen onSwitchToLogin={() => navigate({ name: 'login' })} />;
       }
-      return <LoginScreen onSwitchToSignup={() => navigate({ name: 'signup' })} />;
+      return <LoginScreen friendInviteMode={route.name === 'login' && route.friendInvite} onSwitchToSignup={() => navigate({ name: 'signup' })} />;
     }
 
     if (route.name === 'group') {
       return (
-        <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
           <GroupDetailScreen groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />
+        </AppShell>
+      );
+    }
+
+    if (route.name === 'friends') {
+      return (
+        <AppShell active="friends" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+          <FriendsScreen />
         </AppShell>
       );
     }
 
     if (route.name === 'profile') {
       return (
-        <AppShell active="profile" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <AppShell active="profile" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
           <ProfileScreen onBack={() => navigate({ name: 'home' })} />
         </AppShell>
       );
     }
 
     return (
-      <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+      <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
         <HomeScreen
           key={refreshHomeKey}
           onGroupPress={(groupId) => navigate({ name: 'group', groupId })}
@@ -258,6 +283,11 @@ function AppContent() {
       {content}
       {confirmRequest && (
         <AppConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      )}
+      {toastMessage && (
+        <div className="toast-message" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
       )}
     </main>
   );
