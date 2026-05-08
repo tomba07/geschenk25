@@ -56,7 +56,7 @@ function getUserMessage(type: ErrorType, message: string, statusCode?: number): 
         return 'Unable to send invitation. The user may already be a member or have a pending invitation.';
       }
       if (message.toLowerCase().includes('assignment')) {
-        return 'Unable to create assignments. Please ensure there are at least 2 members in the group.';
+        return 'Unable to create assignments. Please ensure there are at least 3 members in the group.';
       }
       return message || 'An error occurred. Please try again.';
     
@@ -203,4 +203,3 @@ export function getErrorMessage(error: any): string {
   const appError = parseError(error);
   return appError.userMessage;
 }
-

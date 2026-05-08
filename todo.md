@@ -1,4 +1,5 @@
-- invite links
-- rename project
+- assignment lifecycle improvement
+- edit Gift ideas
 - better email notifications
+- rename project
 - "see how it works" video

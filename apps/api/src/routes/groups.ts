@@ -11,6 +11,15 @@ function generateInviteToken(): string {
   return crypto.randomBytes(16).toString('hex');
 }
 
+async function groupHasAssignments(groupId: number): Promise<boolean> {
+  const result = await pool.query('SELECT 1 FROM assignments WHERE group_id = $1 LIMIT 1', [groupId]);
+  return result.rows.length > 0;
+}
+
+function assignmentLockError() {
+  return 'Names have already been drawn for this group.';
+}
+
 // Public route: Get group info from invite token (no auth required)
 router.get('/invite/:token', async (req: Request, res: Response) => {
   try {
@@ -18,7 +27,8 @@ router.get('/invite/:token', async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `SELECT g.id, g.name, g.description, g.image_url,
-              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count
+              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count,
+              EXISTS(SELECT 1 FROM assignments WHERE group_id = g.id) as assignments_created
        FROM groups g
        WHERE g.invite_token = $1`,
       [token]
@@ -36,6 +46,7 @@ router.get('/invite/:token', async (req: Request, res: Response) => {
         description: group.description,
         image_url: group.image_url,
         member_count: parseInt(group.member_count, 10),
+        assignments_created: group.assignments_created,
       },
     });
   } catch (error: any) {
@@ -74,25 +85,34 @@ router.post('/join/:token', async (req: AuthRequest, res: Response) => {
 
     if (memberCheck.rows.length > 0) {
       const member = memberCheck.rows[0];
-      // If user has left, reactivate them
-      if (member.status === 'left') {
-        await pool.query(
-          "UPDATE group_members SET status = 'active' WHERE id = $1",
-          [member.id]
-        );
-        // Update invitations
-        await pool.query(
-          "UPDATE invitations SET status = 'accepted' WHERE group_id = $1 AND invitee_id = $2 AND status = 'pending'",
-          [groupId, userId]
-        );
-        return res.json({ message: 'Successfully rejoined group', group_id: groupId });
+      if (member.status !== 'left') {
+        return res.json({ message: 'You are already a member of this group', group_id: groupId });
       }
-      return res.json({ message: 'You are already a member of this group', group_id: groupId });
+
+      if (await groupHasAssignments(groupId)) {
+        return res.status(400).json({ error: assignmentLockError() });
+      }
+
+      // If user has left, reactivate them
+      await pool.query(
+        "UPDATE group_members SET status = 'active' WHERE id = $1",
+        [member.id]
+      );
+      // Update invitations
+      await pool.query(
+        "UPDATE invitations SET status = 'accepted' WHERE group_id = $1 AND invitee_id = $2 AND status = 'pending'",
+        [groupId, userId]
+      );
+      return res.json({ message: 'Successfully rejoined group', group_id: groupId });
     }
 
     // Check if user is the owner
     if (group.created_by === userId) {
       return res.json({ message: 'You are the owner of this group', group_id: groupId });
+    }
+
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
     }
 
     // Add user to group (or reactivate if they were left)
@@ -574,6 +594,10 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
+    }
+
     // Find the user to invite
     const inviteeResult = await pool.query(
       'SELECT id, username FROM users WHERE username = $1',
@@ -668,6 +692,10 @@ router.post('/:id/leave', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'You are not a member of this group' });
     }
 
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
+    }
+
     // Mark user as left (soft delete) - keeps them in the group for assignment integrity
     await pool.query(
       "UPDATE group_members SET status = 'left' WHERE group_id = $1 AND user_id = $2",
@@ -706,6 +734,10 @@ router.delete('/:id/members/:userId', async (req: AuthRequest, res: Response) =>
       return res.status(400).json({ error: 'Cannot remove yourself from the group' });
     }
 
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
+    }
+
     await pool.query(
       'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
       [groupId, memberId]
@@ -738,6 +770,10 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Only group owner can trigger assignments' });
     }
 
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: 'Names have already been drawn. Reset the draw before drawing again.' });
+    }
+
     // Get all active members (including owner, excluding left members)
     const membersResult = await pool.query(
       `SELECT DISTINCT u.id, u.username
@@ -750,8 +786,8 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
 
     const members = membersResult.rows;
 
-    if (members.length < 2) {
-      return res.status(400).json({ error: 'Need at least 2 members to create assignments' });
+    if (members.length < 3) {
+      return res.status(400).json({ error: 'Need at least 3 members to create assignments' });
     }
 
     // Check if there are pending invitations - prevent assignment if so
@@ -850,7 +886,7 @@ router.get('/:id/assignment', async (req: AuthRequest, res: Response) => {
 
     // Get user's assignment
     const assignmentResult = await pool.query(
-      `SELECT a.receiver_id, u.username as receiver_username, u.image_url as receiver_image_url
+      `SELECT a.receiver_id, a.created_at, u.username as receiver_username, u.image_url as receiver_image_url
        FROM assignments a
        JOIN users u ON a.receiver_id = u.id
        WHERE a.group_id = $1 AND a.giver_id = $2`,
@@ -867,6 +903,7 @@ router.get('/:id/assignment', async (req: AuthRequest, res: Response) => {
         receiver_id: row.receiver_id,
         receiver_username: row.receiver_username,
         receiver_image_url: row.receiver_image_url,
+        created_at: row.created_at,
       },
     });
   } catch (error: any) {
@@ -1299,6 +1336,10 @@ router.post('/:id/exclusions', authenticateToken, async (req: AuthRequest, res: 
 
     const isOwner = groupCheck.rows[0].created_by === userId;
 
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
+    }
+
     // If setting exclusion for someone else, must be owner
     if (targetGiverId !== userId && !isOwner) {
       return res.status(403).json({ error: 'Only group owner can set exclusions for other members' });
@@ -1390,6 +1431,10 @@ router.delete('/:id/exclusions/:exclusionId', authenticateToken, async (req: Aut
     }
 
     const isOwner = groupCheck.rows[0].created_by === userId;
+
+    if (await groupHasAssignments(groupId)) {
+      return res.status(400).json({ error: assignmentLockError() });
+    }
 
     // Check if exclusion exists
     const exclusionCheck = await pool.query(

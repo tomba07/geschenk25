@@ -99,7 +99,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
+  const pendingInvites = group?.pending_invitations || [];
   const assignmentsLocked = Boolean(assignment);
+  const hasPendingInvites = pendingInvites.length > 0;
+  const canDrawAssignments = isOwner && members.length >= 3 && !hasPendingInvites && !assignmentsLocked;
+  const assignmentCreatedDate = assignment?.created_at
+    ? new Date(assignment.created_at).toLocaleDateString()
+    : null;
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
@@ -176,11 +182,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const handleAssign = () => {
     if (!group) return;
-    if ((group.members?.length || 0) < 2) {
-      window.alert('Need at least 2 members to create Secret Santa assignments');
+    if ((group.members?.length || 0) < 3) {
+      window.alert('Need at least 3 members to create Secret Santa assignments');
       return;
     }
-    confirmDestructive('Assign Secret Santa', 'This will randomly assign each member to another member.', 'Assign', async () => {
+    confirmDestructive('Draw Names', 'This will privately assign each member to another member.', 'Draw Names', async () => {
       setBusy(true);
       try {
         await groupService.assignSecretSanta(groupId);
@@ -194,7 +200,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleDeleteAssignments = () => {
-    confirmDestructive('Clear Assignments', 'This will remove all assignments for this group.', 'Clear', async () => {
+    confirmDestructive('Reset Draw', 'This will remove all assignments for this group.', 'Reset', async () => {
       setBusy(true);
       try {
         await groupService.deleteAssignments(groupId);
@@ -346,9 +352,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <h2>Assignments</h2>
             {assignment ? (
               <>
-                <article className="native-card assignment-card">
-                  <div className="empty-card-icon">🎁</div>
-                  <p>You are buying for <strong>@{assignment.receiver_username}</strong>.</p>
+                <article className="native-card assignment-result-card">
+                  <div className="assignment-person-row">
+                    <div className="small-avatar">
+                      {assignment.receiver_image_url ? <img src={assignment.receiver_image_url} alt="" /> : <span>{assignment.receiver_username.charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <div className="assignment-person-copy">
+                      <span>You are buying for</span>
+                      <strong>@{assignment.receiver_username}</strong>
+                      {assignmentCreatedDate && <small>Names drawn on {assignmentCreatedDate}</small>}
+                    </div>
+                  </div>
                 </article>
                 <div className="assigned-ideas-panel">
                   <h3>Gift Ideas for @{assignment.receiver_username}</h3>
@@ -370,21 +384,32 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </div>
               </>
             ) : (
-              <article className="native-card empty-card">
+              <article className="native-card empty-card assignment-empty-card">
                 <div className="empty-card-icon">🎁</div>
-                <p>
-                  {members.length < 2
-                    ? 'Add at least one more member to create Secret Santa assignments.'
-                    : 'Assignments have not been created yet.'}
-                </p>
-                {isOwner && members.length >= 2 && (
-                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy}>Assign</button>
+                <div className="assignment-state-copy">
+                  <h3>
+                    {members.length < 3
+                      ? 'Add more members'
+                      : hasPendingInvites
+                        ? 'Pending invites'
+                        : 'Ready to draw names'}
+                  </h3>
+                  <p>
+                    {members.length < 3
+                      ? 'Secret Santa needs at least three members.'
+                      : hasPendingInvites
+                        ? `${pendingInvites.length} ${pendingInvites.length === 1 ? 'invite is' : 'invites are'} still pending.`
+                        : 'Draw names when the member list looks right.'}
+                  </p>
+                </div>
+                {canDrawAssignments && (
+                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy}>Draw Names</button>
                 )}
               </article>
             )}
             {isOwner && assignment && (
               <button className="secondary-button compact standalone-action" type="button" onClick={handleDeleteAssignments} disabled={busy}>
-                Clear Assignments
+                Reset Draw
               </button>
             )}
           </section>
@@ -451,19 +476,21 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </div>
           </section>
 
-          {isOwner && group.pending_invitations && group.pending_invitations.length > 0 && (
+          {isOwner && pendingInvites.length > 0 && (
             <section className="detail-section pending-section">
               <h2>Pending Invites</h2>
               <div className="stack-list">
-                {group.pending_invitations.map((invite) => (
+                {pendingInvites.map((invite) => (
                   <div className="person-row" key={invite.invitation_id}>
                     <div>
                       <strong>@{invite.username}</strong>
                       <small>@{invite.username}</small>
                     </div>
-                    <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.username)}>
-                      Remove
-                    </button>
+                    {!assignmentsLocked && (
+                      <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.username)}>
+                        Remove
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -491,7 +518,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {exclusions.map((exclusion) => (
                     <article className="native-card exclusion-native-card" key={exclusion.id}>
                       <span>@{exclusion.giver_username} cannot draw @{exclusion.excluded_username}</span>
-                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
+                      {!assignmentsLocked && (
+                        <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
+                      )}
                     </article>
                   ))}
                 </div>

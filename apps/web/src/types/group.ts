@@ -45,6 +45,7 @@ export interface Assignment {
   receiver_id: number;
   receiver_username: string;
   receiver_image_url?: string | null;
+  created_at?: string;
 }
 
 export interface GiftIdeaUser {

@@ -265,7 +265,7 @@ class ApiClient {
 
   async getGroupByInviteToken(token: string) {
     // Public endpoint, no auth required
-    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null; member_count: number } }>(
+    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null; member_count: number; assignments_created?: boolean } }>(
       `/api/groups/invite/${token}`,
       { requireAuth: false }
     );
@@ -291,7 +291,7 @@ class ApiClient {
   }
 
   async getAssignment(groupId: number) {
-    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_image_url?: string | null } | null }>(
+    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_image_url?: string | null; created_at?: string } | null }>(
       `/api/groups/${groupId}/assignment`
     );
   }

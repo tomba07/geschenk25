@@ -12,6 +12,7 @@ interface InviteGroup {
   description?: string;
   image_url?: string | null;
   member_count: number;
+  assignments_created?: boolean;
 }
 
 export default function InviteLandingScreen({ token, onContinueWeb }: InviteLandingScreenProps) {
@@ -86,9 +87,13 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
 
               {group.description && <p className="invite-description">{group.description}</p>}
 
-              <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
-                Continue to Join
-              </button>
+              {group.assignments_created ? (
+                <p className="invite-description">Names have already been drawn for this group.</p>
+              ) : (
+                <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
+                  Continue to Join
+                </button>
+              )}
             </>
           ) : null}
         </div>
