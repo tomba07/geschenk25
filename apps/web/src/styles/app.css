@@ -206,6 +206,10 @@ a {
   padding: 8px 4px;
 }
 
+.landing-mobile-login-button {
+  display: none;
+}
+
 .landing-primary-button {
   min-height: 48px;
   display: inline-flex;
@@ -394,6 +398,24 @@ a {
 
   .landing-hero-actions > * {
     width: 100%;
+  }
+
+  .landing-mobile-login-button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgb(255 255 255 / 0.78);
+    color: var(--color-text);
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgb(8 36 90 / 0.06);
+  }
+
+  .landing-mobile-login-button:hover {
+    background: var(--color-surface);
   }
 
   .landing-hero-art {

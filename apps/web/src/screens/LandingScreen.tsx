@@ -35,6 +35,9 @@ export default function LandingScreen({ onLogin, onSignup }: LandingScreenProps)
                 Get started for free
                 <span aria-hidden="true">→</span>
               </button>
+              <button className="landing-mobile-login-button" type="button" onClick={onLogin}>
+                Log in
+              </button>
             </div>
           </div>
 
