@@ -11,13 +11,6 @@ export interface GroupOwner {
   image_url?: string | null;
 }
 
-export interface PendingInvitation {
-  id: number;
-  username: string;
-  invitation_id: number;
-  invited_at: string;
-}
-
 export interface Group {
   id: number;
   name: string;
@@ -28,17 +21,6 @@ export interface Group {
   member_count?: number;
   members?: GroupMember[];
   owner?: GroupOwner;
-  pending_invitations?: PendingInvitation[];
-}
-
-export interface Invitation {
-  id: number;
-  group_id: number;
-  inviter_id: number;
-  created_at: string;
-  group_name: string;
-  group_description?: string;
-  inviter_username: string;
 }
 
 export interface Assignment {

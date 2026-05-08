@@ -95,7 +95,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
-  const pendingInvites = group?.pending_invitations || [];
   const assignmentsLocked = Boolean(assignment);
   const canDrawAssignments = isOwner && members.length >= 3 && !assignmentsLocked;
   const assignmentCreatedDate = assignment?.created_at
@@ -226,13 +225,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const handleRemoveMember = (memberId: number, name: string) => {
     confirmDestructive('Remove Member', `Remove ${name} from this group?`, 'Remove', async () => {
       await groupService.removeMember(groupId, memberId);
-      await loadGroup();
-    });
-  };
-
-  const handleCancelInvitation = (invitationId: number, name: string) => {
-    confirmDestructive('Remove Invitation', `Remove the invitation for ${name}?`, 'Remove', async () => {
-      await groupService.cancelInvitation(groupId, invitationId);
       await loadGroup();
     });
   };
@@ -472,27 +464,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               ))}
             </div>
           </section>
-
-          {isOwner && pendingInvites.length > 0 && (
-            <section className="detail-section pending-section">
-              <h2>Pending Invites</h2>
-              <div className="stack-list">
-                {pendingInvites.map((invite) => (
-                  <div className="person-row" key={invite.invitation_id}>
-                    <div>
-                      <strong>@{invite.username}</strong>
-                      <small>@{invite.username}</small>
-                    </div>
-                    {!assignmentsLocked && (
-                      <button className="link-button danger-text" type="button" onClick={() => handleCancelInvitation(invite.invitation_id, invite.username)}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
 
           {isOwner && (
             <section className="detail-section exclusions-section">

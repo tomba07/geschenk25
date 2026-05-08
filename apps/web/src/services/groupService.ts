@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api';
-import { Group, Invitation, Assignment, GiftIdea } from '../types/group';
+import { Group, Assignment, GiftIdea } from '../types/group';
 import { AppError, ErrorType, parseError, logError } from '../utils/errors';
 
 export class GroupServiceError extends Error {
@@ -29,8 +29,8 @@ export const groupService = {
   },
 
   // Create a new group
-  async createGroup(name: string, description?: string, imageUrl?: string): Promise<Group> {
-    const response = await apiClient.createGroup(name, description, imageUrl);
+  async createGroup(name: string, imageUrl?: string, memberIds: number[] = []): Promise<Group> {
+    const response = await apiClient.createGroup(name, imageUrl, memberIds);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);
@@ -154,64 +154,6 @@ export const groupService = {
     if (response.error) {
       const appError = response.appError || parseError(response.error);
       logError(appError, 'groupService.inviteUser');
-      throw new GroupServiceError(appError);
-    }
-  },
-
-  // Get pending invitations
-  async getPendingInvitations(): Promise<Invitation[]> {
-    const response = await apiClient.getPendingInvitations();
-    
-    if (response.error) {
-      const appError = response.appError || parseError(response.error);
-      logError(appError, 'groupService.getPendingInvitations');
-      // Return empty array for non-critical errors
-      return [];
-    }
-
-    return response.data?.invitations || [];
-  },
-
-  // Accept invitation
-  async acceptInvitation(invitationId: number): Promise<void> {
-    const response = await apiClient.acceptInvitation(invitationId);
-    
-    if (response.error) {
-      const appError = response.appError || parseError(response.error);
-      logError(appError, 'groupService.acceptInvitation');
-      throw new GroupServiceError(appError);
-    }
-  },
-
-  // Reject invitation
-  async rejectInvitation(invitationId: number): Promise<void> {
-    const response = await apiClient.rejectInvitation(invitationId);
-    
-    if (response.error) {
-      const appError = response.appError || parseError(response.error);
-      logError(appError, 'groupService.rejectInvitation');
-      throw new GroupServiceError(appError);
-    }
-  },
-
-  // Cancel pending invitation (group owner only)
-  async cancelInvitation(groupId: string, invitationId: number): Promise<void> {
-    const id = parseInt(groupId);
-    if (isNaN(id)) {
-      const appError: AppError = {
-        type: ErrorType.VALIDATION,
-        message: `Invalid group ID: ${groupId}`,
-        userMessage: 'Invalid group ID',
-      };
-      logError(appError, 'groupService.cancelInvitation');
-      throw new GroupServiceError(appError);
-    }
-
-    const response = await apiClient.cancelInvitation(id, invitationId);
-    
-    if (response.error) {
-      const appError = response.appError || parseError(response.error);
-      logError(appError, 'groupService.cancelInvitation');
       throw new GroupServiceError(appError);
     }
   },

@@ -1185,6 +1185,67 @@ select:focus {
   font-weight: 700;
 }
 
+.create-step-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.create-step-copy span {
+  color: #1559b7;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.create-step-copy p {
+  margin: 0;
+  color: #3f5578;
+}
+
+.create-friend-list {
+  display: grid;
+  gap: 10px;
+}
+
+.create-friend-option {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 12px;
+  color: #08245a;
+  text-align: left;
+}
+
+.create-friend-option.selected {
+  border-color: #1559b7;
+  background: #eef6ff;
+}
+
+.create-friend-option strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.create-friend-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  justify-self: end;
+  accent-color: #1559b7;
+}
+
+.create-empty-friends {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fbff;
+}
+
 .modal-panel {
   display: grid;
   gap: 16px;
@@ -2222,46 +2283,6 @@ select:focus {
   width: min(100% - 40px, 1040px);
   margin: 0 auto;
   padding: 10px 0 36px;
-}
-
-.overview-invitations {
-  display: grid;
-  gap: 16px;
-  margin-bottom: 24px;
-  border: 1px solid #cfe0f3;
-  border-radius: 8px;
-  background: #eef6ff;
-  padding: 16px;
-}
-
-.overview-invitations h2,
-.overview-invitations p,
-.overview-invitation-card h3,
-.overview-invitation-card p {
-  margin: 0;
-}
-
-.overview-invitations h2 {
-  font-size: 18px;
-}
-
-.overview-invitations p,
-.overview-invitation-card p {
-  color: var(--muted);
-}
-
-.overview-invitation-list {
-  display: grid;
-  gap: 10px;
-}
-
-.overview-invitation-card {
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  padding: 14px;
 }
 
 .overview-group-grid {

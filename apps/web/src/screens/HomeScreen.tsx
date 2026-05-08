@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
+import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
 import { fileToDataUrl } from '../utils/file';
@@ -11,11 +12,13 @@ interface HomeScreenProps {
 
 export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeScreenProps) {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [createStep, setCreateStep] = useState<'friends' | 'details'>('friends');
   const [groupName, setGroupName] = useState('');
-  const [groupDescription, setGroupDescription] = useState('');
   const [groupImage, setGroupImage] = useState<string | null>(null);
+  const [selectedFriendIds, setSelectedFriendIds] = useState<number[]>([]);
   const [creating, setCreating] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -41,10 +44,26 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   };
 
   const resetCreateForm = () => {
+    setCreateStep('friends');
     setGroupName('');
-    setGroupDescription('');
     setGroupImage(null);
+    setSelectedFriendIds([]);
     setModalVisible(false);
+  };
+
+  const openCreateModal = async () => {
+    setModalVisible(true);
+    setCreateStep('friends');
+    const response = await apiClient.getFriends();
+    setFriends(response.data?.friends || []);
+  };
+
+  const toggleSelectedFriend = (friendId: number) => {
+    setSelectedFriendIds((currentIds) => (
+      currentIds.includes(friendId)
+        ? currentIds.filter((id) => id !== friendId)
+        : [...currentIds, friendId]
+    ));
   };
 
   const handleCreateGroup = async (event: FormEvent) => {
@@ -56,7 +75,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
     setCreating(true);
     try {
-      await groupService.createGroup(groupName.trim(), groupDescription.trim() || undefined, groupImage || undefined);
+      await groupService.createGroup(groupName.trim(), groupImage || undefined, selectedFriendIds);
       resetCreateForm();
       await loadData();
     } catch (error) {
@@ -97,7 +116,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             <div className="empty-icon">G</div>
             <h2>No groups yet</h2>
             <p>Create your first group to start organizing your Secret Santa exchange.</p>
-            <button className="primary-button" type="button" onClick={() => setModalVisible(true)}>
+            <button className="primary-button" type="button" onClick={openCreateModal}>
               Create Your First Group
             </button>
           </div>
@@ -133,28 +152,73 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
               <h2>Create New Group</h2>
               <button type="button" className="icon-button" onClick={resetCreateForm} aria-label="Close">×</button>
             </header>
-            <label>
-              <span>Group Image</span>
-              {groupImage && <img className="image-preview" src={groupImage} alt="" />}
-              <input type="file" accept="image/*" onChange={handleImageChange} disabled={creating} />
-            </label>
-            <label>
-              <span>Group Name</span>
-              <input value={groupName} onChange={(event) => setGroupName(event.target.value)} disabled={creating} required />
-            </label>
-            <label>
-              <span>Description</span>
-              <textarea value={groupDescription} onChange={(event) => setGroupDescription(event.target.value)} disabled={creating} rows={4} />
-            </label>
-            <div className="button-row end">
-              <button className="secondary-button" type="button" onClick={resetCreateForm} disabled={creating}>Cancel</button>
-              <button className="primary-button" type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Group'}</button>
-            </div>
+            {createStep === 'friends' ? (
+              <>
+                <div className="create-step-copy">
+                  <span>Step 1 of 2</span>
+                  <p>Select friends to add to this group.</p>
+                </div>
+                {friends.length === 0 ? (
+                  <div className="empty-inline create-empty-friends">
+                    No friends yet. You can create the group now and add friends later.
+                  </div>
+                ) : (
+                  <div className="create-friend-list">
+                    {friends.map((friend) => {
+                      const selected = selectedFriendIds.includes(friend.id);
+                      return (
+                        <button
+                          className={`create-friend-option ${selected ? 'selected' : ''}`}
+                          type="button"
+                          key={friend.id}
+                          onClick={() => toggleSelectedFriend(friend.id)}
+                        >
+                          <span className="small-avatar">
+                            {friend.image_url ? <img src={friend.image_url} alt="" /> : <span>{friend.username.charAt(0).toUpperCase()}</span>}
+                          </span>
+                          <strong>@{friend.username}</strong>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            readOnly
+                            aria-label={`Add @${friend.username}`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="button-row end">
+                  <button className="secondary-button" type="button" onClick={resetCreateForm}>Cancel</button>
+                  <button className="primary-button" type="button" onClick={() => setCreateStep('details')}>Continue</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="create-step-copy">
+                  <span>Step 2 of 2</span>
+                  <p>Name the group and add an optional picture.</p>
+                </div>
+                <label>
+                  <span>Group Name</span>
+                  <input value={groupName} onChange={(event) => setGroupName(event.target.value)} disabled={creating} required />
+                </label>
+                <label>
+                  <span>Group Image</span>
+                  {groupImage && <img className="image-preview" src={groupImage} alt="" />}
+                  <input type="file" accept="image/*" onChange={handleImageChange} disabled={creating} />
+                </label>
+                <div className="button-row end">
+                  <button className="secondary-button" type="button" onClick={() => setCreateStep('friends')} disabled={creating}>Back</button>
+                  <button className="primary-button" type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Group'}</button>
+                </div>
+              </>
+            )}
           </form>
         </div>
       )}
 
-      <button className="overview-fab" type="button" onClick={() => setModalVisible(true)} aria-label="Create new group">
+      <button className="overview-fab" type="button" onClick={openCreateModal} aria-label="Create new group">
         <span>+</span>
         <strong>New Group</strong>
       </button>

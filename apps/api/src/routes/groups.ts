@@ -98,11 +98,6 @@ router.post('/join/:token', async (req: AuthRequest, res: Response) => {
         "UPDATE group_members SET status = 'active' WHERE id = $1",
         [member.id]
       );
-      // Update invitations
-      await pool.query(
-        "UPDATE invitations SET status = 'accepted' WHERE group_id = $1 AND invitee_id = $2 AND status = 'pending'",
-        [groupId, userId]
-      );
       return res.json({ message: 'Successfully rejoined group', group_id: groupId });
     }
 
@@ -118,12 +113,6 @@ router.post('/join/:token', async (req: AuthRequest, res: Response) => {
     // Add user to group (or reactivate if they were left)
     await pool.query(
       "INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active') ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'",
-      [groupId, userId]
-    );
-
-    // Update any pending invitations to accepted
-    await pool.query(
-      "UPDATE invitations SET status = 'accepted' WHERE group_id = $1 AND invitee_id = $2 AND status = 'pending'",
       [groupId, userId]
     );
 
@@ -159,167 +148,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching groups:', error);
     res.status(500).json({ error: 'Failed to fetch groups' });
-  }
-});
-
-// Get pending invitations for current user (must be before /:id route)
-router.get('/invitations/pending', async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-
-    const result = await pool.query(
-      `SELECT i.id, i.group_id, i.inviter_id, i.created_at,
-              g.name as group_name, g.description as group_description,
-              u.username as inviter_username
-       FROM invitations i
-       JOIN groups g ON i.group_id = g.id
-       JOIN users u ON i.inviter_id = u.id
-       WHERE i.invitee_id = $1 AND i.status = 'pending'
-       ORDER BY i.created_at DESC`,
-      [userId]
-    );
-
-    res.json({ invitations: result.rows });
-  } catch (error: any) {
-    console.error('Error fetching invitations:', error);
-    res.status(500).json({ error: 'Failed to fetch invitations' });
-  }
-});
-
-// Accept invitation (must be before /:id route)
-router.post('/invitations/:id/accept', async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const invitationId = parseInt(req.params.id);
-
-    // Get invitation
-    const inviteResult = await pool.query(
-      'SELECT id, group_id, invitee_id, status FROM invitations WHERE id = $1',
-      [invitationId]
-    );
-
-    if (inviteResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invitation not found' });
-    }
-
-    const invitation = inviteResult.rows[0];
-
-    if (invitation.invitee_id !== userId) {
-      return res.status(403).json({ error: 'Not authorized to accept this invitation' });
-    }
-
-    if (invitation.status !== 'pending') {
-      return res.status(400).json({ error: 'Invitation is not pending' });
-    }
-
-    // Add user to group_members or reactivate if they left
-    await pool.query(
-      "INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active') ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'",
-      [invitation.group_id, userId]
-    );
-
-    // Update invitation status
-    await pool.query(
-      "UPDATE invitations SET status = 'accepted' WHERE id = $1",
-      [invitationId]
-    );
-
-    res.json({ message: 'Invitation accepted successfully' });
-  } catch (error: any) {
-    console.error('Error accepting invitation:', error);
-    res.status(500).json({ error: 'Failed to accept invitation' });
-  }
-});
-
-// Reject invitation (must be before /:id route)
-router.post('/invitations/:id/reject', async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const invitationId = parseInt(req.params.id);
-
-    // Get invitation
-    const inviteResult = await pool.query(
-      'SELECT id, invitee_id, status FROM invitations WHERE id = $1',
-      [invitationId]
-    );
-
-    if (inviteResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invitation not found' });
-    }
-
-    const invitation = inviteResult.rows[0];
-
-    if (invitation.invitee_id !== userId) {
-      return res.status(403).json({ error: 'Not authorized to reject this invitation' });
-    }
-
-    if (invitation.status !== 'pending') {
-      return res.status(400).json({ error: 'Invitation is not pending' });
-    }
-
-    // Update invitation status
-    await pool.query(
-      "UPDATE invitations SET status = 'rejected' WHERE id = $1",
-      [invitationId]
-    );
-
-    res.json({ message: 'Invitation rejected successfully' });
-  } catch (error: any) {
-    console.error('Error rejecting invitation:', error);
-    res.status(500).json({ error: 'Failed to reject invitation' });
-  }
-});
-
-// Cancel pending invitation (group owner only, must be before /:id route)
-router.delete('/:id/invitations/:invitationId', async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const groupId = parseInt(req.params.id);
-    const invitationId = parseInt(req.params.invitationId);
-
-    if (isNaN(groupId) || isNaN(invitationId)) {
-      return res.status(400).json({ error: 'Invalid group ID or invitation ID' });
-    }
-
-    // Check if user is owner of the group
-    const groupCheck = await pool.query(
-      'SELECT created_by FROM groups WHERE id = $1',
-      [groupId]
-    );
-
-    if (groupCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Group not found' });
-    }
-
-    if (groupCheck.rows[0].created_by !== userId) {
-      return res.status(403).json({ error: 'Only group owner can cancel invitations' });
-    }
-
-    // Get invitation to verify it belongs to this group
-    const inviteResult = await pool.query(
-      'SELECT id, group_id, status FROM invitations WHERE id = $1',
-      [invitationId]
-    );
-
-    if (inviteResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invitation not found' });
-    }
-
-    if (inviteResult.rows[0].group_id !== groupId) {
-      return res.status(400).json({ error: 'Invitation does not belong to this group' });
-    }
-
-    if (inviteResult.rows[0].status !== 'pending') {
-      return res.status(400).json({ error: 'Can only cancel pending invitations' });
-    }
-
-    // Delete the invitation
-    await pool.query('DELETE FROM invitations WHERE id = $1', [invitationId]);
-
-    res.json({ message: 'Invitation cancelled successfully' });
-  } catch (error: any) {
-    console.error('Error cancelling invitation:', error);
-    res.status(500).json({ error: 'Failed to cancel invitation' });
   }
 });
 
@@ -388,7 +216,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
           username: owner.username,
           image_url: owner.image_url,
         },
-        pending_invitations: [],
       },
     });
   } catch (error: any) {
@@ -399,23 +226,62 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // Create group
 router.post('/', async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
   try {
     const userId = req.userId!;
-    const { name, description, image_url } = req.body;
+    const { name, image_url, member_ids = [] } = req.body;
 
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ error: 'Group name is required' });
     }
 
-    const result = await pool.query(
+    if (!Array.isArray(member_ids)) {
+      return res.status(400).json({ error: 'Members must be an array' });
+    }
+
+    const memberIds = [...new Set(member_ids.map((id: any) => Number(id)))]
+      .filter((id) => Number.isInteger(id) && id > 0 && id !== userId);
+
+    if (memberIds.length > 0) {
+      const friendCheck = await client.query(
+        `SELECT CASE WHEN user_id = $1 THEN friend_id ELSE user_id END as friend_id
+         FROM friendships
+         WHERE (user_id = $1 AND friend_id = ANY($2::int[]))
+            OR (friend_id = $1 AND user_id = ANY($2::int[]))`,
+        [userId, memberIds]
+      );
+      const friendIds = new Set(friendCheck.rows.map((row: any) => row.friend_id));
+      const hasNonFriend = memberIds.some((id) => !friendIds.has(id));
+
+      if (hasNonFriend) {
+        return res.status(403).json({ error: 'Groups can only be created with friends' });
+      }
+    }
+
+    await client.query('BEGIN');
+
+    const result = await client.query(
       'INSERT INTO groups (name, description, image_url, created_by) VALUES ($1, $2, $3, $4) RETURNING id, name, description, image_url, created_at, created_by',
-      [name.trim(), description?.trim() || null, image_url || null, userId]
+      [name.trim(), null, image_url || null, userId]
     );
+
+    const group = result.rows[0];
+    for (const memberId of memberIds) {
+      await client.query(
+        "INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active') ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'",
+        [group.id, memberId]
+      );
+    }
+
+    await client.query('COMMIT');
 
     res.status(201).json({ group: result.rows[0] });
   } catch (error: any) {
+    await client.query('ROLLBACK');
     console.error('Error creating group:', error);
     res.status(500).json({ error: 'Failed to create group' });
+  } finally {
+    client.release();
   }
 });
 

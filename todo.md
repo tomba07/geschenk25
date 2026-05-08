@@ -5,4 +5,5 @@
 - edit Gift ideas
 - better email notifications
 - rename project
-- "see how it works" video
+- "quick befriend" if in same group
+ - maybe you get prompted
