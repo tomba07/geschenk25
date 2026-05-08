@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from 'react';
 import { apiClient } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 interface InviteLandingScreenProps {
   token: string;
   onContinueWeb: () => void;
+  onPrepareAuth: () => void;
+  onSwitchToSignup: () => void;
 }
 
 interface InviteUser {
@@ -12,10 +15,20 @@ interface InviteUser {
   image_url?: string | null;
 }
 
-export default function InviteLandingScreen({ token, onContinueWeb }: InviteLandingScreenProps) {
+export default function InviteLandingScreen({ token, onContinueWeb, onPrepareAuth, onSwitchToSignup }: InviteLandingScreenProps) {
+  const { isAuthenticated, requestSignInLink, signInWithPassword } = useAuth();
   const [inviter, setInviter] = useState<InviteUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [usePassword, setUsePassword] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
+  const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +57,47 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
   }, [token]);
 
   const initial = (inviter?.username || 'G').charAt(0).toUpperCase();
+
+  const handleLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) {
+      setAuthError('Please enter your email address');
+      return;
+    }
+
+    if (usePassword && !password) {
+      setAuthError('Please enter your password');
+      return;
+    }
+
+    onPrepareAuth();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    if (usePassword) {
+      const { error } = await signInWithPassword(email.trim(), password);
+      setAuthLoading(false);
+      if (error) setAuthError(error.message);
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    const { error, devMagicLink, expiresInMinutes } = await requestSignInLink(trimmedEmail);
+    setAuthLoading(false);
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    setSentEmail(trimmedEmail);
+    setExpiresInMinutes(expiresInMinutes || null);
+    setDevMagicLink(devMagicLink || null);
+  };
+
+  const handleSignup = () => {
+    onPrepareAuth();
+    onSwitchToSignup();
+  };
 
   return (
     <section className="auth-screen invite-landing-screen">
@@ -80,9 +134,91 @@ export default function InviteLandingScreen({ token, onContinueWeb }: InviteLand
                 <p>Add each other as friends on Geschenk.</p>
               </div>
 
-              <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
-                Continue
-              </button>
+              {isAuthenticated ? (
+                <button className="primary-button auth-submit" type="button" onClick={onContinueWeb}>
+                  Accept Friend Request
+                </button>
+              ) : !showLogin ? (
+                <button
+                  className="primary-button auth-submit"
+                  type="button"
+                  onClick={() => {
+                    onPrepareAuth();
+                    setShowLogin(true);
+                  }}
+                >
+                  Continue
+                </button>
+              ) : (
+                <form className="invite-login-panel" onSubmit={handleLogin}>
+                  <label className="auth-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        setSentEmail('');
+                        setDevMagicLink(null);
+                        setAuthError(null);
+                      }}
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      disabled={authLoading}
+                    />
+                  </label>
+
+                  {usePassword && (
+                    <label className="auth-field">
+                      <span>Password</span>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        autoComplete="current-password"
+                        disabled={authLoading}
+                      />
+                    </label>
+                  )}
+
+                  {sentEmail && (
+                    <div className="auth-message">
+                      <strong>Check your email</strong>
+                      <span>
+                        We sent a sign-in link to {sentEmail}.
+                        {expiresInMinutes ? ` It expires in ${expiresInMinutes} minutes.` : ''}
+                      </span>
+                      {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
+                    </div>
+                  )}
+
+                  {authError && <p className="form-error">{authError}</p>}
+
+                  <button className="primary-button auth-submit" type="submit" disabled={authLoading}>
+                    {authLoading ? (usePassword ? 'Signing in...' : 'Sending...') : (usePassword ? 'Sign In and Accept' : sentEmail ? 'Resend Sign-In Link' : 'Send Sign-In Link')}
+                  </button>
+
+                  <button
+                    className="link-button auth-mode-button"
+                    type="button"
+                    onClick={() => {
+                      setUsePassword((value) => !value);
+                      setSentEmail('');
+                      setDevMagicLink(null);
+                      setAuthError(null);
+                    }}
+                  >
+                    {usePassword ? 'Use a sign-in link instead' : 'Use password instead'}
+                  </button>
+
+                  <div className="auth-footer">
+                    <span>Don't have an account?</span>
+                    <button type="button" className="link-button" onClick={handleSignup}>
+                      Sign Up
+                    </button>
+                  </div>
+                </form>
+              )}
             </>
           ) : null}
         </div>

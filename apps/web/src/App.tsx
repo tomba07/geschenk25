@@ -122,6 +122,11 @@ function AppContent() {
     setRoute(nextRoute);
   };
 
+  const rememberPendingInvite = (token: string) => {
+    setPendingInviteToken(token);
+    localStorage.setItem(PENDING_INVITE_KEY, token);
+  };
+
   useEffect(() => {
     const onPopState = () => setRoute(parseRoute());
     window.addEventListener('popstate', onPopState);
@@ -161,8 +166,7 @@ function AppContent() {
 
   const handleJoinInvite = async (token: string) => {
     if (!isAuthenticated) {
-      setPendingInviteToken(token);
-      localStorage.setItem(PENDING_INVITE_KEY, token);
+      rememberPendingInvite(token);
       navigate({ name: 'login', friendInvite: true }, true);
       return;
     }
@@ -214,6 +218,8 @@ function AppContent() {
         <InviteLandingScreen
           token={route.token}
           onContinueWeb={() => handleJoinInvite(route.token)}
+          onPrepareAuth={() => rememberPendingInvite(route.token)}
+          onSwitchToSignup={() => navigate({ name: 'signup' })}
         />
       );
     }
