@@ -35,6 +35,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [imageDirty, setImageDirty] = useState(false);
   const [giftIdeaText, setGiftIdeaText] = useState('');
@@ -43,8 +44,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [exclusionGiverId, setExclusionGiverId] = useState<number | ''>('');
   const [exclusionReceiverId, setExclusionReceiverId] = useState<number | ''>('');
 
-  const loadGroup = useCallback(async () => {
-    setLoading(true);
+  const loadGroup = useCallback(async (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true);
     try {
       const groupData = await groupService.getGroupById(groupId);
       if (!groupData) {
@@ -69,13 +70,19 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (showSkeleton) setLoading(false);
     }
   }, [groupId, onBack, userId]);
 
   useEffect(() => {
-    loadGroup();
+    loadGroup(true);
   }, [loadGroup]);
+
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timeout = window.setTimeout(() => setToastMessage(null), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
 
   useEffect(() => {
     const timeout = window.setTimeout(async () => {
@@ -173,6 +180,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setInviteOpen(false);
       setSearchQuery('');
       await loadGroup();
+      setToastMessage(`Invitation sent to @${username}`);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -249,12 +257,18 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
     setBusy(true);
     try {
-      await groupService.createGiftIdea(groupId, Number(forUserId), giftIdeaText.trim(), giftIdeaLink.trim() || undefined);
+      const newIdea = await groupService.createGiftIdea(groupId, Number(forUserId), giftIdeaText.trim(), giftIdeaLink.trim() || undefined);
       setGiftIdeaText('');
       setGiftIdeaLink('');
       setGiftIdeaForUserId('');
       setGiftIdeaOpen(false);
-      await loadGroup();
+      if (newIdea.created_by_id === userId) {
+        setGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
+      }
+      if (assignment && newIdea.for_user_id === assignment.receiver_id) {
+        setAssignedPersonGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
+      }
+      setToastMessage('Gift idea added');
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -594,7 +608,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <span>For</span>
               <select value={giftIdeaForUserId} onChange={(event) => setGiftIdeaForUserId(event.target.value ? Number(event.target.value) : '')}>
                 <option value="">Me</option>
-                {members.map((member) => (
+                {members.filter((member) => member.id !== userId).map((member) => (
                   <option key={member.id} value={member.id}>@{member.username}</option>
                 ))}
               </select>
@@ -714,6 +728,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="toast-message" role="status" aria-live="polite">
+          {toastMessage}
         </div>
       )}
     </section>
