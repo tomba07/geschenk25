@@ -1,7 +1,9 @@
 - back to password
-- group creation lifecycle
-- group creation navigation
-- friends list (you can directly invite friends)
+- group lifecycle & screen
+ - members should just create gift ideas + see assignment once done
+ - group members hidden in group details
+- friend link creation (should just be there)
+- Tidy up headers
 - edit Gift ideas
 - better email notifications
 - rename project
