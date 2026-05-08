@@ -1,4 +1,7 @@
-- assignment lifecycle improvement
+- group creation lifecycle
+- group creation navigation
+- homescreen mobile (login)
+- friends list (you can directly invite friends)
 - edit Gift ideas
 - better email notifications
 - rename project

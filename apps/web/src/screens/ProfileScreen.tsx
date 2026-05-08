@@ -1,6 +1,7 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fileToDataUrl } from '../utils/file';
+import { confirmDestructive } from '../utils/confirm';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -54,16 +55,16 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const handleDeleteAccount = async () => {
     const message = 'This will permanently delete all your groups, memberships, gift ideas, and profile data. This action cannot be undone.';
-    if (!window.confirm(`Delete Account\n\n${message}`)) return;
-
-    setDeleting(true);
-    const { error } = await deleteAccount();
-    setDeleting(false);
-    if (error) {
-      window.alert(error.message || 'Failed to delete account');
-    } else {
-      window.alert('Your account has been permanently deleted.');
-    }
+    confirmDestructive('Delete Account', message, 'Delete', async () => {
+      setDeleting(true);
+      const { error } = await deleteAccount();
+      setDeleting(false);
+      if (error) {
+        window.alert(error.message || 'Failed to delete account');
+      } else {
+        window.alert('Your account has been permanently deleted.');
+      }
+    });
   };
 
   const hasChanges = editingImage !== (imageUrl || null) || Boolean(newPassword || confirmPassword);

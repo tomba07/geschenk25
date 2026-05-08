@@ -549,7 +549,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <div className="modal-panel">
             <header>
               <h2>Invite People</h2>
-              <button type="button" className="icon-button" onClick={() => setInviteOpen(false)} aria-label="Close">x</button>
+              <button type="button" className="icon-button" onClick={() => setInviteOpen(false)} aria-label="Close">×</button>
             </header>
             <section className="invite-link-panel">
               <div>
@@ -602,7 +602,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <form className="modal-panel" onSubmit={handleSaveGiftIdea}>
             <header>
               <h2>Add Gift Idea</h2>
-              <button type="button" className="icon-button" onClick={() => setGiftIdeaOpen(false)} aria-label="Close">x</button>
+              <button type="button" className="icon-button" onClick={() => setGiftIdeaOpen(false)} aria-label="Close">×</button>
             </header>
             <label>
               <span>For</span>
@@ -634,7 +634,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <form className="modal-panel" onSubmit={handleAddExclusion}>
             <header>
               <h2>Add Exclusion Pair</h2>
-              <button type="button" className="icon-button" onClick={() => setExclusionOpen(false)} aria-label="Close">x</button>
+              <button type="button" className="icon-button" onClick={() => setExclusionOpen(false)} aria-label="Close">×</button>
             </header>
             <label>
               <span>Giver</span>
@@ -663,7 +663,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <div className="modal-panel">
             <header>
               <h2>Group Details</h2>
-              <button type="button" className="icon-button" onClick={() => setDetailsOpen(false)} aria-label="Close">x</button>
+              <button type="button" className="icon-button" onClick={() => setDetailsOpen(false)} aria-label="Close">×</button>
             </header>
 
             <section className="details-image-section">

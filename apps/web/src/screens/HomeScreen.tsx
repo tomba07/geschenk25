@@ -184,7 +184,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           <form className="modal-panel" onSubmit={handleCreateGroup}>
             <header>
               <h2>Create New Group</h2>
-              <button type="button" className="icon-button" onClick={resetCreateForm} aria-label="Close">x</button>
+              <button type="button" className="icon-button" onClick={resetCreateForm} aria-label="Close">×</button>
             </header>
             <label>
               <span>Group Image</span>

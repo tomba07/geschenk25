@@ -11,6 +11,7 @@ import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
+import { CONFIRM_EVENT, ConfirmDialogRequest } from './utils/confirm';
 
 type Route =
   | { name: 'home' }
@@ -62,11 +63,48 @@ function LoadingScreen({ route }: { route: Route }) {
   );
 }
 
+function AppConfirmDialog({
+  request,
+  onClose,
+}: {
+  request: ConfirmDialogRequest;
+  onClose: () => void;
+}) {
+  const dangerActions = new Set(['Delete', 'Remove', 'Reject', 'Reset', 'Leave', 'Sign Out']);
+  const confirmClassName = dangerActions.has(request.confirmText) ? 'danger-button' : 'primary-button';
+
+  const cancel = () => {
+    request.onCancel?.();
+    onClose();
+  };
+
+  const confirm = () => {
+    request.onConfirm();
+    onClose();
+  };
+
+  return (
+    <div className="modal-backdrop confirm-backdrop" role="presentation">
+      <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+        <header>
+          <h2 id="confirm-dialog-title">{request.title}</h2>
+        </header>
+        <p>{request.message}</p>
+        <div className="button-row end">
+          <button className="secondary-button" type="button" onClick={cancel}>Cancel</button>
+          <button className={confirmClassName} type="button" onClick={confirm}>{request.confirmText}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => localStorage.getItem(PENDING_INVITE_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -82,6 +120,17 @@ function AppContent() {
     const onPopState = () => setRoute(parseRoute());
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    const handleConfirm = (event: Event) => {
+      event.preventDefault();
+      const customEvent = event as CustomEvent<ConfirmDialogRequest>;
+      setConfirmRequest(customEvent.detail);
+    };
+
+    window.addEventListener(CONFIRM_EVENT, handleConfirm);
+    return () => window.removeEventListener(CONFIRM_EVENT, handleConfirm);
   }, []);
 
   useEffect(() => {
@@ -204,7 +253,14 @@ function AppContent() {
     );
   }, [isAuthenticated, isLoading, refreshHomeKey, route]);
 
-  return <main className="app-shell">{content}</main>;
+  return (
+    <main className="app-shell">
+      {content}
+      {confirmRequest && (
+        <AppConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      )}
+    </main>
+  );
 }
 
 export default function App() {
