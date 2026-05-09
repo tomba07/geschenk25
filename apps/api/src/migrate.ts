@@ -215,15 +215,7 @@ export async function runMigrations() {
       )
     `);
 
-  // Create reusable friend invite tokens.
-  await pool.query(`
-      CREATE TABLE IF NOT EXISTS friend_invites (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        token VARCHAR(32) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  await pool.query('DROP TABLE IF EXISTS friend_invites');
 
   // Create assignments table for Secret Santa
   await pool.query(`
@@ -333,14 +325,6 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)
-    `);
-
-  await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_friend_invites_token ON friend_invites(token)
-    `);
-
-  await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_friend_invites_user_id ON friend_invites(user_id)
     `);
 
   await pool.query(`

@@ -23,15 +23,15 @@ type Route =
   | { name: 'profile' }
   | { name: 'friends' }
   | { name: 'group'; groupId: string }
-  | { name: 'join'; token: string };
+  | { name: 'friend-invite'; username: string };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
   const groupMatch = path.match(/^\/groups\/([^/]+)$/);
   if (groupMatch) return { name: 'group', groupId: groupMatch[1] };
 
-  const joinMatch = path.match(/^\/join\/([^/]+)$/);
-  if (joinMatch) return { name: 'join', token: joinMatch[1] };
+  const friendInviteMatch = path.match(/^\/plsbemyfriend\/([^/]+)$/);
+  if (friendInviteMatch) return { name: 'friend-invite', username: decodeURIComponent(friendInviteMatch[1]) };
 
   if (path === '/signup') return { name: 'signup' };
   if (path === '/login/friend-invite') return { name: 'login', friendInvite: true };
@@ -44,7 +44,7 @@ function parseRoute(): Route {
 
 function routePath(route: Route): string {
   if (route.name === 'group') return `/groups/${route.groupId}`;
-  if (route.name === 'join') return `/join/${route.token}`;
+  if (route.name === 'friend-invite') return `/plsbemyfriend/${encodeURIComponent(route.username)}`;
   if (route.name === 'signup') return '/signup';
   if (route.name === 'login') return route.friendInvite ? '/login/friend-invite' : '/login';
   if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
@@ -57,7 +57,7 @@ function hasStoredAuth() {
   return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
 }
 
-const PENDING_INVITE_KEY = 'geschenk.pending_friend_invite_token';
+const PENDING_FRIEND_USERNAME_KEY = 'geschenk.pending_friend_username';
 
 function LoadingScreen({ route }: { route: Route }) {
   return (
@@ -108,7 +108,7 @@ function AppConfirmDialog({
 function AppContent() {
   const { isAuthenticated, isLoading, profileComplete } = useAuth();
   const [route, setRoute] = useState<Route>(() => parseRoute());
-  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => localStorage.getItem(PENDING_INVITE_KEY));
+  const [pendingFriendUsername, setPendingFriendUsername] = useState<string | null>(() => localStorage.getItem(PENDING_FRIEND_USERNAME_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -123,9 +123,9 @@ function AppContent() {
     setRoute(nextRoute);
   };
 
-  const rememberPendingInvite = (token: string) => {
-    setPendingInviteToken(token);
-    localStorage.setItem(PENDING_INVITE_KEY, token);
+  const rememberPendingFriend = (username: string) => {
+    setPendingFriendUsername(username);
+    localStorage.setItem(PENDING_FRIEND_USERNAME_KEY, username);
   };
 
   useEffect(() => {
@@ -146,18 +146,18 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'join', 'auth-callback'].includes(route.name)) {
+    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'friend-invite', 'auth-callback'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
   }, [isAuthenticated, isLoading, route.name]);
 
   useEffect(() => {
-    if (isAuthenticated && profileComplete && pendingInviteToken) {
-      handleJoinInvite(pendingInviteToken);
-      setPendingInviteToken(null);
-      localStorage.removeItem(PENDING_INVITE_KEY);
+    if (isAuthenticated && profileComplete && pendingFriendUsername) {
+      handleFriendInvite(pendingFriendUsername);
+      setPendingFriendUsername(null);
+      localStorage.removeItem(PENDING_FRIEND_USERNAME_KEY);
     }
-  }, [isAuthenticated, profileComplete, pendingInviteToken]);
+  }, [isAuthenticated, profileComplete, pendingFriendUsername]);
 
   useEffect(() => {
     if (!toastMessage) return undefined;
@@ -165,29 +165,29 @@ function AppContent() {
     return () => window.clearTimeout(timeout);
   }, [toastMessage]);
 
-  const handleJoinInvite = async (token: string) => {
+  const handleFriendInvite = async (username: string) => {
     if (!isAuthenticated) {
-      rememberPendingInvite(token);
+      rememberPendingFriend(username);
       navigate({ name: 'login', friendInvite: true }, true);
       return;
     }
 
     try {
-      const inviteResponse = await apiClient.getFriendInviteByToken(token);
+      const inviteResponse = await apiClient.getFriendInviteByUsername(username);
       if (inviteResponse.error || !inviteResponse.data) {
-        window.alert(inviteResponse.error || 'Invalid invite link');
+        window.alert(inviteResponse.error || 'Invalid friend link');
         navigate({ name: 'home' }, true);
         return;
       }
 
-      const joinResponse = await apiClient.joinFriendByToken(token);
+      const joinResponse = await apiClient.joinFriendByUsername(username);
       if (joinResponse.error) {
         window.alert(joinResponse.error);
         return;
       }
 
       setRefreshHomeKey((key) => key + 1);
-      localStorage.removeItem(PENDING_INVITE_KEY);
+      localStorage.removeItem(PENDING_FRIEND_USERNAME_KEY);
       setToastMessage(joinResponse.data?.message || 'Friend added');
       navigate({ name: 'friends' }, true);
     } catch (error) {
@@ -214,12 +214,12 @@ function AppContent() {
       return <LoadingScreen route={route} />;
     }
 
-    if (route.name === 'join') {
+    if (route.name === 'friend-invite') {
       return (
         <InviteLandingScreen
-          token={route.token}
-          onContinueWeb={() => handleJoinInvite(route.token)}
-          onPrepareAuth={() => rememberPendingInvite(route.token)}
+          username={route.username}
+          onContinueWeb={() => handleFriendInvite(route.username)}
+          onPrepareAuth={() => rememberPendingFriend(route.username)}
           onSwitchToSignup={() => navigate({ name: 'signup' })}
         />
       );

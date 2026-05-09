@@ -12,10 +12,7 @@ async function cleanup() {
     const invitationsResult = await pool.query('DELETE FROM invitations');
     console.log(`Deleted ${invitationsResult.rowCount} invitation(s)`);
 
-    // Delete all friend invites and friendships
-    const friendInvitesResult = await pool.query('DELETE FROM friend_invites');
-    console.log(`Deleted ${friendInvitesResult.rowCount} friend invite(s)`);
-
+    // Delete all friendships
     const friendshipsResult = await pool.query('DELETE FROM friendships');
     console.log(`Deleted ${friendshipsResult.rowCount} friendship(s)`);
 

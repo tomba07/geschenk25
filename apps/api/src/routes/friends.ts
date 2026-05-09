@@ -1,39 +1,42 @@
 import express, { Request, Response } from 'express';
-import crypto from 'crypto';
 import pool from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-function generateInviteToken(): string {
-  return crypto.randomBytes(16).toString('hex');
-}
-
 function friendshipPair(userId: number, friendId: number): [number, number] {
   return userId < friendId ? [userId, friendId] : [friendId, userId];
 }
 
-// Public route: Get friend invite info from token.
-router.get('/invite/:token', async (req: Request, res: Response) => {
+function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase();
+}
+
+async function findUserByUsername(username: string) {
+  const normalizedUsername = normalizeUsername(username);
+  if (!normalizedUsername) return null;
+
+  const result = await pool.query(
+    'SELECT id, username, image_url FROM users WHERE LOWER(username) = $1',
+    [normalizedUsername]
+  );
+
+  return result.rows[0] || null;
+}
+
+// Public route: Get friend invite info from username.
+router.get('/user/:username', async (req: Request, res: Response) => {
   try {
-    const token = req.params.token;
+    const user = await findUserByUsername(req.params.username);
 
-    const result = await pool.query(
-      `SELECT u.id, u.username, u.image_url
-       FROM friend_invites fi
-       JOIN users u ON u.id = fi.user_id
-       WHERE fi.token = $1`,
-      [token]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid invite link' });
+    if (!user) {
+      return res.status(404).json({ error: 'Invalid friend link' });
     }
 
-    res.json({ user: result.rows[0] });
+    res.json({ user });
   } catch (error: any) {
-    console.error('Error fetching friend invite:', error);
-    res.status(500).json({ error: 'Failed to fetch invite' });
+    console.error('Error fetching friend link user:', error);
+    res.status(500).json({ error: 'Failed to fetch friend link' });
   }
 });
 
@@ -59,67 +62,20 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get('/invite-link', async (req: AuthRequest, res: Response) => {
+router.post('/user/:username', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
+    const targetUser = await findUserByUsername(req.params.username);
 
-    const existing = await pool.query(
-      'SELECT token FROM friend_invites WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [userId]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.json({ invite_token: existing.rows[0].token });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Invalid friend link' });
     }
 
-    let attempts = 0;
-    while (attempts < 5) {
-      const token = generateInviteToken();
-      try {
-        await pool.query(
-          'INSERT INTO friend_invites (user_id, token) VALUES ($1, $2)',
-          [userId, token]
-        );
-        return res.json({ invite_token: token });
-      } catch (error: any) {
-        if (error.code === '23505') {
-          attempts += 1;
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    res.status(500).json({ error: 'Failed to generate invite link. Please try again.' });
-  } catch (error: any) {
-    console.error('Error getting friend invite link:', error);
-    res.status(500).json({ error: 'Failed to get invite link' });
-  }
-});
-
-router.post('/join/:token', async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const token = req.params.token;
-
-    const inviteResult = await pool.query(
-      `SELECT fi.user_id, u.username
-       FROM friend_invites fi
-       JOIN users u ON u.id = fi.user_id
-       WHERE fi.token = $1`,
-      [token]
-    );
-
-    if (inviteResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid invite link' });
-    }
-
-    const inviterId = inviteResult.rows[0].user_id;
-    if (inviterId === userId) {
+    if (targetUser.id === userId) {
       return res.status(400).json({ error: 'This is your own friend link' });
     }
 
-    const [firstId, secondId] = friendshipPair(userId, inviterId);
+    const [firstId, secondId] = friendshipPair(userId, targetUser.id);
     await pool.query(
       `INSERT INTO friendships (user_id, friend_id)
        VALUES ($1, $2)
@@ -128,12 +84,12 @@ router.post('/join/:token', async (req: AuthRequest, res: Response) => {
     );
 
     res.json({
-      message: `You are now friends with @${inviteResult.rows[0].username}`,
-      friend_id: inviterId,
+      message: `You are now friends with @${targetUser.username}`,
+      friend_id: targetUser.id,
     });
   } catch (error: any) {
-    console.error('Error accepting friend invite:', error);
-    res.status(500).json({ error: 'Failed to accept invite' });
+    console.error('Error accepting friend link:', error);
+    res.status(500).json({ error: 'Failed to accept friend link' });
   }
 });
 

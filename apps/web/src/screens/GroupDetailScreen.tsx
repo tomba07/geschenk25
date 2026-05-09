@@ -13,7 +13,7 @@ interface GroupDetailScreenProps {
 }
 
 export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
-  const { userId } = useAuth();
+  const { userId, username } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
@@ -28,7 +28,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [friends, setFriends] = useState<Friend[]>([]);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [imageDirty, setImageDirty] = useState(false);
@@ -83,29 +82,25 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
     let cancelled = false;
     async function loadInviteData() {
-      setInviteLinkLoading(true);
-      const [friendsResponse, inviteResponse] = await Promise.all([
-        apiClient.getFriends(),
-        inviteLink ? Promise.resolve(null) : apiClient.getFriendInviteLink(),
-      ]);
+      if (username) {
+        setInviteLink(`${window.location.origin}/plsbemyfriend/${encodeURIComponent(username)}`);
+      }
+
+      const friendsResponse = await apiClient.getFriends();
 
       if (cancelled) return;
 
       setFriends(friendsResponse.data?.friends || []);
-      if (inviteResponse?.data) {
-        setInviteLink(`${window.location.origin}/join/${inviteResponse.data.invite_token}`);
+      if (friendsResponse.error) {
+        window.alert(friendsResponse.error);
       }
-      if (inviteResponse?.error) {
-        window.alert(inviteResponse.error);
-      }
-      setInviteLinkLoading(false);
     }
 
     loadInviteData();
     return () => {
       cancelled = true;
     };
-  }, [inviteLink, inviteOpen]);
+  }, [inviteOpen, username]);
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
@@ -512,11 +507,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <h3>Friend invite link</h3>
                 <p>Share this link so someone can add you as a friend.</p>
               </div>
-              {inviteLinkLoading ? (
-                <div className="copy-field">
-                  <input value="Loading friend link..." readOnly />
-                </div>
-              ) : inviteLink ? (
+              {inviteLink ? (
                 <>
                   <div className="copy-field">
                     <input value={inviteLink} readOnly />
@@ -529,7 +520,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   </button>
                 </>
               ) : (
-                <p className="form-error">Could not load your friend link.</p>
+                <p className="form-error">Finish your profile before sharing a friend link.</p>
               )}
             </section>
 

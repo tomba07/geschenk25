@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Friend, apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
+import { useAuth } from '../context/AuthContext';
 
 export default function FriendsScreen() {
+  const { username } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inviteLink, setInviteLink] = useState('');
-  const [inviteLinkLoading, setInviteLinkLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inviteLink = username ? `${window.location.origin}/plsbemyfriend/${encodeURIComponent(username)}` : '';
 
   const loadFriends = useCallback(async () => {
     setLoading(true);
@@ -26,26 +27,6 @@ export default function FriendsScreen() {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
-
-  const loadInviteLink = useCallback(async () => {
-    if (inviteLink) return;
-
-    setInviteLinkLoading(true);
-    const response = await apiClient.getFriendInviteLink();
-    setInviteLinkLoading(false);
-    if (response.error) {
-      setError(response.error);
-      return;
-    }
-
-    if (response.data) {
-      setInviteLink(`${window.location.origin}/join/${response.data.invite_token}`);
-    }
-  }, [inviteLink]);
-
-  useEffect(() => {
-    loadInviteLink();
-  }, [loadInviteLink]);
 
   const handleCopyInviteLink = async () => {
     if (!inviteLink) return;
@@ -99,11 +80,7 @@ export default function FriendsScreen() {
               <h2>Friend link</h2>
               <p>Share this link with someone once. After that, you can add each other to groups directly.</p>
             </div>
-            {inviteLinkLoading ? (
-              <div className="copy-field">
-                <input value="Loading friend link..." readOnly />
-              </div>
-            ) : inviteLink ? (
+            {inviteLink ? (
               <div className="friends-link-actions">
                 <div className="copy-field">
                   <input value={inviteLink} readOnly />
@@ -116,7 +93,7 @@ export default function FriendsScreen() {
                 </button>
               </div>
             ) : (
-              <p className="form-error">Could not load your friend link.</p>
+              <p className="form-error">Finish your profile before sharing a friend link.</p>
             )}
           </section>
 

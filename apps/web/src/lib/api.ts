@@ -250,16 +250,12 @@ class ApiClient {
     return this.request<{ friends: Friend[] }>('/api/friends');
   }
 
-  async getFriendInviteLink() {
-    return this.request<{ invite_token: string }>('/api/friends/invite-link');
+  async getFriendInviteByUsername(username: string) {
+    return this.request<{ user: Friend }>(`/api/friends/user/${encodeURIComponent(username)}`, { requireAuth: false });
   }
 
-  async getFriendInviteByToken(token: string) {
-    return this.request<{ user: Friend }>(`/api/friends/invite/${token}`, { requireAuth: false });
-  }
-
-  async joinFriendByToken(token: string) {
-    return this.request<{ message: string; friend_id: number }>(`/api/friends/join/${token}`, {
+  async joinFriendByUsername(username: string) {
+    return this.request<{ message: string; friend_id: number }>(`/api/friends/user/${encodeURIComponent(username)}`, {
       method: 'POST',
     });
   }

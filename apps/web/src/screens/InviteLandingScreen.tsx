@@ -3,7 +3,7 @@ import { apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 interface InviteLandingScreenProps {
-  token: string;
+  username: string;
   onContinueWeb: () => void;
   onPrepareAuth: () => void;
   onSwitchToSignup: () => void;
@@ -15,7 +15,7 @@ interface InviteUser {
   image_url?: string | null;
 }
 
-export default function InviteLandingScreen({ token, onContinueWeb, onPrepareAuth, onSwitchToSignup }: InviteLandingScreenProps) {
+export default function InviteLandingScreen({ username, onContinueWeb, onPrepareAuth, onSwitchToSignup }: InviteLandingScreenProps) {
   const { isAuthenticated, requestSignInLink, signInWithPassword } = useAuth();
   const [inviter, setInviter] = useState<InviteUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ export default function InviteLandingScreen({ token, onContinueWeb, onPrepareAut
 
     async function loadInvite() {
       setLoading(true);
-      const response = await apiClient.getFriendInviteByToken(token);
+      const response = await apiClient.getFriendInviteByUsername(username);
       if (cancelled) return;
 
       if (response.error || !response.data) {
@@ -54,7 +54,7 @@ export default function InviteLandingScreen({ token, onContinueWeb, onPrepareAut
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [username]);
 
   const initial = (inviter?.username || 'G').charAt(0).toUpperCase();
 
