@@ -1,7 +1,5 @@
-- group lifecycle & screen
- - members should just create gift ideas + see assignment once done
- - group members hidden in group details
 - Tidy up headers
+- Invite button if too few ppl in group
 - edit Gift ideas
 - better email notifications
 - rename project
