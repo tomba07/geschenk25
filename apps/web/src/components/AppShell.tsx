@@ -68,6 +68,10 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
   }, [loadFriendRequestCount]);
 
   const closeSidebar = () => setSidebarVisible(false);
+  const navigateGroups = () => {
+    closeSidebar();
+    onNavigateGroups();
+  };
   const signOutConfirmed = () => {
     confirmDestructive('Sign Out', 'Are you sure you want to sign out?', 'Sign Out', signOut);
   };
@@ -76,21 +80,21 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
     <section className="screen app-frame">
       <header className="mobile-overview-bar">
         <button className="mobile-menu-button" type="button" onClick={() => setSidebarVisible(true)} aria-label="Open menu">☰</button>
-        <div className="sidebar-brand">
+        <button className="sidebar-brand sidebar-brand-button" type="button" onClick={navigateGroups} aria-label="Go to groups">
           <img src="/geschenk.png" alt="" aria-hidden="true" />
           Geschenk
-        </div>
+        </button>
       </header>
 
       {sidebarVisible && <button className="sidebar-scrim" type="button" aria-label="Close menu" onClick={closeSidebar} />}
 
       <aside className={`app-sidebar ${sidebarVisible ? 'is-open' : ''}`}>
-        <div className="sidebar-brand">
+        <button className="sidebar-brand sidebar-brand-button" type="button" onClick={navigateGroups} aria-label="Go to groups">
           <img src="/geschenk.png" alt="" aria-hidden="true" />
           Geschenk
-        </div>
+        </button>
         <nav className="sidebar-nav">
-          <button className={`sidebar-nav-item ${active === 'groups' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateGroups(); }}>
+          <button className={`sidebar-nav-item ${active === 'groups' ? 'active' : ''}`} type="button" onClick={navigateGroups}>
             <SidebarIcon name="groups" /> <span className="sidebar-nav-label">Groups</span>
           </button>
           <button className={`sidebar-nav-item ${active === 'friends' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateFriends(); }}>

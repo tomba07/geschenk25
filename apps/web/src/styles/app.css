@@ -2216,6 +2216,26 @@ select:focus {
   line-height: 1;
 }
 
+.sidebar-brand-button {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sidebar-brand-button:hover {
+  color: #1559b7;
+}
+
+.sidebar-brand-button:focus-visible {
+  outline: 2px solid #1559b7;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 .sidebar-brand img {
   width: 34px;
   height: 34px;
