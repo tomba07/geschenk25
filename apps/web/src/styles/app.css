@@ -1499,13 +1499,67 @@ select:focus {
   color: #17202a;
 }
 
+.details-members-section {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.details-members-section h3 {
+  margin: 0;
+  color: #08245a;
+  font-size: 18px;
+}
+
+.modal-panel:has(.details-members-section),
+.draw-modal-panel {
+  width: min(100%, 620px);
+}
+
+.draw-dialog-intro {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.draw-dialog-intro strong,
+.draw-dialog-intro p,
+.draw-exclusions-section h3 {
+  margin: 0;
+}
+
+.draw-dialog-intro strong,
+.draw-exclusions-section h3 {
+  color: #08245a;
+}
+
+.draw-dialog-intro p {
+  color: var(--muted);
+}
+
+.draw-exclusions-section {
+  display: grid;
+  gap: 12px;
+}
+
+.inline-exclusion-form {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
 .group-detail-screen {
   padding-bottom: 56px;
   background: #f4f7fa;
 }
 
 .detail-topbar {
-  width: min(100% - 40px, 1040px);
+  width: min(100% - 40px, 820px);
   min-height: 72px;
   margin: 0 auto;
   grid-template-columns: 120px minmax(0, 1fr) 120px;
@@ -1594,15 +1648,14 @@ select:focus {
 }
 
 .detail-layout {
-  width: min(100% - 40px, 1040px);
+  width: min(100% - 40px, 820px);
   margin: 0 auto;
   padding: 24px 0 42px;
   display: grid;
   gap: 22px;
 }
 
-.detail-main,
-.detail-sidebar {
+.detail-main {
   display: grid;
   align-content: start;
   gap: 22px;
@@ -2556,10 +2609,10 @@ hr {
   }
 
   .detail-layout {
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "hero sidebar"
-      "main sidebar";
+      "hero"
+      "main";
     align-items: start;
     gap: 24px;
     padding-top: 28px;
@@ -2573,17 +2626,9 @@ hr {
     grid-area: main;
   }
 
-  .detail-sidebar {
-    grid-area: sidebar;
-    position: sticky;
-    top: 24px;
-  }
-
   .assignments-section,
   .ideas-section,
-  .members-section,
-  .pending-section,
-  .exclusions-section {
+  .pending-section {
     border: 1px solid var(--border);
     border-radius: 8px;
     background: #fff;
@@ -2591,9 +2636,7 @@ hr {
   }
 
   .assignments-section .native-card,
-  .ideas-section .native-card,
-  .members-section .native-card,
-  .exclusions-section .native-card {
+  .ideas-section .native-card {
     box-shadow: none;
   }
 
@@ -2602,14 +2645,8 @@ hr {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
         "hero"
-        "main"
-        "sidebar";
+        "main";
       max-width: 720px;
-    }
-
-    .detail-sidebar {
-      position: static;
-      top: auto;
     }
   }
 

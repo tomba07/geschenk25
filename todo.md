@@ -7,3 +7,4 @@
 - rename project
 - "quick befriend" if in same group
  - maybe you get prompted
+- draw possibility visualization: as graph (member nodes and connection verticies)

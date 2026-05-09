@@ -21,10 +21,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [exclusions, setExclusions] = useState<Exclusion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const [exclusionBusy, setExclusionBusy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
-  const [exclusionOpen, setExclusionOpen] = useState(false);
+  const [drawOpen, setDrawOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -109,6 +111,21 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const assignmentCreatedDate = assignment?.created_at
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
+  const exclusionPairs = Array.from(
+    exclusions.reduce((pairs, exclusion) => {
+      const [firstId, secondId] = [exclusion.giver_id, exclusion.excluded_user_id].sort((a, b) => a - b);
+      const key = `${firstId}-${secondId}`;
+      if (!pairs.has(key)) {
+        pairs.set(key, {
+          id: exclusion.id,
+          firstUsername: exclusion.giver_username,
+          secondUsername: exclusion.excluded_username,
+        });
+      }
+      return pairs;
+    }, new Map<string, { id: number; firstUsername: string; secondUsername: string }>())
+      .values()
+  );
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
@@ -177,17 +194,20 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       window.alert('Need at least 3 members to create Secret Santa assignments');
       return;
     }
-    confirmDestructive('Draw Names', 'This will privately assign each member to another member.', 'Draw Names', async () => {
-      setBusy(true);
-      try {
-        await groupService.assignSecretSanta(groupId);
-        await loadGroup();
-      } catch (error) {
-        window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
-      } finally {
-        setBusy(false);
-      }
-    });
+    setDrawOpen(true);
+  };
+
+  const handleConfirmAssign = async () => {
+    setDrawing(true);
+    try {
+      await groupService.assignSecretSanta(groupId);
+      setDrawOpen(false);
+      await loadGroup();
+    } catch (error) {
+      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+    } finally {
+      setDrawing(false);
+    }
   };
 
   const handleDeleteAssignments = () => {
@@ -263,22 +283,29 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     event.preventDefault();
     if (!exclusionGiverId || !exclusionReceiverId || exclusionGiverId === exclusionReceiverId) return;
 
-    setBusy(true);
+    setExclusionBusy(true);
     try {
       const response = await apiClient.addExclusion(Number(groupId), Number(exclusionReceiverId), Number(exclusionGiverId));
-      if (response.error) window.alert(response.error);
+      if (response.error) {
+        window.alert(response.error);
+        return;
+      }
       setExclusionGiverId('');
       setExclusionReceiverId('');
-      setExclusionOpen(false);
       await loadGroup();
     } finally {
-      setBusy(false);
+      setExclusionBusy(false);
     }
   };
 
   const handleRemoveExclusion = async (exclusionId: number) => {
-    await apiClient.removeExclusion(Number(groupId), exclusionId);
-    await loadGroup();
+    setExclusionBusy(true);
+    try {
+      await apiClient.removeExclusion(Number(groupId), exclusionId);
+      await loadGroup();
+    } finally {
+      setExclusionBusy(false);
+    }
   };
 
   if (loading || !group) {
@@ -307,13 +334,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <span className="skeleton-block" />
             </section>
           </div>
-          <aside className="detail-sidebar">
-            <section className="detail-section members-section detail-skeleton-card">
-              <span className="skeleton-line heading" />
-              <span className="skeleton-row" />
-              <span className="skeleton-row" />
-            </section>
-          </aside>
         </div>
       </section>
     );
@@ -389,7 +409,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   </p>
                 </div>
                 {canDrawAssignments && (
-                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy}>Draw Names</button>
+                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
                 )}
               </article>
             )}
@@ -427,72 +447,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           </section>
         </div>
 
-        <aside className="detail-sidebar">
-          <section className="detail-section members-section">
-            <div className="native-section-header">
-              <h2>Members</h2>
-              {isOwner && !assignmentsLocked && (
-                <button
-                  className="primary-button compact pill-action"
-                  type="button"
-                  onClick={() => setInviteOpen(true)}
-                >
-                  + Invite
-                </button>
-              )}
-            </div>
-            <div className="native-list">
-              {members.map((member) => (
-                <article className="native-card member-native-card" key={member.id}>
-                  <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
-                  <div className="member-native-text">
-                    <div>
-                      <strong>@{member.username}</strong>
-                      {member.id === group.created_by && <span className="owner-badge">Owner</span>}
-                    </div>
-                    <small>@{member.username}</small>
-                  </div>
-                  {isOwner && !assignmentsLocked && member.id !== userId && (
-                    <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
-                      Remove
-                    </button>
-                  )}
-                </article>
-              ))}
-            </div>
-          </section>
-
-          {isOwner && (
-            <section className="detail-section exclusions-section">
-              <div className="native-section-header">
-                <h2>Exclusions</h2>
-                {!assignmentsLocked && (
-                  <button
-                    className="primary-button compact pill-action"
-                    type="button"
-                    onClick={() => setExclusionOpen(true)}
-                  >
-                    + Add Pair
-                  </button>
-                )}
-              </div>
-              {exclusions.length === 0 ? (
-                <p className="empty-inline">No exclusions set</p>
-              ) : (
-                <div className="native-list">
-                  {exclusions.map((exclusion) => (
-                    <article className="native-card exclusion-native-card" key={exclusion.id}>
-                      <span>@{exclusion.giver_username} cannot draw @{exclusion.excluded_username}</span>
-                      {!assignmentsLocked && (
-                        <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusion.id)}>Remove</button>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-        </aside>
       </div>
 
       {inviteOpen && (
@@ -579,32 +533,62 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         </div>
       )}
 
-      {exclusionOpen && (
+      {drawOpen && (
         <div className="modal-backdrop">
-          <form className="modal-panel" onSubmit={handleAddExclusion}>
+          <div className="modal-panel draw-modal-panel">
             <header>
-              <h2>Add Exclusion Pair</h2>
-              <button type="button" className="icon-button" onClick={() => setExclusionOpen(false)} aria-label="Close">×</button>
+              <h2>Draw Names</h2>
+              <button type="button" className="icon-button" onClick={() => setDrawOpen(false)} aria-label="Close">×</button>
             </header>
-            <label>
-              <span>Giver</span>
-              <select value={exclusionGiverId} onChange={(event) => setExclusionGiverId(event.target.value ? Number(event.target.value) : '')} required>
-                <option value="">Choose member</option>
-                {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Cannot receive</span>
-              <select value={exclusionReceiverId} onChange={(event) => setExclusionReceiverId(event.target.value ? Number(event.target.value) : '')} required>
-                <option value="">Choose member</option>
-                {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
-              </select>
-            </label>
-            <div className="button-row end">
-              <button className="secondary-button" type="button" onClick={() => setExclusionOpen(false)}>Cancel</button>
-              <button className="primary-button" type="submit" disabled={busy}>Add Pair</button>
+
+            <div className="draw-dialog-intro">
+              <strong>{members.length} members are ready</strong>
+              <p>Set optional pairs who should not draw each other. Assignments are private once created.</p>
             </div>
-          </form>
+
+            <section className="draw-exclusions-section">
+              <h3>Exclusions</h3>
+              {exclusionPairs.length === 0 ? (
+                <p className="empty-inline">No exclusions set</p>
+              ) : (
+                <div className="native-list">
+                  {exclusionPairs.map((exclusionPair) => (
+                    <article className="native-card exclusion-native-card" key={exclusionPair.id}>
+                      <span>@{exclusionPair.firstUsername} and @{exclusionPair.secondUsername} cannot draw each other</span>
+                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusionPair.id)} disabled={exclusionBusy}>Remove</button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <form className="inline-exclusion-form" onSubmit={handleAddExclusion}>
+              <label>
+                <span>First person</span>
+                <select value={exclusionGiverId} onChange={(event) => setExclusionGiverId(event.target.value ? Number(event.target.value) : '')} required>
+                  <option value="">Choose member</option>
+                  {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Second person</span>
+                <select value={exclusionReceiverId} onChange={(event) => setExclusionReceiverId(event.target.value ? Number(event.target.value) : '')} required>
+                  <option value="">Choose member</option>
+                  {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
+                </select>
+              </label>
+              <button className="secondary-button" type="submit" disabled={exclusionBusy || drawing}>
+                {exclusionBusy ? 'Adding...' : 'Add Pair'}
+              </button>
+            </form>
+
+            <div className="button-row end">
+              <button className="secondary-button" type="button" onClick={() => setDrawOpen(false)} disabled={drawing}>Cancel</button>
+              <button className="primary-button" type="button" onClick={handleConfirmAssign} disabled={drawing || exclusionBusy}>
+                {drawing ? 'Drawing...' : 'Draw Names'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -671,6 +655,43 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </div>
               )}
             </dl>
+
+            <section className="details-members-section">
+              <div className="native-section-header">
+                <h3>Members</h3>
+                {isOwner && !assignmentsLocked && (
+                  <button
+                    className="primary-button compact pill-action"
+                    type="button"
+                    onClick={() => {
+                      setDetailsOpen(false);
+                      setInviteOpen(true);
+                    }}
+                  >
+                    + Invite
+                  </button>
+                )}
+              </div>
+              <div className="native-list">
+                {members.map((member) => (
+                  <article className="native-card member-native-card" key={member.id}>
+                    <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
+                    <div className="member-native-text">
+                      <div>
+                        <strong>@{member.username}</strong>
+                        {member.id === group.created_by && <span className="owner-badge">Owner</span>}
+                      </div>
+                      <small>@{member.username}</small>
+                    </div>
+                    {isOwner && !assignmentsLocked && member.id !== userId && (
+                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
+                        Remove
+                      </button>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
 
             <div className="button-row">
               <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
