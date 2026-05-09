@@ -1,4 +1,4 @@
-- friend invite
+- password change in edit profile (should be via email link)
 - rename project
 - edit Gift ideas
 - better email notifications

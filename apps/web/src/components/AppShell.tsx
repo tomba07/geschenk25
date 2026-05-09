@@ -1,6 +1,8 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
+import { FRIEND_REQUESTS_UPDATED_EVENT } from '../utils/friendRequests';
 
 type SidebarIconName = 'groups' | 'friends' | 'profile' | 'signout';
 
@@ -50,6 +52,20 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
 export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile }: AppShellProps) {
   const { signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
+
+  const loadFriendRequestCount = useCallback(async () => {
+    const response = await apiClient.getFriendRequests();
+    if (!response.error) {
+      setIncomingFriendRequestCount(response.data?.incoming.length || 0);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFriendRequestCount();
+    window.addEventListener(FRIEND_REQUESTS_UPDATED_EVENT, loadFriendRequestCount);
+    return () => window.removeEventListener(FRIEND_REQUESTS_UPDATED_EVENT, loadFriendRequestCount);
+  }, [loadFriendRequestCount]);
 
   const closeSidebar = () => setSidebarVisible(false);
   const signOutConfirmed = () => {
@@ -75,17 +91,22 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
         </div>
         <nav className="sidebar-nav">
           <button className={`sidebar-nav-item ${active === 'groups' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateGroups(); }}>
-            <SidebarIcon name="groups" /> Groups
+            <SidebarIcon name="groups" /> <span className="sidebar-nav-label">Groups</span>
           </button>
           <button className={`sidebar-nav-item ${active === 'friends' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateFriends(); }}>
-            <SidebarIcon name="friends" /> Friends
+            <SidebarIcon name="friends" /> <span className="sidebar-nav-label">Friends</span>
+            {incomingFriendRequestCount > 0 && (
+              <span className="sidebar-badge" aria-label={`${incomingFriendRequestCount} pending friend requests`}>
+                {incomingFriendRequestCount > 9 ? '9+' : incomingFriendRequestCount}
+              </span>
+            )}
           </button>
           <button className={`sidebar-nav-item ${active === 'profile' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateProfile(); }}>
-            <SidebarIcon name="profile" /> Profile
+            <SidebarIcon name="profile" /> <span className="sidebar-nav-label">Profile</span>
           </button>
         </nav>
         <button className="sidebar-signout" type="button" onClick={signOutConfirmed}>
-          <SidebarIcon name="signout" /> Sign out
+          <SidebarIcon name="signout" /> <span className="sidebar-nav-label">Sign out</span>
         </button>
       </aside>
 

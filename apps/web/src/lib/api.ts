@@ -29,6 +29,18 @@ export interface Friend {
   created_at?: string;
 }
 
+export interface FriendSearchResult extends SearchUser {
+  friendship_status: 'none' | 'friend' | 'incoming_pending' | 'outgoing_pending';
+}
+
+export interface FriendRequest {
+  id: number;
+  user_id: number;
+  username: string;
+  image_url?: string | null;
+  created_at: string;
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -248,6 +260,33 @@ class ApiClient {
   // Friends endpoints
   async getFriends() {
     return this.request<{ friends: Friend[] }>('/api/friends');
+  }
+
+  async getFriendRequests() {
+    return this.request<{ incoming: FriendRequest[]; outgoing: FriendRequest[] }>('/api/friends/requests');
+  }
+
+  async searchFriends(query: string) {
+    return this.request<{ users: FriendSearchResult[] }>(`/api/friends/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async sendFriendRequest(userId: number) {
+    return this.request<{ message: string }>('/api/friends/requests', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    });
+  }
+
+  async acceptFriendRequest(requestId: number) {
+    return this.request<{ message: string }>(`/api/friends/requests/${requestId}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async declineFriendRequest(requestId: number) {
+    return this.request<{ message: string }>(`/api/friends/requests/${requestId}/decline`, {
+      method: 'POST',
+    });
   }
 
   async getFriendInviteByUsername(username: string) {

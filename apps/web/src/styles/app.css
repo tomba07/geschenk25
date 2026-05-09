@@ -1778,7 +1778,7 @@ select:focus {
 }
 
 .profile-layout {
-  width: min(100% - 40px, 820px);
+  width: min(100% - 40px, 720px);
   margin: 0 auto;
   padding: 20px 0 42px;
   display: grid;
@@ -2335,6 +2335,33 @@ select:focus {
   gap: 12px;
 }
 
+.sidebar-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-badge {
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #1559b7;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sidebar-nav-item.active .sidebar-badge {
+  background: #08245a;
+}
+
 .sidebar-icon {
   width: 20px;
   height: 20px;
@@ -2486,6 +2513,21 @@ select:focus {
   gap: 10px;
 }
 
+.friend-search-box {
+  display: grid;
+  gap: 8px;
+}
+
+.friend-add-dialog {
+  width: min(100%, 620px);
+}
+
+.friend-search-box span {
+  color: #3f5578;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .friends-list {
   display: grid;
   gap: 12px;
@@ -2497,6 +2539,22 @@ select:focus {
 
 .friend-remove-button {
   justify-self: end;
+  white-space: nowrap;
+}
+
+.friend-request-actions {
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.friend-status-label {
+  justify-self: end;
+  color: #3f5578;
+  font-size: 13px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -2670,24 +2728,9 @@ hr {
   }
 
   .profile-layout {
-    grid-template-columns: 280px minmax(0, 1fr);
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
     padding-top: 24px;
-  }
-
-  .profile-page-heading {
-    grid-column: 1 / -1;
-  }
-
-  .profile-summary-card {
-    position: sticky;
-    top: 24px;
-  }
-
-  .profile-fields-card,
-  .profile-danger-card {
-    grid-column: 2;
   }
 
   .app-frame {

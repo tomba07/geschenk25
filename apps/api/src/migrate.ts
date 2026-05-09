@@ -215,6 +215,19 @@ export async function runMigrations() {
       )
     `);
 
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS friend_requests (
+        id SERIAL PRIMARY KEY,
+        requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        addressee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMPTZ,
+        UNIQUE(requester_id, addressee_id),
+        CHECK (requester_id != addressee_id)
+      )
+    `);
+
   await pool.query('DROP TABLE IF EXISTS friend_invites');
 
   // Create assignments table for Secret Santa
@@ -314,6 +327,14 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friend_requests_requester_id ON friend_requests(requester_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_friend_requests_addressee_id ON friend_requests(addressee_id)
     `);
 
   await pool.query(`
