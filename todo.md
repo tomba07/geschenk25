@@ -1,7 +1,6 @@
-- Invite button if too few ppl in group
+- rename project
 - edit Gift ideas
 - better email notifications
-- rename project
 - "quick befriend" if in same group
  - maybe you get prompted
 - draw possibility visualization: as graph (member nodes and connection verticies)

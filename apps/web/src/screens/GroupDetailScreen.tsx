@@ -378,6 +378,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       : 'Draw names when the member list looks right.'}
                   </p>
                 </div>
+                {isOwner && members.length < 3 && !assignmentsLocked && (
+                  <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
+                    + Add
+                  </button>
+                )}
                 {canDrawAssignments && (
                   <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
                 )}
@@ -423,7 +428,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <div className="modal-backdrop">
           <div className="modal-panel">
             <header>
-              <h2>Invite People</h2>
+              <h2>Add People</h2>
               <button type="button" className="icon-button" onClick={() => setInviteOpen(false)} aria-label="Close">×</button>
             </header>
             <section className="invite-link-panel">
@@ -646,7 +651,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       setInviteOpen(true);
                     }}
                   >
-                    + Invite
+                    + Add
                   </button>
                 )}
               </div>
