@@ -290,17 +290,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       <section className="screen group-detail-screen">
         <header className="topbar detail-topbar">
           <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
-          <h1>Group</h1>
+          <div className="detail-title-button detail-title-loading">
+            <span className="skeleton-avatar detail-title-skeleton-avatar" />
+            <span className="skeleton-line wide" />
+          </div>
           <span className="detail-action-spacer" />
         </header>
         <div className="detail-layout detail-loading-layout">
-          <section className="detail-page-hero detail-skeleton-card">
-            <div className="skeleton-avatar" />
-            <div className="skeleton-stack">
-              <span className="skeleton-line wide" />
-              <span className="skeleton-line" />
-            </div>
-          </section>
           <div className="detail-main">
             <section className="detail-section assignments-section detail-skeleton-card">
               <span className="skeleton-line heading" />
@@ -320,20 +316,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     <section className="screen group-detail-screen">
       <header className="topbar detail-topbar">
         <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
-        <h1>{group.name}</h1>
-        <button className="secondary-button compact detail-action-button" type="button" onClick={openDetails}>Details</button>
+        <button className="detail-title-button" type="button" onClick={openDetails} aria-label="Open group details">
+          <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</span>
+          <span className="detail-title-copy">
+            <strong>{group.name}</strong>
+            <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
+          </span>
+        </button>
+        <span className="detail-action-spacer" />
       </header>
 
       <div className="detail-layout">
-        <section className="detail-page-hero">
-          <div className="group-image large">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
-          <div>
-            <h2>{group.name}</h2>
-            {group.description && <p>{group.description}</p>}
-            <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
-          </div>
-        </section>
-
         <div className="detail-main">
           <section className="detail-section assignments-section">
             <h2>Assignments</h2>

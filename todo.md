@@ -1,4 +1,3 @@
-- Tidy up headers
 - Invite button if too few ppl in group
 - edit Gift ideas
 - better email notifications
