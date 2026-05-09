@@ -6,6 +6,7 @@ export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteLink, setInviteLink] = useState('');
+  const [inviteLinkLoading, setInviteLinkLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +27,12 @@ export default function FriendsScreen() {
     loadFriends();
   }, [loadFriends]);
 
-  const handleCreateInviteLink = async () => {
+  const loadInviteLink = useCallback(async () => {
     if (inviteLink) return;
 
+    setInviteLinkLoading(true);
     const response = await apiClient.getFriendInviteLink();
+    setInviteLinkLoading(false);
     if (response.error) {
       setError(response.error);
       return;
@@ -38,7 +41,11 @@ export default function FriendsScreen() {
     if (response.data) {
       setInviteLink(`${window.location.origin}/join/${response.data.invite_token}`);
     }
-  };
+  }, [inviteLink]);
+
+  useEffect(() => {
+    loadInviteLink();
+  }, [loadInviteLink]);
 
   const handleCopyInviteLink = async () => {
     if (!inviteLink) return;
@@ -92,11 +99,11 @@ export default function FriendsScreen() {
               <h2>Friend link</h2>
               <p>Share this link with someone once. After that, you can add each other to groups directly.</p>
             </div>
-            {!inviteLink ? (
-              <button className="primary-button" type="button" onClick={handleCreateInviteLink}>
-                Create Friend Link
-              </button>
-            ) : (
+            {inviteLinkLoading ? (
+              <div className="copy-field">
+                <input value="Loading friend link..." readOnly />
+              </div>
+            ) : inviteLink ? (
               <div className="friends-link-actions">
                 <div className="copy-field">
                   <input value={inviteLink} readOnly />
@@ -108,6 +115,8 @@ export default function FriendsScreen() {
                   Share Link
                 </button>
               </div>
+            ) : (
+              <p className="form-error">Could not load your friend link.</p>
             )}
           </section>
 
@@ -129,7 +138,7 @@ export default function FriendsScreen() {
             <div className="overview-empty-state">
               <div className="empty-icon">F</div>
               <h2>No friends yet</h2>
-              <p>Create a friend link and share it with someone you want to invite to groups.</p>
+              <p>Share your friend link with someone you want to invite to groups.</p>
             </div>
           ) : (
             <section className="friends-list">

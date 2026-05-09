@@ -82,16 +82,30 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     if (!inviteOpen) return;
 
     let cancelled = false;
-    async function loadFriends() {
-      const response = await apiClient.getFriends();
-      if (!cancelled) setFriends(response.data?.friends || []);
+    async function loadInviteData() {
+      setInviteLinkLoading(true);
+      const [friendsResponse, inviteResponse] = await Promise.all([
+        apiClient.getFriends(),
+        inviteLink ? Promise.resolve(null) : apiClient.getFriendInviteLink(),
+      ]);
+
+      if (cancelled) return;
+
+      setFriends(friendsResponse.data?.friends || []);
+      if (inviteResponse?.data) {
+        setInviteLink(`${window.location.origin}/join/${inviteResponse.data.invite_token}`);
+      }
+      if (inviteResponse?.error) {
+        window.alert(inviteResponse.error);
+      }
+      setInviteLinkLoading(false);
     }
 
-    loadFriends();
+    loadInviteData();
     return () => {
       cancelled = true;
     };
-  }, [inviteOpen]);
+  }, [inviteLink, inviteOpen]);
 
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
@@ -125,18 +139,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleGetInviteLink = async () => {
-    if (inviteLink) return;
-    setInviteLinkLoading(true);
-    const response = await apiClient.getFriendInviteLink();
-    setInviteLinkLoading(false);
-    if (response.error) {
-      window.alert(response.error);
-      return;
-    }
-    if (response.data) setInviteLink(`${window.location.origin}/join/${response.data.invite_token}`);
   };
 
   const handleCopyInviteLink = async () => {
@@ -510,11 +512,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <h3>Friend invite link</h3>
                 <p>Share this link so someone can add you as a friend.</p>
               </div>
-              {!inviteLink ? (
-                <button className="primary-button" type="button" onClick={handleGetInviteLink} disabled={inviteLinkLoading}>
-                  {inviteLinkLoading ? 'Creating...' : 'Create Friend Link'}
-                </button>
-              ) : (
+              {inviteLinkLoading ? (
+                <div className="copy-field">
+                  <input value="Loading friend link..." readOnly />
+                </div>
+              ) : inviteLink ? (
                 <>
                   <div className="copy-field">
                     <input value={inviteLink} readOnly />
@@ -526,6 +528,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     Share Link
                   </button>
                 </>
+              ) : (
+                <p className="form-error">Could not load your friend link.</p>
               )}
             </section>
 
