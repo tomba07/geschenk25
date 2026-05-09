@@ -635,6 +635,14 @@ small {
   color: var(--color-text-muted);
 }
 
+.auth-message-warning {
+  background: var(--color-gold-soft);
+}
+
+.auth-message .link-button {
+  width: fit-content;
+}
+
 .auth-callback-card {
   width: min(100%, 420px);
 }

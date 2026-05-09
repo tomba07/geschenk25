@@ -11,6 +11,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [sentEmail, setSentEmail] = useState('');
   const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
   const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
+  const [existingEmail, setExistingEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { requestSignUpLink } = useAuth();
 
@@ -27,14 +28,23 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     }
     setLoading(true);
     const trimmedEmail = email.trim();
-    const { error, devMagicLink, expiresInMinutes } = await requestSignUpLink(trimmedEmail);
+    const { error, devMagicLink, expiresInMinutes, emailExists } = await requestSignUpLink(trimmedEmail);
     setLoading(false);
 
     if (error) {
+      if (emailExists) {
+        setExistingEmail(trimmedEmail);
+        setSent(false);
+        setSentEmail('');
+        setExpiresInMinutes(null);
+        setDevMagicLink(null);
+        return;
+      }
       window.alert(error.message);
       return;
     }
 
+    setExistingEmail('');
     setSent(true);
     setSentEmail(trimmedEmail);
     setExpiresInMinutes(expiresInMinutes || null);
@@ -47,6 +57,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     setSentEmail('');
     setExpiresInMinutes(null);
     setDevMagicLink(null);
+    setExistingEmail('');
   };
 
   return (
@@ -87,6 +98,16 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
                 {expiresInMinutes ? ` It expires in ${expiresInMinutes} minutes.` : ''}
               </span>
               {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
+            </div>
+          )}
+
+          {existingEmail && (
+            <div className="auth-message auth-message-warning">
+              <strong>Account already exists</strong>
+              <span>{existingEmail} is already registered. Sign in instead.</span>
+              <button type="button" className="link-button" onClick={onSwitchToLogin}>
+                Go to Sign In
+              </button>
             </div>
           )}
 

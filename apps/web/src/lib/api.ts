@@ -147,13 +147,13 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async requestMagicLink(email: string, username?: string) {
+  async requestMagicLink(email: string, username?: string, mode?: 'login' | 'signup') {
     return this.request<{ message: string; expires_in_minutes: number; devMagicLink?: string }>(
       '/api/auth/request-link',
       {
         method: 'POST',
         requireAuth: false,
-        body: JSON.stringify({ email, username }),
+        body: JSON.stringify({ email, username, mode }),
       }
     );
   }

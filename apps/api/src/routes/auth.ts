@@ -97,7 +97,7 @@ async function sendMagicLink(email: string, link: string) {
 // Request magic link for login or signup.
 router.post('/request-link', async (req: Request, res: Response) => {
   try {
-    const { email, username } = req.body;
+    const { email, username, mode } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -110,6 +110,13 @@ router.post('/request-link', async (req: Request, res: Response) => {
 
     const userResult = await pool.query('SELECT id, email, username FROM users WHERE email = $1', [normalizedEmail]);
     const existingUser = userResult.rows[0];
+    if (mode === 'signup' && existingUser) {
+      return res.status(409).json({
+        code: 'email_exists',
+        error: 'An account with this email already exists.',
+      });
+    }
+
     let normalizedUsername: string | null = null;
 
     if (!existingUser && username) {

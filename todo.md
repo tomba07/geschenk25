@@ -1,7 +1,8 @@
+- better email notifications
+- better email content
 - password change in edit profile (should be via email link)
 - rename project
 - edit Gift ideas
-- better email notifications
 - "quick befriend" if in same group
  - maybe you get prompted
 - draw possibility visualization: as graph (member nodes and connection verticies)

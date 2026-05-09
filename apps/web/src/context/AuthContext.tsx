@@ -11,7 +11,7 @@ interface AuthContextType {
   profileComplete: boolean;
   isLoading: boolean;
   requestSignInLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
-  requestSignUpLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
+  requestSignUpLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number; emailExists?: boolean }>;
   verifyMagicLink: (token: string) => Promise<{ error: any }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const requestSignInLink = async (email: string) => {
     try {
-      const response = await apiClient.requestMagicLink(email);
+      const response = await apiClient.requestMagicLink(email, undefined, 'login');
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
@@ -109,9 +109,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const requestSignUpLink = async (email: string) => {
     try {
-      const response = await apiClient.requestMagicLink(email);
+      const response = await apiClient.requestMagicLink(email, undefined, 'signup');
       if (response.error) {
-        return { error: { message: response.appError?.userMessage || response.error } };
+        return {
+          error: { message: response.appError?.userMessage || response.error },
+          emailExists: response.appError?.statusCode === 409,
+        };
       }
       return { error: null, devMagicLink: response.data?.devMagicLink, expiresInMinutes: response.data?.expires_in_minutes };
     } catch (error) {
