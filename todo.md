@@ -1,3 +1,4 @@
+- friend invite
 - rename project
 - edit Gift ideas
 - better email notifications
