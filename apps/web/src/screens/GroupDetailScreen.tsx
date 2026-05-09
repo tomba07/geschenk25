@@ -31,7 +31,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteCopied, setInviteCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
-  const [imageDirty, setImageDirty] = useState(false);
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [giftIdeaLink, setGiftIdeaLink] = useState('');
   const [giftIdeaForUserId, setGiftIdeaForUserId] = useState<number | ''>('');
@@ -112,23 +111,23 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
-    setImageDirty(false);
     setDetailsOpen(true);
   };
 
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setEditingImage(await fileToDataUrl(file));
-    setImageDirty(true);
+    const imageUrl = await fileToDataUrl(file);
+    await saveGroupImage(imageUrl);
   };
 
-  const handleSaveImage = async () => {
+  const saveGroupImage = async (imageUrl?: string) => {
     setBusy(true);
     try {
-      const updatedGroup = await groupService.updateGroup(groupId, editingImage || undefined);
+      setEditingImage(imageUrl || null);
+      const updatedGroup = await groupService.updateGroup(groupId, imageUrl);
       setGroup(updatedGroup);
-      setImageDirty(false);
+      setEditingImage(updatedGroup.image_url || null);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -518,13 +517,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
             <div className="draw-dialog-intro">
               <strong>{members.length} members are ready</strong>
-              <p>Set optional pairs who should not draw each other. Assignments are private once created.</p>
+              <p>Pairing rules are optional. Use them to avoid boring pairs, like partners drawing each other.</p>
             </div>
 
             <section className="draw-exclusions-section">
-              <h3>Exclusions</h3>
+              <h3>Pairing rules</h3>
               {drawExclusions.length === 0 ? (
-                <p className="empty-inline">No exclusions set</p>
+                <p className="empty-inline">No pairing rules set</p>
               ) : (
                 <div className="native-list">
                   {drawExclusions.map((exclusionPair) => (
@@ -552,7 +551,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
                 </select>
               </label>
-              <button className="secondary-button" type="submit" disabled={drawing}>Add Pair</button>
+              <button className="secondary-button" type="submit" disabled={drawing}>Avoid Pair</button>
             </form>
 
             <div className="button-row end">
@@ -596,19 +595,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <button
                     className="secondary-button"
                     type="button"
-                    onClick={() => {
-                      setEditingImage(null);
-                      setImageDirty(true);
-                    }}
+                    onClick={() => saveGroupImage(undefined)}
+                    disabled={busy}
                   >
                     Remove
                   </button>
                 </div>
-              )}
-              {isOwner && imageDirty && (
-                <button className="primary-button" type="button" onClick={handleSaveImage} disabled={busy}>
-                  {busy ? 'Saving...' : 'Save Image'}
-                </button>
               )}
             </section>
 
