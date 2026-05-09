@@ -8,12 +8,14 @@ interface AuthContextType {
   email: string | null;
   username: string | null;
   imageUrl: string | null;
+  profileComplete: boolean;
   isLoading: boolean;
   requestSignInLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
-  requestSignUpLink: (email: string, username: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
+  requestSignUpLink: (email: string) => Promise<{ error: any; devMagicLink?: string; expiresInMinutes?: number }>;
   verifyMagicLink: (token: string) => Promise<{ error: any }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  completeProfile: (username: string, password: string, image_url?: string | null) => Promise<{ error: any }>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
@@ -35,18 +37,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [profileComplete, setProfileComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
-  const setUserState = (user: { id: number; email?: string | null; username: string; image_url?: string | null }) => {
+  const setUserState = (user: { id: number; email?: string | null; username?: string | null; image_url?: string | null; profile_complete?: boolean }) => {
     setIsAuthenticated(true);
     setUserId(user.id);
     setEmail(user.email || null);
-    setUsername(user.username);
+    setUsername(user.username || null);
     setImageUrl(user.image_url || null);
+    setProfileComplete(user.profile_complete ?? Boolean(user.username));
   };
 
   const clearAuth = () => {
@@ -58,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setEmail(null);
     setUsername(null);
     setImageUrl(null);
+    setProfileComplete(false);
   };
 
   const checkAuth = async () => {
@@ -83,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const storeSession = (token: string, user: { id: number; email?: string | null; username: string; image_url?: string | null }) => {
+  const storeSession = (token: string, user: { id: number; email?: string | null; username?: string | null; image_url?: string | null; profile_complete?: boolean }) => {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     apiClient.setToken(token);
@@ -102,9 +107,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const requestSignUpLink = async (email: string, username: string) => {
+  const requestSignUpLink = async (email: string) => {
     try {
-      const response = await apiClient.requestMagicLink(email, username);
+      const response = await apiClient.requestMagicLink(email);
       if (response.error) {
         return { error: { message: response.appError?.userMessage || response.error } };
       }
@@ -137,6 +142,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (response.data) {
         storeSession(response.data.token, response.data.user);
+      }
+      return { error: null };
+    } catch (error) {
+      return { error: { message: getErrorMessage(error) } };
+    }
+  };
+
+  const completeProfile = async (username: string, password: string, image_url?: string | null) => {
+    try {
+      const response = await apiClient.completeProfile(username, password, image_url);
+      if (response.error) {
+        return { error: { message: response.appError?.userMessage || response.error } };
+      }
+      if (response.data) {
+        const { user } = response.data;
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        setUserState(user);
       }
       return { error: null };
     } catch (error) {
@@ -198,12 +220,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         username,
         imageUrl,
+        profileComplete,
         isLoading,
         requestSignInLink,
         requestSignUpLink,
         verifyMagicLink,
         signInWithPassword,
         signOut,
+        completeProfile,
         updateProfileImage,
         updatePassword,
         deleteAccount,

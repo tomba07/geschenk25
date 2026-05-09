@@ -588,6 +588,38 @@ small {
   margin-top: 2px;
 }
 
+.profile-setup-card {
+  max-width: 420px;
+  padding: 24px 22px;
+}
+
+.profile-setup-card .auth-brand-panel {
+  margin-bottom: -4px;
+}
+
+.profile-setup-card .auth-hero-image {
+  width: min(100%, 190px);
+}
+
+.profile-setup-card .auth-form-heading {
+  gap: 8px;
+}
+
+.profile-setup-image {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+
+.profile-setup-image .profile-preview,
+.profile-setup-image .profile-placeholder {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font-size: 30px;
+}
+
 .auth-message {
   display: grid;
   gap: 6px;
@@ -1324,6 +1356,11 @@ select:focus {
   width: 128px;
   height: 128px;
   font-size: 42px;
+}
+
+.profile-placeholder {
+  display: grid;
+  place-items: center;
 }
 
 .content-form,

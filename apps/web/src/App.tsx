@@ -7,6 +7,7 @@ import SignupScreen from './screens/SignupScreen';
 import HomeScreen from './screens/HomeScreen';
 import GroupDetailScreen from './screens/GroupDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import FriendsScreen from './screens/FriendsScreen';
 import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
@@ -105,7 +106,7 @@ function AppConfirmDialog({
 }
 
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, profileComplete } = useAuth();
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => localStorage.getItem(PENDING_INVITE_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
@@ -151,12 +152,12 @@ function AppContent() {
   }, [isAuthenticated, isLoading, route.name]);
 
   useEffect(() => {
-    if (isAuthenticated && pendingInviteToken) {
+    if (isAuthenticated && profileComplete && pendingInviteToken) {
       handleJoinInvite(pendingInviteToken);
       setPendingInviteToken(null);
       localStorage.removeItem(PENDING_INVITE_KEY);
     }
-  }, [isAuthenticated, pendingInviteToken]);
+  }, [isAuthenticated, profileComplete, pendingInviteToken]);
 
   useEffect(() => {
     if (!toastMessage) return undefined;
@@ -249,6 +250,10 @@ function AppContent() {
       return <LoginScreen friendInviteMode={route.name === 'login' && route.friendInvite} onSwitchToSignup={() => navigate({ name: 'signup' })} />;
     }
 
+    if (!profileComplete) {
+      return <ProfileSetupScreen />;
+    }
+
     if (route.name === 'group') {
       return (
         <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
@@ -282,7 +287,7 @@ function AppContent() {
         />
       </AppShell>
     );
-  }, [isAuthenticated, isLoading, refreshHomeKey, route]);
+  }, [isAuthenticated, isLoading, profileComplete, refreshHomeKey, route]);
 
   return (
     <main className="app-shell">

@@ -11,8 +11,9 @@ export interface ApiResponse<T> {
 export interface ApiUser {
   id: number;
   email: string;
-  username: string;
+  username?: string | null;
   image_url?: string | null;
+  profile_complete?: boolean;
 }
 
 export interface SearchUser {
@@ -185,6 +186,13 @@ class ApiClient {
         body: JSON.stringify({ image_url }),
       }
     );
+  }
+
+  async completeProfile(username: string, password: string, image_url?: string | null) {
+    return this.request<{ user: ApiUser }>('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ username, password, image_url }),
+    });
   }
 
   async updatePassword(password: string) {

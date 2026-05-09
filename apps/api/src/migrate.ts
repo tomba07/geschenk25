@@ -6,7 +6,7 @@ export async function runMigrations() {
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
-        username VARCHAR(50) UNIQUE NOT NULL,
+        username VARCHAR(50) UNIQUE,
         password_hash VARCHAR(255),
         image_url TEXT,
         email_verified_at TIMESTAMPTZ,
@@ -26,6 +26,19 @@ export async function runMigrations() {
           UPDATE users SET email = username || '+legacy@geschenk.local' WHERE email IS NULL;
           ALTER TABLE users ALTER COLUMN email SET NOT NULL;
           ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email);
+        END IF;
+      END $$;
+    `);
+
+  // New signups verify email first, then choose a username during profile setup.
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'username' AND is_nullable = 'NO'
+        ) THEN
+          ALTER TABLE users ALTER COLUMN username DROP NOT NULL;
         END IF;
       END $$;
     `);

@@ -7,7 +7,6 @@ interface SignupScreenProps {
 
 export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [sent, setSent] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
   const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
@@ -18,25 +17,17 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const handleSignup = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!email || !username) {
-      window.alert('Please fill in all required fields');
+    if (!email) {
+      window.alert('Please enter your email address');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       window.alert('Please enter a valid email address');
       return;
     }
-    if (username.length < 3) {
-      window.alert('Username must be at least 3 characters');
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      window.alert('Username can only contain letters, numbers, and underscores');
-      return;
-    }
     setLoading(true);
     const trimmedEmail = email.trim();
-    const { error, devMagicLink, expiresInMinutes } = await requestSignUpLink(trimmedEmail, username);
+    const { error, devMagicLink, expiresInMinutes } = await requestSignUpLink(trimmedEmail);
     setLoading(false);
 
     if (error) {
@@ -88,21 +79,6 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
             />
           </label>
 
-          <label className="auth-field">
-            <span>Username</span>
-            <input
-              value={username}
-              onChange={(event) => {
-                setUsername(event.target.value);
-                resetSentState();
-              }}
-              autoCapitalize="none"
-              autoComplete="username"
-              disabled={loading}
-              required
-            />
-          </label>
-
           {sent && (
             <div className="auth-message">
               <strong>Check your email</strong>
@@ -115,7 +91,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           )}
 
           <button className="primary-button auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Sending...' : sent ? 'Resend Sign-Up Link' : 'Send Sign-Up Link'}
+            {loading ? 'Sending...' : sent ? 'Resend Verification Link' : 'Verify Email'}
           </button>
 
           <div className="auth-footer">

@@ -1,4 +1,3 @@
-- back to password
 - group lifecycle & screen
  - members should just create gift ideas + see assignment once done
  - group members hidden in group details

@@ -24,6 +24,7 @@
     "preview": "npm run preview --workspace @geschenk/web",
     "start:api": "npm run start --workspace @geschenk/api",
     "migrate:api": "npm run migrate --workspace @geschenk/api",
-    "cleanup:api": "npm run cleanup --workspace @geschenk/api"
+    "cleanup:api": "npm run cleanup --workspace @geschenk/api",
+    "reset-profile:api": "npm run reset-profile --workspace @geschenk/api --"
   }
 }

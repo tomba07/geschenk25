@@ -25,7 +25,7 @@ function validateUsername(username: string) {
 function createSessionToken(user: any) {
   const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
   return jwt.sign(
-    { userId: user.id, username: user.username },
+    { userId: user.id, username: user.username || null },
     secret,
     { expiresIn: '7d' }
   );
@@ -112,11 +112,7 @@ router.post('/request-link', async (req: Request, res: Response) => {
     const existingUser = userResult.rows[0];
     let normalizedUsername: string | null = null;
 
-    if (!existingUser) {
-      if (!username) {
-        return res.status(400).json({ error: 'Username is required to create an account' });
-      }
-
+    if (!existingUser && username) {
       normalizedUsername = normalizeUsername(username);
       const usernameError = validateUsername(normalizedUsername);
       if (usernameError) {
@@ -237,11 +233,6 @@ router.post('/verify-link', async (req: Request, res: Response) => {
 
     let user = userResult.rows[0];
     if (!user) {
-      if (!magicLink.username) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'This sign-in link cannot create an account' });
-      }
-
       userResult = await client.query(
         `INSERT INTO users (email, username, password_hash, email_verified_at)
          VALUES ($1, $2, NULL, NOW())
@@ -266,6 +257,7 @@ router.post('/verify-link', async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
         image_url: user.image_url,
+        profile_complete: Boolean(user.username),
       },
     });
   } catch (error: any) {
@@ -312,6 +304,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
         image_url: user.image_url,
+        profile_complete: Boolean(user.username),
       },
     });
   } catch (error: any) {
@@ -340,7 +333,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const searchTerm = `%${q.toLowerCase().trim()}%`;
     const result = await pool.query(
-      'SELECT id, username, image_url FROM users WHERE username LIKE $1 ORDER BY username LIMIT 20',
+      'SELECT id, username, image_url FROM users WHERE username IS NOT NULL AND username LIKE $1 ORDER BY username LIMIT 20',
       [searchTerm]
     );
 
@@ -387,6 +380,7 @@ router.get('/me', async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
         image_url: user.image_url,
+        profile_complete: Boolean(user.username),
       },
     });
   } catch (error: any) {
@@ -425,11 +419,78 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
         email: user.email,
         username: user.username,
         image_url: user.image_url,
+        profile_complete: Boolean(user.username),
       },
     });
   } catch (error: any) {
     console.error('Error updating profile image:', error);
     res.status(500).json({ error: 'Failed to update profile image' });
+  }
+});
+
+// Complete profile after email verification.
+router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { username, password, image_url } = req.body;
+
+    if (!username || typeof username !== 'string') {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const normalizedUsername = normalizeUsername(username);
+    const usernameError = validateUsername(normalizedUsername);
+    if (usernameError) {
+      return res.status(400).json({ error: usernameError });
+    }
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    if (image_url !== undefined && image_url !== null && typeof image_url !== 'string') {
+      return res.status(400).json({ error: 'image_url must be a string or null' });
+    }
+
+    const usernameResult = await pool.query(
+      'SELECT id FROM users WHERE username = $1 AND id != $2',
+      [normalizedUsername, userId]
+    );
+
+    if (usernameResult.rows.length > 0) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `UPDATE users
+       SET username = $1, password_hash = $2, image_url = $3
+       WHERE id = $4
+       RETURNING id, email, username, image_url`,
+      [normalizedUsername, passwordHash, image_url || null, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        image_url: user.image_url,
+        profile_complete: true,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error completing profile:', error);
+    res.status(500).json({ error: 'Failed to complete profile' });
   }
 });
 
