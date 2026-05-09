@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
-import { Assignment, Exclusion, GiftIdea, Group } from '../types/group';
+import { Assignment, GiftIdea, Group } from '../types/group';
 
 interface GroupDetailScreenProps {
   groupId: string;
@@ -18,11 +18,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
   const [assignedPersonGiftIdeas, setAssignedPersonGiftIdeas] = useState<GiftIdea[]>([]);
-  const [exclusions, setExclusions] = useState<Exclusion[]>([]);
+  const [drawExclusions, setDrawExclusions] = useState<Array<{ firstUserId: number; secondUserId: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [drawing, setDrawing] = useState(false);
-  const [exclusionBusy, setExclusionBusy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
@@ -50,10 +49,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
 
       setGroup(groupData);
-      const [assignmentData, ideas, exclusionsResponse] = await Promise.all([
+      const [assignmentData, ideas] = await Promise.all([
         groupService.getAssignment(groupId),
         groupService.getGiftIdeas(groupId),
-        apiClient.getExclusions(Number(groupId)),
       ]);
       const receiverIdeas = assignmentData
         ? await groupService.getGiftIdeas(groupId, assignmentData.receiver_id)
@@ -61,7 +59,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setAssignment(assignmentData);
       setGiftIdeas(userId ? ideas.filter((idea) => idea.created_by_id === userId) : ideas);
       setAssignedPersonGiftIdeas(receiverIdeas);
-      if (exclusionsResponse.data) setExclusions(exclusionsResponse.data.exclusions);
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -111,21 +108,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const assignmentCreatedDate = assignment?.created_at
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
-  const exclusionPairs = Array.from(
-    exclusions.reduce((pairs, exclusion) => {
-      const [firstId, secondId] = [exclusion.giver_id, exclusion.excluded_user_id].sort((a, b) => a - b);
-      const key = `${firstId}-${secondId}`;
-      if (!pairs.has(key)) {
-        pairs.set(key, {
-          id: exclusion.id,
-          firstUsername: exclusion.giver_username,
-          secondUsername: exclusion.excluded_username,
-        });
-      }
-      return pairs;
-    }, new Map<string, { id: number; firstUsername: string; secondUsername: string }>())
-      .values()
-  );
+  const usernameById = new Map(members.map((member) => [member.id, member.username]));
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
@@ -194,14 +177,18 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       window.alert('Need at least 3 members to create Secret Santa assignments');
       return;
     }
+    setDrawExclusions([]);
+    setExclusionGiverId('');
+    setExclusionReceiverId('');
     setDrawOpen(true);
   };
 
   const handleConfirmAssign = async () => {
     setDrawing(true);
     try {
-      await groupService.assignSecretSanta(groupId);
+      await groupService.assignSecretSanta(groupId, drawExclusions);
       setDrawOpen(false);
+      setDrawExclusions([]);
       await loadGroup();
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
@@ -283,29 +270,19 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     event.preventDefault();
     if (!exclusionGiverId || !exclusionReceiverId || exclusionGiverId === exclusionReceiverId) return;
 
-    setExclusionBusy(true);
-    try {
-      const response = await apiClient.addExclusion(Number(groupId), Number(exclusionReceiverId), Number(exclusionGiverId));
-      if (response.error) {
-        window.alert(response.error);
-        return;
-      }
-      setExclusionGiverId('');
-      setExclusionReceiverId('');
-      await loadGroup();
-    } finally {
-      setExclusionBusy(false);
+    const [firstUserId, secondUserId] = [Number(exclusionGiverId), Number(exclusionReceiverId)].sort((a, b) => a - b);
+    const exists = drawExclusions.some((pair) => pair.firstUserId === firstUserId && pair.secondUserId === secondUserId);
+    if (!exists) {
+      setDrawExclusions((currentPairs) => [...currentPairs, { firstUserId, secondUserId }]);
     }
+    setExclusionGiverId('');
+    setExclusionReceiverId('');
   };
 
-  const handleRemoveExclusion = async (exclusionId: number) => {
-    setExclusionBusy(true);
-    try {
-      await apiClient.removeExclusion(Number(groupId), exclusionId);
-      await loadGroup();
-    } finally {
-      setExclusionBusy(false);
-    }
+  const handleRemoveExclusion = (firstUserId: number, secondUserId: number) => {
+    setDrawExclusions((currentPairs) =>
+      currentPairs.filter((pair) => pair.firstUserId !== firstUserId || pair.secondUserId !== secondUserId)
+    );
   };
 
   if (loading || !group) {
@@ -548,14 +525,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
             <section className="draw-exclusions-section">
               <h3>Exclusions</h3>
-              {exclusionPairs.length === 0 ? (
+              {drawExclusions.length === 0 ? (
                 <p className="empty-inline">No exclusions set</p>
               ) : (
                 <div className="native-list">
-                  {exclusionPairs.map((exclusionPair) => (
-                    <article className="native-card exclusion-native-card" key={exclusionPair.id}>
-                      <span>@{exclusionPair.firstUsername} and @{exclusionPair.secondUsername} cannot draw each other</span>
-                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusionPair.id)} disabled={exclusionBusy}>Remove</button>
+                  {drawExclusions.map((exclusionPair) => (
+                    <article className="native-card exclusion-native-card" key={`${exclusionPair.firstUserId}-${exclusionPair.secondUserId}`}>
+                      <span>@{usernameById.get(exclusionPair.firstUserId)} and @{usernameById.get(exclusionPair.secondUserId)} cannot draw each other</span>
+                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusionPair.firstUserId, exclusionPair.secondUserId)}>Remove</button>
                     </article>
                   ))}
                 </div>
@@ -577,14 +554,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
                 </select>
               </label>
-              <button className="secondary-button" type="submit" disabled={exclusionBusy || drawing}>
-                {exclusionBusy ? 'Adding...' : 'Add Pair'}
-              </button>
+              <button className="secondary-button" type="submit" disabled={drawing}>Add Pair</button>
             </form>
 
             <div className="button-row end">
-              <button className="secondary-button" type="button" onClick={() => setDrawOpen(false)} disabled={drawing}>Cancel</button>
-              <button className="primary-button" type="button" onClick={handleConfirmAssign} disabled={drawing || exclusionBusy}>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setDrawOpen(false);
+                  setDrawExclusions([]);
+                }}
+                disabled={drawing}
+              >
+                Cancel
+              </button>
+              <button className="primary-button" type="button" onClick={handleConfirmAssign} disabled={drawing}>
                 {drawing ? 'Drawing...' : 'Draw Names'}
               </button>
             </div>

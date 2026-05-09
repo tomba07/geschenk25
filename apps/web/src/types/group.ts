@@ -47,11 +47,3 @@ export interface GiftIdea {
   created_by: GiftIdeaUser;
   for_user: GiftIdeaUser;
 }
-
-export interface Exclusion {
-  id: number;
-  giver_id: number;
-  excluded_user_id: number;
-  giver_username: string;
-  excluded_username: string;
-}

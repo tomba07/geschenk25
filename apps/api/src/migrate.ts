@@ -243,18 +243,7 @@ export async function runMigrations() {
       )
     `);
 
-  // Create exclusions table for Secret Santa assignments
-  await pool.query(`
-      CREATE TABLE IF NOT EXISTS exclusions (
-        id SERIAL PRIMARY KEY,
-        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-        giver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        excluded_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(group_id, giver_id, excluded_user_id),
-        CHECK (giver_id != excluded_user_id)
-      )
-    `);
+  await pool.query('DROP TABLE IF EXISTS exclusions');
 
   // Add link column if it doesn't exist (for existing databases)
   await pool.query(`
@@ -351,13 +340,6 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_gift_ideas_created_by_id ON gift_ideas(created_by_id)
     `);
 
-  await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_exclusions_group_id ON exclusions(group_id)
-    `);
-
-  await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_exclusions_giver_id ON exclusions(giver_id)
-    `);
 }
 
 async function migrate() {

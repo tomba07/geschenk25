@@ -203,7 +203,7 @@ export const groupService = {
   },
 
   // Assign Secret Santa pairs
-  async assignSecretSanta(groupId: string): Promise<void> {
+  async assignSecretSanta(groupId: string, exclusions: Array<{ firstUserId: number; secondUserId: number }> = []): Promise<void> {
     const id = parseInt(groupId);
     if (isNaN(id)) {
       const appError: AppError = {
@@ -215,7 +215,7 @@ export const groupService = {
       throw new GroupServiceError(appError);
     }
 
-    const response = await apiClient.assignSecretSanta(id);
+    const response = await apiClient.assignSecretSanta(id, exclusions);
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);

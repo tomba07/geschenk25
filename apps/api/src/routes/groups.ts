@@ -612,16 +612,27 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Need at least 3 members to create assignments' });
     }
 
-    // Get exclusions for this group
-    const exclusionsResult = await pool.query(
-      'SELECT giver_id, excluded_user_id FROM exclusions WHERE group_id = $1',
-      [groupId]
-    );
-    const exclusions = exclusionsResult.rows;
+    const memberIds = new Set(members.map((member: any) => member.id));
+    const exclusions = Array.isArray(req.body?.exclusions) ? req.body.exclusions : [];
     const exclusionSet = new Set<string>();
-    exclusions.forEach((ex: any) => {
-      exclusionSet.add(`${ex.giver_id}-${ex.excluded_user_id}`);
-    });
+
+    for (const exclusion of exclusions) {
+      const firstUserId = Number(exclusion.first_user_id);
+      const secondUserId = Number(exclusion.second_user_id);
+
+      if (
+        !Number.isInteger(firstUserId) ||
+        !Number.isInteger(secondUserId) ||
+        firstUserId === secondUserId ||
+        !memberIds.has(firstUserId) ||
+        !memberIds.has(secondUserId)
+      ) {
+        return res.status(400).json({ error: 'Invalid exclusion pair' });
+      }
+
+      exclusionSet.add(`${firstUserId}-${secondUserId}`);
+      exclusionSet.add(`${secondUserId}-${firstUserId}`);
+    }
 
     // Use bipartite matching algorithm with exclusions
     const giverIds = members.map((m: any) => m.id);
@@ -1076,229 +1087,6 @@ router.delete('/:id/gift-ideas/:ideaId', async (req: AuthRequest, res: Response)
   } catch (error: any) {
     console.error('Error deleting gift idea:', error);
     res.status(500).json({ error: 'Failed to delete gift idea' });
-  }
-});
-
-// Get exclusions for a group
-router.get('/:id/exclusions', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const groupId = parseInt(req.params.id);
-
-    // Check if user is an active member of the group
-    const memberCheck = await pool.query(
-      `SELECT 1 FROM groups WHERE id = $1 AND created_by = $2
-       UNION
-       SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2 AND (status IS NULL OR status = 'active')`,
-      [groupId, userId]
-    );
-
-    if (memberCheck.rows.length === 0) {
-      return res.status(403).json({ error: 'You are not a member of this group' });
-    }
-
-    // Get exclusions
-    const result = await pool.query(
-      `SELECT e.id, e.giver_id, e.excluded_user_id,
-              giver.username as giver_username,
-              excluded.username as excluded_username
-       FROM exclusions e
-       JOIN users giver ON e.giver_id = giver.id
-       JOIN users excluded ON e.excluded_user_id = excluded.id
-       WHERE e.group_id = $1
-       ORDER BY giver.username, excluded.username`,
-      [groupId]
-    );
-
-    res.json({ exclusions: result.rows });
-  } catch (error: any) {
-    console.error('Error fetching exclusions:', error);
-    res.status(500).json({ error: 'Failed to fetch exclusions' });
-  }
-});
-
-// Add an exclusion (owner can set for any member, members can only set for themselves)
-router.post('/:id/exclusions', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const groupId = parseInt(req.params.id);
-    const { giver_id, excluded_user_id } = req.body;
-
-    if (!excluded_user_id) {
-      return res.status(400).json({ error: 'excluded_user_id is required' });
-    }
-
-    // Determine who the exclusion is for
-    // If giver_id is provided, owner is setting exclusion for that user
-    // Otherwise, user is setting exclusion for themselves
-    const targetGiverId = giver_id || userId;
-
-    // Check if user is owner
-    const groupCheck = await pool.query(
-      'SELECT created_by FROM groups WHERE id = $1',
-      [groupId]
-    );
-
-    if (groupCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Group not found' });
-    }
-
-    const isOwner = groupCheck.rows[0].created_by === userId;
-
-    if (await groupHasAssignments(groupId)) {
-      return res.status(400).json({ error: assignmentLockError() });
-    }
-
-    // If setting exclusion for someone else, must be owner
-    if (targetGiverId !== userId && !isOwner) {
-      return res.status(403).json({ error: 'Only group owner can set exclusions for other members' });
-    }
-
-    // Check if target giver is an active member of the group
-    const giverMemberCheck = await pool.query(
-      `SELECT 1 FROM groups WHERE id = $1 AND created_by = $2
-       UNION
-       SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2 AND (status IS NULL OR status = 'active')`,
-      [groupId, targetGiverId]
-    );
-
-    if (giverMemberCheck.rows.length === 0) {
-      return res.status(400).json({ error: 'Giver is not a member of this group' });
-    }
-
-    // Check if excluded user is an active member
-    const excludedMemberCheck = await pool.query(
-      `SELECT 1 FROM groups WHERE id = $1 AND created_by = $2
-       UNION
-       SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2 AND (status IS NULL OR status = 'active')`,
-      [groupId, excluded_user_id]
-    );
-
-    if (excludedMemberCheck.rows.length === 0) {
-      return res.status(400).json({ error: 'Excluded user is not a member of this group' });
-    }
-
-    // Check if trying to exclude self
-    if (targetGiverId === excluded_user_id) {
-      return res.status(400).json({ error: 'Cannot exclude yourself' });
-    }
-
-    // Check if trying to exclude owner
-    if (excluded_user_id === groupCheck.rows[0].created_by) {
-      return res.status(400).json({ error: 'Cannot exclude the group owner' });
-    }
-
-    // Insert bidirectional exclusion (both directions)
-    // If A excludes B, then B also excludes A (they won't be assigned to each other)
-    try {
-      await pool.query('BEGIN');
-      
-      // Insert exclusion A -> B
-      await pool.query(
-        'INSERT INTO exclusions (group_id, giver_id, excluded_user_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-        [groupId, targetGiverId, excluded_user_id]
-      );
-      
-      // Insert reverse exclusion B -> A
-      await pool.query(
-        'INSERT INTO exclusions (group_id, giver_id, excluded_user_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-        [groupId, excluded_user_id, targetGiverId]
-      );
-      
-      await pool.query('COMMIT');
-      res.json({ message: 'Exclusion pair added successfully' });
-    } catch (error: any) {
-      await pool.query('ROLLBACK');
-      if (error.code === '23505') {
-        // Unique constraint violation
-        res.status(400).json({ error: 'This exclusion pair already exists' });
-      } else {
-        throw error;
-      }
-    }
-  } catch (error: any) {
-    console.error('Error adding exclusion:', error);
-    res.status(500).json({ error: 'Failed to add exclusion' });
-  }
-});
-
-// Remove an exclusion (owner can remove any, members can only remove their own)
-router.delete('/:id/exclusions/:exclusionId', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const groupId = parseInt(req.params.id);
-    const exclusionId = parseInt(req.params.exclusionId);
-
-    // Check if user is owner
-    const groupCheck = await pool.query(
-      'SELECT created_by FROM groups WHERE id = $1',
-      [groupId]
-    );
-
-    if (groupCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Group not found' });
-    }
-
-    const isOwner = groupCheck.rows[0].created_by === userId;
-
-    if (await groupHasAssignments(groupId)) {
-      return res.status(400).json({ error: assignmentLockError() });
-    }
-
-    // Check if exclusion exists
-    const exclusionCheck = await pool.query(
-      'SELECT giver_id FROM exclusions WHERE id = $1 AND group_id = $2',
-      [exclusionId, groupId]
-    );
-
-    if (exclusionCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Exclusion not found' });
-    }
-
-    // Only owner can remove exclusions for others
-    if (exclusionCheck.rows[0].giver_id !== userId && !isOwner) {
-      return res.status(403).json({ error: 'You can only remove your own exclusions' });
-    }
-
-    // Delete bidirectional exclusion (both directions)
-    // Find the pair and delete both
-    const exclusionData = exclusionCheck.rows[0];
-    const giverId = exclusionData.giver_id;
-    
-    // Get excluded_user_id from the exclusion
-    const exclusionDetails = await pool.query(
-      'SELECT excluded_user_id FROM exclusions WHERE id = $1',
-      [exclusionId]
-    );
-    
-    if (exclusionDetails.rows.length === 0) {
-      return res.status(404).json({ error: 'Exclusion not found' });
-    }
-    
-    const excludedUserId = exclusionDetails.rows[0].excluded_user_id;
-    
-    // Find the reverse exclusion
-    const reverseExclusion = await pool.query(
-      'SELECT id FROM exclusions WHERE group_id = $1 AND giver_id = $2 AND excluded_user_id = $3',
-      [groupId, excludedUserId, giverId]
-    );
-    
-    await pool.query('BEGIN');
-    
-    // Delete the exclusion
-    await pool.query('DELETE FROM exclusions WHERE id = $1', [exclusionId]);
-    
-    // Delete the reverse if it exists
-    if (reverseExclusion.rows.length > 0) {
-      await pool.query('DELETE FROM exclusions WHERE id = $1', [reverseExclusion.rows[0].id]);
-    }
-    
-    await pool.query('COMMIT');
-
-    res.json({ message: 'Exclusion pair removed successfully' });
-  } catch (error: any) {
-    console.error('Error removing exclusion:', error);
-    res.status(500).json({ error: 'Failed to remove exclusion' });
   }
 });
 
