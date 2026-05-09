@@ -22,7 +22,7 @@ export default function InviteLandingScreen({ token, onContinueWeb, onPrepareAut
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [usePassword, setUsePassword] = useState(false);
+  const [usePassword, setUsePassword] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [sentEmail, setSentEmail] = useState('');

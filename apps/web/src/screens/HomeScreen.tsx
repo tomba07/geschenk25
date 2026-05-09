@@ -75,9 +75,9 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
     setCreating(true);
     try {
-      await groupService.createGroup(groupName.trim(), groupImage || undefined, selectedFriendIds);
+      const createdGroup = await groupService.createGroup(groupName.trim(), groupImage || undefined, selectedFriendIds);
       resetCreateForm();
-      await loadData();
+      onGroupPress(String(createdGroup.id));
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {

@@ -9,7 +9,7 @@ interface LoginScreenProps {
 export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [usePassword, setUsePassword] = useState(false);
+  const [usePassword, setUsePassword] = useState(true);
   const [sent, setSent] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
   const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
