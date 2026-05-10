@@ -398,10 +398,10 @@ a {
 
   .landing-hero-actions > * {
     width: 100%;
+    min-height: 52px;
   }
 
   .landing-mobile-login-button {
-    min-height: 48px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
