@@ -1641,16 +1641,6 @@ select:focus {
   pointer-events: none;
 }
 
-.detail-title-skeleton-avatar {
-  width: 34px;
-  height: 34px;
-}
-
-.detail-title-skeleton-line {
-  width: min(150px, 42vw);
-  height: 16px;
-}
-
 .title-gift {
   width: 30px;
   height: 30px;
@@ -1781,6 +1771,16 @@ select:focus {
 .skeleton-line.heading {
   width: 160px;
   height: 22px;
+}
+
+.detail-title-skeleton-avatar {
+  width: 34px;
+  height: 34px;
+}
+
+.detail-title-skeleton-line {
+  width: min(150px, 42vw);
+  height: 16px;
 }
 
 .skeleton-block {
