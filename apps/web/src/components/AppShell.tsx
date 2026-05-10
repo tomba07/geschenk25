@@ -53,6 +53,7 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
   const { signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
+  const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Edit Profile' : 'Groups';
 
   const loadFriendRequestCount = useCallback(async () => {
     const response = await apiClient.getFriendRequests();
@@ -80,10 +81,7 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
     <section className="screen app-frame">
       <header className="mobile-overview-bar">
         <button className="mobile-menu-button" type="button" onClick={() => setSidebarVisible(true)} aria-label="Open menu">☰</button>
-        <button className="sidebar-brand sidebar-brand-button" type="button" onClick={navigateGroups} aria-label="Go to groups">
-          <img src="/geschenk.png" alt="" aria-hidden="true" />
-          Geschenk
-        </button>
+        <h1 className="mobile-page-title">{mobileTitle}</h1>
       </header>
 
       {sidebarVisible && <button className="sidebar-scrim" type="button" aria-label="Close menu" onClick={closeSidebar} />}

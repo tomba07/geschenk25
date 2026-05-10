@@ -2356,6 +2356,18 @@ select:focus {
   height: 30px;
 }
 
+.mobile-page-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #08245a;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sidebar-nav-item,
 .sidebar-signout {
   display: flex;
@@ -2878,6 +2890,31 @@ hr {
   }
 }
 
+@media (max-width: 719px) {
+  .overview-screen:not(.friends-screen) .overview-page-header,
+  .profile-page-heading {
+    display: none;
+  }
+
+  .friends-screen .overview-page-header {
+    min-height: 0;
+    justify-content: flex-end;
+    padding: 12px 0 4px;
+  }
+
+  .friends-screen .overview-page-header > div {
+    display: none;
+  }
+
+  .friends-screen .overview-page-header .primary-button {
+    width: 100%;
+  }
+
+  .profile-layout {
+    padding-top: 16px;
+  }
+}
+
 @media (max-width: 430px) {
   .assignment-empty-card .primary-button {
     width: 100%;
@@ -2923,5 +2960,23 @@ hr {
   .overview-group-card .group-image {
     width: 44px;
     height: 44px;
+  }
+
+  .friend-card {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .friend-card > .friend-remove-button,
+  .friend-card > .friend-status-label,
+  .friend-card > .primary-button.compact {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .friend-request-actions {
+    grid-column: 3;
+    justify-self: end;
+    justify-content: flex-end;
   }
 }
