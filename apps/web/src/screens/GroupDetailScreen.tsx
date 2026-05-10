@@ -288,10 +288,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     return (
       <section className="screen group-detail-screen">
         <header className="topbar detail-topbar">
-          <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
+          <button className="detail-back-button" type="button" onClick={onBack} aria-label="Back to groups">
+            <span className="detail-back-full">← Groups</span>
+            <span className="detail-back-compact">←</span>
+          </button>
           <div className="detail-title-button detail-title-loading">
             <span className="skeleton-avatar detail-title-skeleton-avatar" />
-            <span className="skeleton-line wide" />
+            <span className="skeleton-line detail-title-skeleton-line" />
           </div>
           <span className="detail-action-spacer" />
         </header>
@@ -314,7 +317,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   return (
     <section className="screen group-detail-screen">
       <header className="topbar detail-topbar">
-        <button className="detail-back-button" type="button" onClick={onBack}>← Groups</button>
+        <button className="detail-back-button" type="button" onClick={onBack} aria-label="Back to groups">
+          <span className="detail-back-full">← Groups</span>
+          <span className="detail-back-compact">←</span>
+        </button>
         <button className="detail-title-button" type="button" onClick={openDetails} aria-label="Open group details">
           <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</span>
           <span className="detail-title-copy">
