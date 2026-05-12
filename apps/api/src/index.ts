@@ -16,6 +16,7 @@ const MIGRATION_MAX_ATTEMPTS = 12;
 let migrationsReady = process.env.RUN_MIGRATIONS_ON_START !== 'true';
 
 // Middleware
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increase limit to 10MB for image uploads
 

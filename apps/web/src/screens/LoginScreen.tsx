@@ -1,5 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../lib/api';
 
 interface LoginScreenProps {
   onSwitchToSignup: () => void;
@@ -73,6 +74,10 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
     setDevMagicLink(null);
   };
 
+  const startGoogleLogin = () => {
+    window.location.href = apiClient.getGoogleOAuthUrl('login');
+  };
+
   return (
     <section className="auth-screen">
       <form className="auth-card login-card" onSubmit={handleLogin}>
@@ -92,6 +97,13 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
         </div>
 
         <div className="auth-form-panel">
+          <button className="oauth-button" type="button" onClick={startGoogleLogin} disabled={loading}>
+            <span aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+
+          <div className="auth-divider"><span>or</span></div>
+
           <label className="auth-field">
             <span>Email</span>
             <input

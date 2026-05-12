@@ -68,4 +68,7 @@ All group endpoints require authentication (Authorization header).
    - `DATABASE_URL` (from your Render PostgreSQL database)
    - `JWT_SECRET` (generate a random string)
    - `NODE_ENV=production`
+   - `APP_BASE_URL` (web app URL)
+   - `API_BASE_URL` (API URL, used for OAuth callbacks)
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (optional, enables Google OAuth)
 6. After deployment, run migrations: `npm run migrate`

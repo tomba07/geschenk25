@@ -1,5 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../lib/api';
 
 interface SignupScreenProps {
   onSwitchToLogin: () => void;
@@ -60,6 +61,10 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     setExistingEmail('');
   };
 
+  const startGoogleSignup = () => {
+    window.location.href = apiClient.getGoogleOAuthUrl('signup');
+  };
+
   return (
     <section className="auth-screen">
       <form className="auth-card signup-card" onSubmit={handleSignup}>
@@ -73,6 +78,13 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
           <div className="auth-form-heading">
             <h2>Create account</h2>
           </div>
+
+          <button className="oauth-button" type="button" onClick={startGoogleSignup} disabled={loading}>
+            <span aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+
+          <div className="auth-divider"><span>or</span></div>
 
           <label className="auth-field">
             <span>Email</span>

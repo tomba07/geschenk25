@@ -30,6 +30,8 @@ JWT_SECRET=your-super-secret-jwt-key
 PORT=3000
 NODE_ENV=development
 RUN_MIGRATIONS_ON_START=false
+APP_BASE_URL=http://localhost:5173
+API_BASE_URL=http://localhost:3000
 ```
 
 For common local UI work against the deployed API, run:
@@ -55,6 +57,20 @@ VITE_API_URL=http://localhost:3000
 ```
 
 Without `VITE_API_URL`, the frontend defaults to `http://localhost:3000`.
+
+## Google OAuth
+
+Create OAuth credentials in Google Cloud and add these API environment variables:
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+API_BASE_URL=http://localhost:3000
+APP_BASE_URL=http://localhost:5173
+```
+
+For local development, add `http://localhost:3000/api/auth/google/callback` as an authorized redirect URI.
+For Render, add `https://geschenk25-api.onrender.com/api/auth/google/callback` or your API custom domain equivalent.
 
 ## Development
 

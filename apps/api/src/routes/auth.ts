@@ -7,6 +7,9 @@ import { AuthRequest, authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -29,6 +32,20 @@ function createSessionToken(user: any) {
     secret,
     { expiresIn: '7d' }
   );
+}
+
+function createOAuthState(mode: string) {
+  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+  return jwt.sign({ provider: 'google', mode }, secret, { expiresIn: '10m' });
+}
+
+function verifyOAuthState(state: string) {
+  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+  const decoded = jwt.verify(state, secret) as any;
+  if (decoded.provider !== 'google') {
+    throw new Error('Invalid OAuth state');
+  }
+  return decoded;
 }
 
 function createMagicToken() {
@@ -55,6 +72,37 @@ function magicLinkBaseUrl(req: Request) {
   const origin = req.get('origin');
   const isLocalOrigin = origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
   return process.env.NODE_ENV !== 'production' && isLocalOrigin ? origin : appBaseUrl();
+}
+
+function apiBaseUrl(req: Request) {
+  return (process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+}
+
+function googleRedirectUri(req: Request) {
+  return `${apiBaseUrl(req)}/api/auth/google/callback`;
+}
+
+function oauthErrorRedirect(message: string) {
+  const baseUrl = appBaseUrl().replace(/\/$/, '');
+  return `${baseUrl}/login?error=${encodeURIComponent(message)}`;
+}
+
+async function createLocalMagicLinkToken(email: string) {
+  const token = createMagicToken();
+  const tokenHash = hashMagicToken(token);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await pool.query(
+    'UPDATE magic_links SET used_at = NOW() WHERE email = $1 AND used_at IS NULL',
+    [email]
+  );
+
+  await pool.query(
+    'INSERT INTO magic_links (email, username, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
+    [email, null, tokenHash, expiresAt]
+  );
+
+  return token;
 }
 
 async function sendMagicLink(email: string, link: string) {
@@ -93,6 +141,111 @@ async function sendMagicLink(email: string, link: string) {
 
   return { delivered: true };
 }
+
+router.get('/google/start', (req: Request, res: Response) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return res.status(503).json({ error: 'Google sign-in is not configured' });
+  }
+
+  const mode = req.query.mode === 'signup' ? 'signup' : 'login';
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: googleRedirectUri(req),
+    response_type: 'code',
+    scope: 'openid email profile',
+    state: createOAuthState(mode),
+    prompt: 'select_account',
+  });
+
+  res.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
+});
+
+router.get('/google/callback', async (req: Request, res: Response) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  try {
+    if (!clientId || !clientSecret) {
+      return res.redirect(oauthErrorRedirect('Google sign-in is not configured'));
+    }
+
+    const { code, state, error } = req.query;
+    if (error) {
+      return res.redirect(oauthErrorRedirect('Google sign-in was canceled'));
+    }
+    if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
+      return res.redirect(oauthErrorRedirect('Google sign-in failed'));
+    }
+
+    verifyOAuthState(state);
+
+    const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: googleRedirectUri(req),
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const body = await tokenResponse.text();
+      throw new Error(`Google token exchange failed: ${body}`);
+    }
+
+    const tokenData = await tokenResponse.json() as { id_token?: string };
+    if (!tokenData.id_token) {
+      throw new Error('Google did not return an ID token');
+    }
+
+    const infoResponse = await fetch(`${GOOGLE_TOKEN_INFO_URL}?id_token=${encodeURIComponent(tokenData.id_token)}`);
+    if (!infoResponse.ok) {
+      const body = await infoResponse.text();
+      throw new Error(`Google token validation failed: ${body}`);
+    }
+
+    const profile = await infoResponse.json() as {
+      aud?: string;
+      email?: string;
+      email_verified?: string | boolean;
+      picture?: string;
+    };
+
+    if (profile.aud !== clientId) {
+      throw new Error('Google token audience mismatch');
+    }
+    if (!profile.email || profile.email_verified === false || profile.email_verified === 'false') {
+      return res.redirect(oauthErrorRedirect('Google email is not verified'));
+    }
+
+    const email = normalizeEmail(profile.email);
+    const userResult = await pool.query(
+      `INSERT INTO users (email, username, password_hash, image_url, email_verified_at)
+       VALUES ($1, NULL, NULL, $2, NOW())
+       ON CONFLICT (email) DO UPDATE
+       SET email_verified_at = COALESCE(users.email_verified_at, NOW()),
+           image_url = COALESCE(users.image_url, EXCLUDED.image_url)
+       RETURNING id, email, username, image_url`,
+      [email, profile.picture || null]
+    );
+
+    if (userResult.rows.length === 0) {
+      throw new Error('Failed to create or update Google user');
+    }
+
+    const localToken = await createLocalMagicLinkToken(email);
+    res.redirect(`${appBaseUrl().replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(localToken)}`);
+  } catch (error: any) {
+    console.error('Google OAuth error:', error);
+    res.redirect(oauthErrorRedirect('Google sign-in failed'));
+  }
+});
 
 // Request magic link for login or signup.
 router.post('/request-link', async (req: Request, res: Response) => {

@@ -53,6 +53,10 @@ class ApiClient {
     this.token = token;
   }
 
+  getGoogleOAuthUrl(mode: 'login' | 'signup' = 'login') {
+    return `${this.baseUrl}/api/auth/google/start?mode=${encodeURIComponent(mode)}`;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit & { requireAuth?: boolean } = {}
