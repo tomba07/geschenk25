@@ -27,6 +27,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [selectedFriendIds, setSelectedFriendIds] = useState<number[]>([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -79,6 +81,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     if (!inviteOpen) return;
 
     let cancelled = false;
+    setSelectedFriendIds([]);
+    setFriendSearchQuery('');
     async function loadInviteData() {
       if (username) {
         setInviteLink(`${window.location.origin}/plsbemyfriend/${encodeURIComponent(username)}`);
@@ -108,6 +112,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
   const usernameById = new Map(members.map((member) => [member.id, member.username]));
+  const memberIds = new Set(members.map((member) => member.id));
+  const normalizedFriendSearch = friendSearchQuery.trim().toLowerCase();
+  const filteredFriends = friends.filter((friend) =>
+    !normalizedFriendSearch || friend.username.toLowerCase().includes(normalizedFriendSearch)
+  );
+  const addableFriendCount = friends.filter((friend) => !memberIds.has(friend.id)).length;
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
@@ -156,13 +166,34 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     await handleCopyInviteLink();
   };
 
-  const handleInvite = async (friend: Friend) => {
+  const closeInviteModal = () => {
+    setInviteOpen(false);
+    setSelectedFriendIds([]);
+    setFriendSearchQuery('');
+  };
+
+  const toggleSelectedFriend = (friendId: number) => {
+    setSelectedFriendIds((currentIds) =>
+      currentIds.includes(friendId)
+        ? currentIds.filter((currentId) => currentId !== friendId)
+        : [...currentIds, friendId]
+    );
+  };
+
+  const handleAddSelectedFriends = async () => {
+    const selectedFriends = friends.filter((friend) => selectedFriendIds.includes(friend.id));
+    if (selectedFriends.length === 0) return;
+
     setBusy(true);
     try {
-      await groupService.inviteUser(groupId, friend.id);
-      setInviteOpen(false);
+      await Promise.all(selectedFriends.map((friend) => groupService.inviteUser(groupId, friend.id)));
+      closeInviteModal();
       await loadGroup();
-      setToastMessage(`@${friend.username} added to ${group?.name || 'group'}`);
+      setToastMessage(
+        selectedFriends.length === 1
+          ? `@${selectedFriends[0].username} added to ${group?.name || 'group'}`
+          : `${selectedFriends.length} friends added to ${group?.name || 'group'}`
+      );
     } catch (error) {
       window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -431,52 +462,100 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
       {inviteOpen && (
         <div className="modal-backdrop">
-          <div className="modal-panel">
+          <div className="modal-panel invite-modal-panel">
             <header>
               <h2>Add People</h2>
-              <button type="button" className="icon-button" onClick={() => setInviteOpen(false)} aria-label="Close">×</button>
+              <button type="button" className="icon-button" onClick={closeInviteModal} aria-label="Close">×</button>
             </header>
-            <section className="invite-link-panel">
+
+            <section className="friend-picker-panel">
               <div>
-                <h3>Friend invite link</h3>
-                <p>Share this link so someone can add you as a friend.</p>
+                <h3>Add friends to this group</h3>
+                <p>Select one or more friends. People already in the group are shown as added.</p>
               </div>
-              {inviteLink ? (
-                <>
-                  <div className="copy-field">
-                    <input value={inviteLink} readOnly />
-                    <button className="primary-button compact" type="button" onClick={handleCopyInviteLink}>
-                      {inviteCopied ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  <button className="secondary-button" type="button" onClick={handleShareInviteLink}>
-                    Share Link
-                  </button>
-                </>
-              ) : (
-                <p className="form-error">Finish your profile before sharing a friend link.</p>
-              )}
+
+              <label className="friend-picker-search">
+                <span>Search friends</span>
+                <input
+                  value={friendSearchQuery}
+                  onChange={(event) => setFriendSearchQuery(event.target.value)}
+                  placeholder="Search by username"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                />
+              </label>
+
+              <div className="friend-picker-list">
+                {filteredFriends.map((friend) => {
+                  const isMember = memberIds.has(friend.id);
+                  const isSelected = selectedFriendIds.includes(friend.id);
+
+                  return (
+                    <label className={`friend-picker-option ${isSelected ? 'selected' : ''} ${isMember ? 'disabled' : ''}`} key={friend.id}>
+                      <div className="small-avatar">
+                        {friend.image_url ? <img src={friend.image_url} alt="" /> : <span>{friend.username.charAt(0).toUpperCase()}</span>}
+                      </div>
+                      <div>
+                        <strong>@{friend.username}</strong>
+                        <small>{isMember ? 'Already in group' : 'Friend'}</small>
+                      </div>
+                      {isMember ? (
+                        <span className="friend-picker-status">Added</span>
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectedFriend(friend.id)}
+                          disabled={busy}
+                          aria-label={`Add @${friend.username}`}
+                        />
+                      )}
+                    </label>
+                  );
+                })}
+                {filteredFriends.length === 0 && (
+                  <p className="empty-inline">
+                    {friends.length === 0 ? 'No friends yet. Share your friend link first.' : 'No friends match that search.'}
+                  </p>
+                )}
+              </div>
             </section>
 
-            <details className="invite-search-details" open>
-              <summary>Add friends to group</summary>
-              <div className="stack-list">
-                {friends
-                  .filter((friend) => !members.some((member) => member.id === friend.id) && friend.id !== group.created_by)
-                  .map((friend) => (
-                  <button className="person-row selectable" type="button" key={friend.id} onClick={() => handleInvite(friend)} disabled={busy}>
-                    <div>
-                      <strong>@{friend.username}</strong>
-                      <small>@{friend.username}</small>
+            <details className="invite-link-panel">
+              <summary>Need to add someone as a friend first?</summary>
+              <div className="invite-link-panel-body">
+                <p>Share your friend link. Once they add you, they can be added to groups directly.</p>
+                {inviteLink ? (
+                  <>
+                    <div className="copy-field">
+                      <input value={inviteLink} readOnly />
+                      <button className="primary-button compact" type="button" onClick={handleCopyInviteLink}>
+                        {inviteCopied ? 'Copied' : 'Copy'}
+                      </button>
                     </div>
-                    <span>Add</span>
-                  </button>
-                ))}
-                {friends.filter((friend) => !members.some((member) => member.id === friend.id) && friend.id !== group.created_by).length === 0 && (
-                  <p className="empty-inline">No friends available to add.</p>
+                    <button className="secondary-button" type="button" onClick={handleShareInviteLink}>
+                      Share Link
+                    </button>
+                  </>
+                ) : (
+                  <p className="form-error">Finish your profile before sharing a friend link.</p>
                 )}
               </div>
             </details>
+
+            <div className="button-row invite-modal-footer">
+              <span>
+                {addableFriendCount === 0
+                  ? 'No friends available to add'
+                  : selectedFriendIds.length === 0
+                    ? `${addableFriendCount} ${addableFriendCount === 1 ? 'friend' : 'friends'} available`
+                    : `${selectedFriendIds.length} selected`}
+              </span>
+              <button className="secondary-button" type="button" onClick={closeInviteModal} disabled={busy}>Cancel</button>
+              <button className="primary-button" type="button" onClick={handleAddSelectedFriends} disabled={busy || selectedFriendIds.length === 0}>
+                {busy ? 'Adding...' : selectedFriendIds.length === 1 ? 'Add 1 Friend' : `Add ${selectedFriendIds.length} Friends`}
+              </button>
+            </div>
           </div>
         </div>
       )}

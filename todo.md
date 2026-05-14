@@ -5,4 +5,5 @@
 - edit Gift ideas
 - "quick befriend" if in same group
  - maybe you get prompted
+- chat between you and secret santa
 - draw possibility visualization: as graph (member nodes and connection verticies)

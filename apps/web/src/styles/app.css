@@ -1240,40 +1240,137 @@ select:focus {
 
 .invite-link-panel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #f8fbff;
 }
 
-.invite-link-panel h3,
+.invite-link-panel summary {
+  cursor: pointer;
+  color: #08245a;
+  font-weight: 800;
+}
+
+.invite-link-panel-body {
+  display: grid;
+  gap: 12px;
+}
+
 .invite-link-panel p {
   margin: 0;
 }
 
-.invite-link-panel h3 {
+.friend-picker-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.friend-picker-panel h3,
+.friend-picker-panel p {
+  margin: 0;
+}
+
+.friend-picker-panel h3 {
   color: #08245a;
   font-size: 18px;
 }
 
+.friend-picker-panel p,
 .invite-link-panel p {
   margin-top: 4px;
   color: var(--muted);
 }
 
-.invite-search-details {
+.friend-picker-search {
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.friend-picker-search input {
+  min-height: 42px;
+  background: #fbfdff;
+  padding: 0 12px;
+}
+
+.friend-picker-list {
+  max-height: min(46vh, 360px);
+  overflow: auto;
   display: grid;
-  gap: 14px;
+  gap: 8px;
+  padding-right: 2px;
 }
 
-.invite-search-details[open] {
-  gap: 14px;
+.friend-picker-option {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 12px;
+  color: #08245a;
+  font-weight: 600;
 }
 
-.invite-search-details summary {
-  cursor: pointer;
-  color: #1559b7;
+.friend-picker-option.selected {
+  border-color: #1559b7;
+  background: #eef6ff;
+}
+
+.friend-picker-option.disabled {
+  color: var(--muted);
+  background: #f8fbff;
+}
+
+.friend-picker-option > div:not(.small-avatar) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.friend-picker-option strong,
+.friend-picker-option small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.friend-picker-option small,
+.friend-picker-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.friend-picker-status {
+  font-weight: 800;
+}
+
+.friend-picker-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  justify-self: end;
+  accent-color: #1559b7;
+}
+
+.invite-modal-panel {
+  width: min(100%, 620px);
+}
+
+.invite-modal-footer {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.invite-modal-footer span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 13px;
   font-weight: 700;
 }
 

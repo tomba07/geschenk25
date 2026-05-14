@@ -72,6 +72,14 @@ APP_BASE_URL=http://localhost:5173
 For local development, add `http://localhost:3000/api/auth/google/callback` as an authorized redirect URI.
 For Render, add `https://geschenk25-api.onrender.com/api/auth/google/callback` or your API custom domain equivalent.
 
+Magic-link emails are rate limited by default:
+
+```env
+AUTH_EMAIL_COOLDOWN_SECONDS=60
+AUTH_EMAIL_MAX_PER_HOUR=5
+AUTH_EMAIL_IP_MAX_PER_HOUR=20
+```
+
 ## Development
 
 Run the web app:
