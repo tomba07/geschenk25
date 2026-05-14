@@ -15,7 +15,7 @@ interface AuthContextType {
   verifyMagicLink: (token: string) => Promise<{ error: any }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  completeProfile: (username: string, password: string, image_url?: string | null) => Promise<{ error: any }>;
+  completeProfile: (username: string, password?: string, image_url?: string | null) => Promise<{ error: any }>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const completeProfile = async (username: string, password: string, image_url?: string | null) => {
+  const completeProfile = async (username: string, password?: string, image_url?: string | null) => {
     try {
       const response = await apiClient.completeProfile(username, password, image_url);
       if (response.error) {

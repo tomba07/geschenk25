@@ -204,7 +204,7 @@ class ApiClient {
     );
   }
 
-  async completeProfile(username: string, password: string, image_url?: string | null) {
+  async completeProfile(username: string, password?: string, image_url?: string | null) {
     return this.request<{ user: ApiUser }>('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ username, password, image_url }),

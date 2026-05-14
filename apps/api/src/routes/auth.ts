@@ -604,11 +604,11 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
       return res.status(400).json({ error: usernameError });
     }
 
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({ error: 'Password is required' });
+    if (password !== undefined && password !== null && typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password must be a string' });
     }
 
-    if (password.length < 6) {
+    if (password && password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
@@ -625,10 +625,12 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
       return res.status(400).json({ error: 'Username already taken' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = password ? await bcrypt.hash(password, 10) : null;
     const result = await pool.query(
       `UPDATE users
-       SET username = $1, password_hash = $2, image_url = $3
+       SET username = $1,
+           password_hash = COALESCE($2, password_hash),
+           image_url = $3
        WHERE id = $4
        RETURNING id, email, username, image_url`,
       [normalizedUsername, passwordHash, image_url || null, userId]
