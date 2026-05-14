@@ -1,6 +1,7 @@
 import React, { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
+import { showErrorToast } from '../utils/toast';
 
 interface SignupScreenProps {
   onSwitchToLogin: () => void;
@@ -20,11 +21,11 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
     event.preventDefault();
 
     if (!email) {
-      window.alert('Please enter your email address');
+      showErrorToast('Please enter your email address');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      window.alert('Please enter a valid email address');
+      showErrorToast('Please enter a valid email address');
       return;
     }
     setLoading(true);
@@ -41,7 +42,7 @@ export default function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
         setDevMagicLink(null);
         return;
       }
-      window.alert(error.message);
+      showErrorToast(error.message);
       return;
     }
 

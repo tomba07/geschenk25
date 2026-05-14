@@ -14,6 +14,7 @@ import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
 import { CONFIRM_EVENT, ConfirmDialogRequest } from './utils/confirm';
+import { showErrorToast, showSuccessToast, TOAST_EVENT, ToastRequest, ToastTone } from './utils/toast';
 
 type Route =
   | { name: 'home' }
@@ -58,6 +59,12 @@ function hasStoredAuth() {
 }
 
 const PENDING_FRIEND_USERNAME_KEY = 'geschenk.pending_friend_username';
+
+interface ActiveToast {
+  id: number;
+  message: string;
+  tone: ToastTone;
+}
 
 function LoadingScreen({ route }: { route: Route }) {
   return (
@@ -111,7 +118,7 @@ function AppContent() {
   const [pendingFriendUsername, setPendingFriendUsername] = useState<string | null>(() => localStorage.getItem(PENDING_FRIEND_USERNAME_KEY));
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<ActiveToast | null>(null);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -146,6 +153,20 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    const handleToast = (event: Event) => {
+      const customEvent = event as CustomEvent<ToastRequest>;
+      setToast({
+        id: Date.now(),
+        message: customEvent.detail.message,
+        tone: customEvent.detail.tone,
+      });
+    };
+
+    window.addEventListener(TOAST_EVENT, handleToast);
+    return () => window.removeEventListener(TOAST_EVENT, handleToast);
+  }, []);
+
+  useEffect(() => {
     if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'friend-invite', 'auth-callback'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
@@ -160,10 +181,10 @@ function AppContent() {
   }, [isAuthenticated, profileComplete, pendingFriendUsername]);
 
   useEffect(() => {
-    if (!toastMessage) return undefined;
-    const timeout = window.setTimeout(() => setToastMessage(null), 3200);
+    if (!toast) return undefined;
+    const timeout = window.setTimeout(() => setToast(null), toast.tone === 'error' ? 4600 : 3200);
     return () => window.clearTimeout(timeout);
-  }, [toastMessage]);
+  }, [toast]);
 
   const handleFriendInvite = async (username: string) => {
     if (!isAuthenticated) {
@@ -175,23 +196,23 @@ function AppContent() {
     try {
       const inviteResponse = await apiClient.getFriendInviteByUsername(username);
       if (inviteResponse.error || !inviteResponse.data) {
-        window.alert(inviteResponse.error || 'Invalid friend link');
+        showErrorToast(inviteResponse.error || 'Invalid friend link');
         navigate({ name: 'home' }, true);
         return;
       }
 
       const joinResponse = await apiClient.joinFriendByUsername(username);
       if (joinResponse.error) {
-        window.alert(joinResponse.error);
+        showErrorToast(joinResponse.error);
         return;
       }
 
       setRefreshHomeKey((key) => key + 1);
       localStorage.removeItem(PENDING_FRIEND_USERNAME_KEY);
-      setToastMessage(joinResponse.data?.message || 'Friend added');
+      showSuccessToast(joinResponse.data?.message || 'Friend added');
       navigate({ name: 'friends' }, true);
     } catch (error) {
-      window.alert(getErrorMessage(error));
+      showErrorToast(getErrorMessage(error));
       navigate({ name: 'home' }, true);
     }
   };
@@ -295,9 +316,17 @@ function AppContent() {
       {confirmRequest && (
         <AppConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
       )}
-      {toastMessage && (
-        <div className="toast-message" role="status" aria-live="polite">
-          {toastMessage}
+      {toast && (
+        <div
+          className={`toast-message toast-message-${toast.tone}`}
+          role={toast.tone === 'error' ? 'alert' : 'status'}
+          aria-live={toast.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          <span className="toast-dot" aria-hidden="true" />
+          <span>{toast.message}</span>
+          <button className="toast-close" type="button" onClick={() => setToast(null)} aria-label="Dismiss notification">
+            ×
+          </button>
         </div>
       )}
     </main>

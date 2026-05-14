@@ -3,6 +3,7 @@ import { Friend, FriendRequest, FriendSearchResult, apiClient } from '../lib/api
 import { confirmDestructive } from '../utils/confirm';
 import { useAuth } from '../context/AuthContext';
 import { notifyFriendRequestsUpdated } from '../utils/friendRequests';
+import { showErrorToast, showInfoToast, showSuccessToast } from '../utils/toast';
 
 export default function FriendsScreen() {
   const { username } = useAuth();
@@ -86,6 +87,7 @@ export default function FriendsScreen() {
 
     await navigator.clipboard.writeText(inviteLink);
     setCopied(true);
+    showSuccessToast('Friend link copied');
     window.setTimeout(() => setCopied(false), 1800);
   };
 
@@ -109,11 +111,13 @@ export default function FriendsScreen() {
       const response = await apiClient.removeFriend(friend.id);
       if (response.error) {
         setError(response.error);
+        showErrorToast(response.error);
         return;
       }
 
       setError(null);
       setFriends((currentFriends) => currentFriends.filter((currentFriend) => currentFriend.id !== friend.id));
+      showInfoToast(`@${friend.username} removed from friends`);
     });
   };
 
@@ -130,10 +134,12 @@ export default function FriendsScreen() {
     setRequestBusyId(null);
     if (response.error) {
       setError(response.error);
+      showErrorToast(response.error);
       return;
     }
     setError(null);
     await Promise.all([loadFriends(), refreshSearch()]);
+    showSuccessToast(`Friend request sent to @${user.username}`);
   };
 
   const handleAcceptRequest = async (request: FriendRequest) => {
@@ -142,10 +148,12 @@ export default function FriendsScreen() {
     setRequestBusyId(null);
     if (response.error) {
       setError(response.error);
+      showErrorToast(response.error);
       return;
     }
     setError(null);
     await Promise.all([loadFriends(), refreshSearch()]);
+    showSuccessToast(`@${request.username} added as friend`);
   };
 
   const handleDeclineRequest = async (request: FriendRequest) => {
@@ -154,10 +162,12 @@ export default function FriendsScreen() {
     setRequestBusyId(null);
     if (response.error) {
       setError(response.error);
+      showErrorToast(response.error);
       return;
     }
     setError(null);
     await Promise.all([loadFriends(), refreshSearch()]);
+    showInfoToast('Friend request declined');
   };
 
   const renderPersonAvatar = (person: { username: string; image_url?: string | null }) => (

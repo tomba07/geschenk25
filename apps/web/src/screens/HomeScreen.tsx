@@ -3,6 +3,7 @@ import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
 import { fileToDataUrl } from '../utils/file';
+import { showErrorToast } from '../utils/toast';
 import { Group } from '../types/group';
 
 interface HomeScreenProps {
@@ -27,7 +28,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       const userGroups = await groupService.getGroups();
       setGroups(userGroups);
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
     if (!groupName.trim()) {
-      window.alert('Please enter a group name');
+      showErrorToast('Please enter a group name');
       return;
     }
 
@@ -79,7 +80,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       resetCreateForm();
       onGroupPress(String(createdGroup.id));
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setCreating(false);
     }

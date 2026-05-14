@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
+import { showErrorToast, showSuccessToast } from '../utils/toast';
 import { Assignment, GiftIdea, Group } from '../types/group';
 
 interface GroupDetailScreenProps {
@@ -31,7 +32,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [giftIdeaLink, setGiftIdeaLink] = useState('');
@@ -44,7 +44,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     try {
       const groupData = await groupService.getGroupById(groupId);
       if (!groupData) {
-        window.alert('Group not found');
+        showErrorToast('Group not found');
         onBack();
         return;
       }
@@ -61,7 +61,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setGiftIdeas(userId ? ideas.filter((idea) => idea.created_by_id === userId) : ideas);
       setAssignedPersonGiftIdeas(receiverIdeas);
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       if (showSkeleton) setLoading(false);
     }
@@ -70,12 +70,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   useEffect(() => {
     loadGroup(true);
   }, [loadGroup]);
-
-  useEffect(() => {
-    if (!toastMessage) return undefined;
-    const timeout = window.setTimeout(() => setToastMessage(null), 2800);
-    return () => window.clearTimeout(timeout);
-  }, [toastMessage]);
 
   useEffect(() => {
     if (!inviteOpen) return;
@@ -94,7 +88,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
       setFriends(friendsResponse.data?.friends || []);
       if (friendsResponse.error) {
-        window.alert(friendsResponse.error);
+        showErrorToast(friendsResponse.error);
       }
     }
 
@@ -139,7 +133,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setGroup(updatedGroup);
       setEditingImage(updatedGroup.image_url || null);
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -189,13 +183,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       await Promise.all(selectedFriends.map((friend) => groupService.inviteUser(groupId, friend.id)));
       closeInviteModal();
       await loadGroup();
-      setToastMessage(
+      showSuccessToast(
         selectedFriends.length === 1
           ? `@${selectedFriends[0].username} added to ${group?.name || 'group'}`
           : `${selectedFriends.length} friends added to ${group?.name || 'group'}`
       );
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -204,7 +198,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const handleAssign = () => {
     if (!group) return;
     if ((group.members?.length || 0) < 3) {
-      window.alert('Need at least 3 members to create Secret Santa assignments');
+      showErrorToast('Add at least 3 members before drawing names');
       return;
     }
     setDrawExclusions([]);
@@ -220,8 +214,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       setDrawOpen(false);
       setDrawExclusions([]);
       await loadGroup();
+      showSuccessToast('Names drawn');
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setDrawing(false);
     }
@@ -233,8 +228,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       try {
         await groupService.deleteAssignments(groupId);
         await loadGroup();
+        showSuccessToast('Draw reset');
       } catch (error) {
-        window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+        showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
       } finally {
         setBusy(false);
       }
@@ -281,9 +277,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       if (assignment && newIdea.for_user_id === assignment.receiver_id) {
         setAssignedPersonGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
       }
-      setToastMessage('Gift idea added');
+      showSuccessToast('Gift idea added');
     } catch (error) {
-      window.alert(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -762,11 +758,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         </div>
       )}
 
-      {toastMessage && (
-        <div className="toast-message" role="status" aria-live="polite">
-          {toastMessage}
-        </div>
-      )}
     </section>
   );
 }

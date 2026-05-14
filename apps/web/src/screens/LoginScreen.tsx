@@ -1,6 +1,7 @@
 import React, { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
+import { showErrorToast } from '../utils/toast';
 
 interface LoginScreenProps {
   onSwitchToSignup: () => void;
@@ -21,12 +22,12 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
     if (!email) {
-      window.alert('Please enter your email address');
+      showErrorToast('Please enter your email address');
       return;
     }
 
     if (usePassword && !password) {
-      window.alert('Please enter your password');
+      showErrorToast('Please enter your password');
       return;
     }
 
@@ -35,7 +36,7 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
       const { error } = await signInWithPassword(email.trim(), password);
       setLoading(false);
       if (error) {
-        window.alert(error.message);
+        showErrorToast(error.message);
       }
       return;
     }
@@ -44,7 +45,7 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
     const { error, devMagicLink, expiresInMinutes } = await requestSignInLink(trimmedEmail);
     setLoading(false);
     if (error) {
-      window.alert(error.message);
+      showErrorToast(error.message);
       return;
     }
 

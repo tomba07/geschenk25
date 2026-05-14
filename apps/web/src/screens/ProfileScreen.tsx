@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fileToDataUrl } from '../utils/file';
 import { confirmDestructive } from '../utils/confirm';
+import { showErrorToast, showInfoToast, showSuccessToast } from '../utils/toast';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -45,10 +46,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
     setLoading(false);
     if (errors.length) {
-      window.alert(errors.join('\n'));
+      showErrorToast(errors.join('\n'));
     } else {
       setNewPassword('');
       setConfirmPassword('');
+      showSuccessToast('Profile updated');
       onBack();
     }
   };
@@ -60,9 +62,9 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       const { error } = await deleteAccount();
       setDeleting(false);
       if (error) {
-        window.alert(error.message || 'Failed to delete account');
+        showErrorToast(error.message || 'Failed to delete account');
       } else {
-        window.alert('Your account has been permanently deleted.');
+        showInfoToast('Your account has been permanently deleted');
       }
     });
   };
