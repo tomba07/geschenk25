@@ -1,5 +1,14 @@
 const CACHE_NAME = 'geschenk-pwa-v1';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.png', '/icon.png'];
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/offline.html',
+  '/manifest.webmanifest',
+  '/favicon.png',
+  '/icon.png',
+  '/favicons/icon-512x512.png',
+  '/favicons/android-icon-192x192.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -23,7 +32,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/index.html')));
+    event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
     return;
   }
 

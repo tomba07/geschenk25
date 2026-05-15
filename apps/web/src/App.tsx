@@ -66,6 +66,18 @@ interface ActiveToast {
   tone: ToastTone;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+const INSTALL_HINT_DISMISSED_KEY = 'geschenk.install_hint_dismissed';
+
+function isStandaloneApp() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
 function LoadingScreen({ route }: { route: Route }) {
   return (
     <section className={`screen app-loading-screen app-loading-screen-${route.name}`}>
@@ -119,6 +131,8 @@ function AppContent() {
   const [refreshHomeKey, setRefreshHomeKey] = useState(0);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
   const [toast, setToast] = useState<ActiveToast | null>(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installHintVisible, setInstallHintVisible] = useState(false);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -185,6 +199,39 @@ function AppContent() {
     const timeout = window.setTimeout(() => setToast(null), toast.tone === 'error' ? 4600 : 3200);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    if (isStandaloneApp() || localStorage.getItem(INSTALL_HINT_DISMISSED_KEY) === 'true') {
+      return undefined;
+    }
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+      setInstallHintVisible(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const dismissInstallHint = () => {
+    localStorage.setItem(INSTALL_HINT_DISMISSED_KEY, 'true');
+    setInstallHintVisible(false);
+  };
+
+  const installApp = async () => {
+    if (!installPromptEvent) return;
+
+    await installPromptEvent.prompt();
+    const choice = await installPromptEvent.userChoice;
+    setInstallPromptEvent(null);
+    setInstallHintVisible(false);
+
+    if (choice.outcome === 'dismissed') {
+      localStorage.setItem(INSTALL_HINT_DISMISSED_KEY, 'true');
+    }
+  };
 
   const handleFriendInvite = async (username: string) => {
     if (!isAuthenticated) {
@@ -328,6 +375,18 @@ function AppContent() {
             ×
           </button>
         </div>
+      )}
+      {installHintVisible && installPromptEvent && (
+        <aside className="install-hint" aria-label="Install Geschenk">
+          <div>
+            <strong>Install Geschenk</strong>
+            <span>Use it like an app and get back to your groups faster.</span>
+          </div>
+          <div className="install-hint-actions">
+            <button className="secondary-button compact" type="button" onClick={dismissInstallHint}>Not now</button>
+            <button className="primary-button compact" type="button" onClick={installApp}>Install</button>
+          </div>
+        </aside>
       )}
     </main>
   );

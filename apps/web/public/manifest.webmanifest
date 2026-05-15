@@ -1,14 +1,23 @@
 {
+  "id": "/",
   "name": "Geschenk",
   "short_name": "Geschenk",
-  "description": "Organize Secret Santa groups and gift ideas.",
+  "description": "Organize Secret Santa groups, draw names, and share gift ideas with friends.",
   "start_url": "/",
   "scope": "/",
+  "categories": ["lifestyle", "productivity"],
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#eef5ff",
   "theme_color": "#1559b7",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/favicons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/favicons/android-icon-192x192.png",
       "sizes": "192x192",

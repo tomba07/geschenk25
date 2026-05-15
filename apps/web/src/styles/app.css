@@ -1286,6 +1286,44 @@ select:focus {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.install-hint {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  gap: 14px;
+  border: 1px solid #cfe0f7;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--color-text);
+  padding: 16px;
+  box-shadow: var(--shadow-lg);
+}
+
+.install-hint div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.install-hint strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.install-hint span {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.install-hint-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .invite-link-panel {
   display: grid;
   gap: 12px;
