@@ -198,6 +198,7 @@ router.post('/requests', async (req: AuthRequest, res: Response) => {
         url: `${process.env.APP_BASE_URL || ''}/friends`,
         emailSubject: `@${requesterUsername} sent you a friend request`,
         emailText: `@${requesterUsername} wants to add you on Geschenk. Open Geschenk to accept or decline the request.`,
+        emailActionLabel: 'View friend request',
       }).catch((error) => console.error('Failed to send friend request notification:', error));
     }
 
@@ -246,6 +247,7 @@ router.post('/requests/:id/accept', async (req: AuthRequest, res: Response) => {
       url: `${process.env.APP_BASE_URL || ''}/friends`,
       emailSubject: `@${accepterUsername} accepted your friend request`,
       emailText: `@${accepterUsername} accepted your friend request on Geschenk.`,
+      emailActionLabel: 'View friends',
     }).catch((error) => console.error('Failed to send friend accepted notification:', error));
 
     res.json({ message: `You are now friends with @${requestResult.rows[0].username}` });
@@ -314,6 +316,7 @@ router.post('/user/:username', async (req: AuthRequest, res: Response) => {
         url: `${process.env.APP_BASE_URL || ''}/friends`,
         emailSubject: `@${currentUsername} added you as a friend`,
         emailText: `@${currentUsername} added you as a friend on Geschenk.`,
+        emailActionLabel: 'View friends',
       }).catch((error) => console.error('Failed to send friend link notification:', error));
     }
 

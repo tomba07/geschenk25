@@ -287,6 +287,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         url: appUrl(`/groups/${group.id}`),
         emailSubject: `You were added to "${group.name}"`,
         emailText: `You were added to "${group.name}" on Geschenk. Open the group to add gift ideas and see updates.`,
+        emailActionLabel: 'Open group',
       }).catch((error) => console.error('Failed to send group-created member notification:', error));
     });
 
@@ -495,6 +496,7 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
       url: appUrl(`/groups/${groupId}`),
       emailSubject: `You were added to "${groupCheck.rows[0].name}"`,
       emailText: `You were added to "${groupCheck.rows[0].name}" on Geschenk. Open the group to add gift ideas and see updates.`,
+      emailActionLabel: 'Open group',
     }).catch((error) => console.error('Failed to send group add notification:', error));
 
     res.json({ message: 'Friend added to group successfully' });
@@ -709,6 +711,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
         url: appUrl(`/groups/${groupId}`),
         emailSubject: `Names are drawn for "${groupCheck.rows[0].name}"`,
         emailText: `Names are drawn for "${groupCheck.rows[0].name}". Open Geschenk to see who you are buying for.`,
+        emailActionLabel: 'View your match',
       }).catch((error) => console.error('Failed to send assignment notification:', error));
     });
 
