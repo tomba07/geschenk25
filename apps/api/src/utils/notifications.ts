@@ -1,6 +1,7 @@
 import webpush, { PushSubscription } from 'web-push';
 import crypto from 'crypto';
 import pool from '../db';
+import { escapeHtml, renderEmailTemplate } from './emailTemplates';
 
 interface NotificationPayload {
   title: string;
@@ -9,6 +10,7 @@ interface NotificationPayload {
   emailSubject?: string;
   emailText?: string;
   emailHtml?: string;
+  emailActionLabel?: string;
 }
 
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -49,7 +51,13 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
   if (!email) return;
 
   const unsubscribeUrl = getUnsubscribeUrl(preferences.unsubscribe_token);
-  const emailHtml = payload.emailHtml || `<p>${escapeHtml(payload.body)}</p>`;
+  const emailHtml = renderNotificationEmail(payload, unsubscribeUrl);
+  const eventUrl = getEventUrl(payload.url);
+  const textParts = [payload.emailText || payload.body];
+  if (eventUrl) {
+    textParts.push(`Open this update: ${eventUrl}`);
+  }
+  textParts.push(`Unsubscribe from Geschenk notification emails: ${unsubscribeUrl}`);
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -61,8 +69,8 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
       from: emailFrom,
       to: email,
       subject: payload.emailSubject || payload.title,
-      text: `${payload.emailText || payload.body}\n\nUnsubscribe from Geschenk notification emails: ${unsubscribeUrl}`,
-      html: `${emailHtml}<hr><p style="color:#64748b;font-size:12px">You are receiving this because you use Geschenk. <a href="${unsubscribeUrl}">Unsubscribe from notification emails</a>.</p>`,
+      text: textParts.join('\n\n'),
+      html: emailHtml,
       headers: {
         'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -140,11 +148,24 @@ function getUnsubscribeUrl(token: string) {
   return `${apiBaseUrl}/api/notifications/email/unsubscribe/${token}`;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function renderNotificationEmail(payload: NotificationPayload, unsubscribeUrl: string) {
+  const bodyHtml = payload.emailHtml || `<p style="margin: 0;">${escapeHtml(payload.body)}</p>`;
+  const eventUrl = getEventUrl(payload.url);
+
+  return renderEmailTemplate({
+    preheader: payload.emailText || payload.body,
+    eyebrow: 'Geschenk notification',
+    title: payload.emailSubject || payload.title,
+    bodyHtml,
+    action: eventUrl ? { label: payload.emailActionLabel || 'Open update', url: eventUrl } : undefined,
+    footerHtml: `You are receiving this because you use Geschenk. <a href="${unsubscribeUrl}" style="color: #1559b7; text-decoration: underline;">Unsubscribe from notification emails</a>.`,
+  });
+}
+
+function getEventUrl(url?: string) {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  const appBaseUrl = process.env.APP_BASE_URL;
+  if (!appBaseUrl) return undefined;
+  return `${appBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
 }

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import pool from '../db';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
+import { escapeHtml, renderEmailTemplate } from '../utils/emailTemplates';
 
 const router = express.Router();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -205,7 +206,17 @@ async function sendMagicLink(email: string, link: string) {
       from,
       to: email,
       subject: 'Sign in to Geschenk',
-      html: `<p>Use this link to sign in to Geschenk:</p><p><a href="${link}">Sign in to Geschenk</a></p><p>This link expires in 15 minutes.</p>`,
+      html: renderEmailTemplate({
+        preheader: 'Use this link to sign in to Geschenk. It expires in 15 minutes.',
+        eyebrow: 'Secure sign in',
+        title: 'Sign in to Geschenk',
+        bodyHtml: '<p style="margin: 0;">Use this secure link to sign in. It expires in 15 minutes.</p>',
+        action: {
+          label: 'Sign in to Geschenk',
+          url: link,
+        },
+        footerHtml: `If you did not request this email, you can ignore it. For security, this link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
+      }),
       text: `Use this link to sign in to Geschenk: ${link}\n\nThis link expires in 15 minutes.`,
     }),
   });
