@@ -1,8 +1,15 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fileToDataUrl } from '../utils/file';
 import { confirmDestructive } from '../utils/confirm';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../utils/toast';
+import { apiClient } from '../lib/api';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getCurrentPushSubscription,
+  isPushNotificationSupported,
+} from '../utils/pushNotifications';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -15,6 +22,28 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [emailNotificationsBusy, setEmailNotificationsBusy] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      getCurrentPushSubscription(),
+      apiClient.getNotificationPreferences(),
+    ]).then(([subscription, preferencesResponse]) => {
+      if (cancelled) return;
+      setPushEnabled(Boolean(subscription));
+      if (preferencesResponse.data) {
+        setEmailNotificationsEnabled(preferencesResponse.data.email_enabled);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,6 +96,35 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
         showInfoToast('Your account has been permanently deleted');
       }
     });
+  };
+
+  const handleTogglePushNotifications = async () => {
+    setPushBusy(true);
+    const result = pushEnabled ? await disablePushNotifications() : await enablePushNotifications();
+    setPushBusy(false);
+
+    if (result.error) {
+      showErrorToast(result.error);
+      return;
+    }
+
+    setPushEnabled(!pushEnabled);
+    showSuccessToast(pushEnabled ? 'Push notifications disabled' : 'Push notifications enabled');
+  };
+
+  const handleToggleEmailNotifications = async () => {
+    const nextEnabled = !emailNotificationsEnabled;
+    setEmailNotificationsBusy(true);
+    const response = await apiClient.updateNotificationPreferences(nextEnabled);
+    setEmailNotificationsBusy(false);
+
+    if (response.error) {
+      showErrorToast(response.error);
+      return;
+    }
+
+    setEmailNotificationsEnabled(response.data?.email_enabled ?? nextEnabled);
+    showSuccessToast(nextEnabled ? 'Email notifications enabled' : 'Email notifications disabled');
   };
 
   const hasChanges = editingImage !== (imageUrl || null) || Boolean(newPassword || confirmPassword);
@@ -142,6 +200,51 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           <div className="profile-save-row">
             <button className="primary-button" type="submit" disabled={loading || !hasChanges}>
               {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </section>
+
+        <section className="profile-card profile-fields-card">
+          <div className="profile-card-heading">
+            <h2>Notifications</h2>
+            <p>Email notifications are sent for friend requests, group additions, and drawn names.</p>
+          </div>
+
+          <div className="readonly-field">
+            <span>Email</span>
+            <strong>{emailNotificationsEnabled ? 'Enabled' : 'Off'}</strong>
+            <small>
+              {emailNotificationsEnabled
+                ? `Important updates go to ${email || 'your sign-in email'}.`
+                : 'You will still receive sign-in and account emails.'}
+            </small>
+          </div>
+
+          <div className="profile-save-row">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleToggleEmailNotifications}
+              disabled={emailNotificationsBusy}
+            >
+              {emailNotificationsBusy ? 'Updating...' : emailNotificationsEnabled ? 'Disable Email' : 'Enable Email'}
+            </button>
+          </div>
+
+          <div className="readonly-field">
+            <span>Push</span>
+            <strong>{pushEnabled ? 'Enabled on this device' : 'Off on this device'}</strong>
+            <small>PWA notifications work best after installing Geschenk to your home screen or dock.</small>
+          </div>
+
+          <div className="profile-save-row">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleTogglePushNotifications}
+              disabled={pushBusy || !isPushNotificationSupported()}
+            >
+              {pushBusy ? 'Updating...' : pushEnabled ? 'Disable Push' : 'Enable Push'}
             </button>
           </div>
         </section>

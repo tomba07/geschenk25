@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import pool from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { sendNotificationToUser } from '../utils/notifications';
 
 const router = express.Router();
 
@@ -178,13 +179,27 @@ router.post('/requests', async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ error: `@${targetResult.rows[0].username} already sent you a request` });
     }
 
-    await pool.query(
+    const requestUpsertResult = await pool.query(
       `INSERT INTO friend_requests (requester_id, addressee_id, status, created_at, responded_at)
        VALUES ($1, $2, 'pending', NOW(), NULL)
        ON CONFLICT (requester_id, addressee_id)
-       DO UPDATE SET status = 'pending', created_at = NOW(), responded_at = NULL`,
+       DO UPDATE SET status = 'pending', created_at = NOW(), responded_at = NULL
+       WHERE friend_requests.status != 'pending'
+       RETURNING id`,
       [userId, targetUserId]
     );
+
+    if (requestUpsertResult.rows.length > 0) {
+      const requesterResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+      const requesterUsername = requesterResult.rows[0]?.username || 'Someone';
+      sendNotificationToUser(targetUserId, {
+        title: 'New friend request',
+        body: `@${requesterUsername} wants to add you on Geschenk.`,
+        url: `${process.env.APP_BASE_URL || ''}/friends`,
+        emailSubject: `@${requesterUsername} sent you a friend request`,
+        emailText: `@${requesterUsername} wants to add you on Geschenk. Open Geschenk to accept or decline the request.`,
+      }).catch((error) => console.error('Failed to send friend request notification:', error));
+    }
 
     res.json({ message: `Friend request sent to @${targetResult.rows[0].username}` });
   } catch (error: any) {
@@ -222,6 +237,16 @@ router.post('/requests/:id/accept', async (req: AuthRequest, res: Response) => {
        WHERE id = $1`,
       [requestId]
     );
+
+    const accepterResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+    const accepterUsername = accepterResult.rows[0]?.username || 'Someone';
+    sendNotificationToUser(requesterId, {
+      title: 'Friend request accepted',
+      body: `@${accepterUsername} accepted your friend request.`,
+      url: `${process.env.APP_BASE_URL || ''}/friends`,
+      emailSubject: `@${accepterUsername} accepted your friend request`,
+      emailText: `@${accepterUsername} accepted your friend request on Geschenk.`,
+    }).catch((error) => console.error('Failed to send friend accepted notification:', error));
 
     res.json({ message: `You are now friends with @${requestResult.rows[0].username}` });
   } catch (error: any) {
@@ -271,7 +296,26 @@ router.post('/user/:username', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'This is your own friend link' });
     }
 
+    const [firstId, secondId] = friendshipPair(userId, targetUser.id);
+    const existingFriendship = await pool.query(
+      'SELECT id FROM friendships WHERE user_id = $1 AND friend_id = $2',
+      [firstId, secondId]
+    );
+    const alreadyFriends = existingFriendship.rows.length > 0;
+
     await createFriendship(userId, targetUser.id);
+
+    if (!alreadyFriends) {
+      const currentUserResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+      const currentUsername = currentUserResult.rows[0]?.username || 'Someone';
+      sendNotificationToUser(targetUser.id, {
+        title: 'New friend added',
+        body: `@${currentUsername} added you as a friend on Geschenk.`,
+        url: `${process.env.APP_BASE_URL || ''}/friends`,
+        emailSubject: `@${currentUsername} added you as a friend`,
+        emailText: `@${currentUsername} added you as a friend on Geschenk.`,
+      }).catch((error) => console.error('Failed to send friend link notification:', error));
+    }
 
     res.json({
       message: `You are now friends with @${targetUser.username}`,

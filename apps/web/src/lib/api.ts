@@ -309,6 +309,36 @@ class ApiClient {
     });
   }
 
+  // Notification endpoints
+  async getNotificationConfig() {
+    return this.request<{ enabled: boolean; publicKey: string | null }>('/api/notifications/config');
+  }
+
+  async getNotificationPreferences() {
+    return this.request<{ email_enabled: boolean }>('/api/notifications/preferences');
+  }
+
+  async updateNotificationPreferences(emailEnabled: boolean) {
+    return this.request<{ email_enabled: boolean }>('/api/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ email_enabled: emailEnabled }),
+    });
+  }
+
+  async savePushSubscription(subscription: PushSubscription) {
+    return this.request<{ message: string }>('/api/notifications/push-subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ subscription }),
+    });
+  }
+
+  async deletePushSubscription(endpoint: string) {
+    return this.request<{ message: string }>('/api/notifications/push-subscriptions', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    });
+  }
+
   // Invite link endpoints
   async getInviteLink(groupId: number) {
     return this.request<{ invite_token: string }>(`/api/groups/${groupId}/invite-link`);

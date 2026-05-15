@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import pool from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { SecretSantaMatcher } from '../utils/secretSantaMatcher';
+import { sendNotificationToUser } from '../utils/notifications';
 
 const router = express.Router();
 
@@ -18,6 +19,10 @@ async function groupHasAssignments(groupId: number): Promise<boolean> {
 
 function assignmentLockError() {
   return 'Names have already been drawn for this group.';
+}
+
+function appUrl(path: string) {
+  return `${process.env.APP_BASE_URL || ''}${path}`;
 }
 
 // Public route: Get group info from invite token (no auth required)
@@ -275,6 +280,16 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     await client.query('COMMIT');
 
+    memberIds.forEach((memberId) => {
+      sendNotificationToUser(memberId, {
+        title: 'Added to a group',
+        body: `You were added to "${group.name}" on Geschenk.`,
+        url: appUrl(`/groups/${group.id}`),
+        emailSubject: `You were added to "${group.name}"`,
+        emailText: `You were added to "${group.name}" on Geschenk. Open the group to add gift ideas and see updates.`,
+      }).catch((error) => console.error('Failed to send group-created member notification:', error));
+    });
+
     res.status(201).json({ group: result.rows[0] });
   } catch (error: any) {
     await client.query('ROLLBACK');
@@ -420,7 +435,7 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner or active member of the group
     const groupCheck = await pool.query(
-      `SELECT g.id, g.created_by FROM groups g
+      `SELECT g.id, g.name, g.created_by FROM groups g
        LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $2 AND (gm.status IS NULL OR gm.status = 'active')
        WHERE g.id = $1 AND (g.created_by = $2 OR gm.user_id = $2)`,
       [groupId, userId]
@@ -474,6 +489,14 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
       [groupId, inviteeId]
     );
 
+    sendNotificationToUser(inviteeId, {
+      title: 'Added to a group',
+      body: `You were added to "${groupCheck.rows[0].name}" on Geschenk.`,
+      url: appUrl(`/groups/${groupId}`),
+      emailSubject: `You were added to "${groupCheck.rows[0].name}"`,
+      emailText: `You were added to "${groupCheck.rows[0].name}" on Geschenk. Open the group to add gift ideas and see updates.`,
+    }).catch((error) => console.error('Failed to send group add notification:', error));
+
     res.json({ message: 'Friend added to group successfully' });
   } catch (error: any) {
     console.error('Error inviting user:', error);
@@ -489,7 +512,7 @@ router.post('/:id/leave', async (req: AuthRequest, res: Response) => {
 
     // Check if group exists and get owner
     const groupCheck = await pool.query(
-      'SELECT created_by FROM groups WHERE id = $1',
+      'SELECT created_by, name FROM groups WHERE id = $1',
       [groupId]
     );
 
@@ -678,6 +701,16 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
         [groupId, giverId, receiverId]
       );
     }
+
+    members.forEach((member: any) => {
+      sendNotificationToUser(member.id, {
+        title: 'Names are drawn',
+        body: `Your Secret Santa match is ready in "${groupCheck.rows[0].name}".`,
+        url: appUrl(`/groups/${groupId}`),
+        emailSubject: `Names are drawn for "${groupCheck.rows[0].name}"`,
+        emailText: `Names are drawn for "${groupCheck.rows[0].name}". Open Geschenk to see who you are buying for.`,
+      }).catch((error) => console.error('Failed to send assignment notification:', error));
+    });
 
     res.json({ message: 'Assignments created successfully' });
   } catch (error: any) {

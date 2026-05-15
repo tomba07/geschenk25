@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import friendsRoutes from './routes/friends';
 import groupsRoutes from './routes/groups';
+import notificationsRoutes from './routes/notifications';
 import { runMigrations } from './migrate';
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use((req: any, res: any, next: any) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/groups', groupsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: any, res: any, _next: any) => {

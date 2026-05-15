@@ -80,6 +80,31 @@ AUTH_EMAIL_MAX_PER_HOUR=5
 AUTH_EMAIL_IP_MAX_PER_HOUR=20
 ```
 
+## Notifications
+
+Transactional email notifications use the same Resend settings as magic links:
+
+```env
+RESEND_API_KEY=...
+EMAIL_FROM=Geschenk <help@example.com>
+```
+
+Notification emails include a one-click unsubscribe link and can also be disabled from the Profile screen. Sign-in and account emails are not affected by this preference.
+
+PWA push notifications need VAPID keys on the API service:
+
+```bash
+npm run generate-vapid-keys --workspace @geschenk/api
+```
+
+Then set:
+
+```env
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:help@example.com
+```
+
 ## Development
 
 Run the web app:

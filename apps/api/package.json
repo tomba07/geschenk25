@@ -11,15 +11,18 @@
     "build": "tsc",
     "migrate": "node dist/migrate.js",
     "cleanup": "tsx src/cleanup.ts",
-    "reset-profile": "tsx src/resetProfile.ts"
+    "reset-profile": "tsx src/resetProfile.ts",
+    "generate-vapid-keys": "web-push generate-vapid-keys"
   },
   "dependencies": {
+    "@types/web-push": "^3.6.4",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

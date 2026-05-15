@@ -230,6 +230,28 @@ export async function runMigrations() {
 
   await pool.query('DROP TABLE IF EXISTS friend_invites');
 
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS notification_preferences (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        email_enabled BOOLEAN NOT NULL DEFAULT true,
+        unsubscribe_token VARCHAR(64) UNIQUE NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
   // Create assignments table for Secret Santa
   await pool.query(`
       CREATE TABLE IF NOT EXISTS assignments (
@@ -335,6 +357,14 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_friend_requests_addressee_id ON friend_requests(addressee_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_notification_preferences_unsubscribe_token ON notification_preferences(unsubscribe_token)
     `);
 
   await pool.query(`
