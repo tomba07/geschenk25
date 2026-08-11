@@ -8,6 +8,7 @@ import {
   disablePushNotifications,
   enablePushNotifications,
   getCurrentPushSubscription,
+  getPushNotificationSupportMessage,
   isPushNotificationSupported,
 } from '../utils/pushNotifications';
 
@@ -129,6 +130,8 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const hasChanges = editingImage !== (imageUrl || null) || Boolean(newPassword || confirmPassword);
   const initial = (username || 'U').charAt(0).toUpperCase();
+  const pushSupported = isPushNotificationSupported();
+  const pushSupportMessage = getPushNotificationSupportMessage();
 
   return (
     <section className="screen profile-screen">
@@ -234,7 +237,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           <div className="readonly-field">
             <span>Push</span>
             <strong>{pushEnabled ? 'Enabled on this device' : 'Off on this device'}</strong>
-            <small>PWA notifications work best after installing Geschenk to your home screen or dock.</small>
+            <small>{pushSupportMessage}</small>
           </div>
 
           <div className="profile-save-row">
@@ -242,7 +245,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
               className="secondary-button"
               type="button"
               onClick={handleTogglePushNotifications}
-              disabled={pushBusy || !isPushNotificationSupported()}
+              disabled={pushBusy || !pushSupported}
             >
               {pushBusy ? 'Updating...' : pushEnabled ? 'Disable Push' : 'Enable Push'}
             </button>

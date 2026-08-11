@@ -15,6 +15,7 @@ import LandingScreen from './screens/LandingScreen';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
 import { CONFIRM_EVENT, ConfirmDialogRequest } from './utils/confirm';
 import { showErrorToast, showSuccessToast, TOAST_EVENT, ToastRequest, ToastTone } from './utils/toast';
+import { isStandaloneApp, shouldShowIosInstallHint } from './utils/pwa';
 
 type Route =
   | { name: 'home' }
@@ -73,11 +74,6 @@ interface BeforeInstallPromptEvent extends Event {
 
 const INSTALL_HINT_DISMISSED_KEY = 'geschenk.install_hint_dismissed';
 
-function isStandaloneApp() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-}
-
 function LoadingScreen({ route }: { route: Route }) {
   return (
     <section className={`screen app-loading-screen app-loading-screen-${route.name}`}>
@@ -133,6 +129,7 @@ function AppContent() {
   const [toast, setToast] = useState<ActiveToast | null>(null);
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installHintVisible, setInstallHintVisible] = useState(false);
+  const [iosInstallHintVisible, setIosInstallHintVisible] = useState(false);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -215,9 +212,21 @@ function AppContent() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  useEffect(() => {
+    if (
+      isAuthenticated
+      && profileComplete
+      && shouldShowIosInstallHint()
+      && localStorage.getItem(INSTALL_HINT_DISMISSED_KEY) !== 'true'
+    ) {
+      setIosInstallHintVisible(true);
+    }
+  }, [isAuthenticated, profileComplete]);
+
   const dismissInstallHint = () => {
     localStorage.setItem(INSTALL_HINT_DISMISSED_KEY, 'true');
     setInstallHintVisible(false);
+    setIosInstallHintVisible(false);
   };
 
   const installApp = async () => {
@@ -385,6 +394,17 @@ function AppContent() {
           <div className="install-hint-actions">
             <button className="secondary-button compact" type="button" onClick={dismissInstallHint}>Not now</button>
             <button className="primary-button compact" type="button" onClick={installApp}>Install</button>
+          </div>
+        </aside>
+      )}
+      {iosInstallHintVisible && (
+        <aside className="install-hint ios-install-hint" aria-label="Install Geschenk">
+          <div>
+            <strong>Install Geschenk</strong>
+            <span>On iPhone or iPad, use Share, then Add to Home Screen. Push notifications work after that.</span>
+          </div>
+          <div className="install-hint-actions">
+            <button className="secondary-button compact" type="button" onClick={dismissInstallHint}>Got it</button>
           </div>
         </aside>
       )}

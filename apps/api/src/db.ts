@@ -15,10 +15,12 @@ console.log('Database URL configured:', databaseUrl ? `${databaseUrl.split('@')[
 
 const databaseHost = new URL(databaseUrl).hostname;
 const isLocalDatabase = ['localhost', '127.0.0.1', '::1'].includes(databaseHost);
+const databaseSsl = process.env.DB_SSL;
+const useSsl = databaseSsl ? databaseSsl === 'true' : !isLocalDatabase;
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 });
 
 // Test connection

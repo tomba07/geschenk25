@@ -1,3 +1,5 @@
+- PWA notifications
+- Admin screen (send notifications, create group...)
 - better email notifications
 - better email content
 - password change in edit profile (should be via email link)

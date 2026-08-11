@@ -1,7 +1,23 @@
 import { apiClient } from '../lib/api';
+import { isIosDevice, isStandaloneApp } from './pwa';
 
 export function isPushNotificationSupported() {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  return 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && 'Notification' in window
+    && (!isIosDevice() || isStandaloneApp());
+}
+
+export function getPushNotificationSupportMessage() {
+  if (isIosDevice() && !isStandaloneApp()) {
+    return 'On iPhone and iPad, install Geschenk to the Home Screen before enabling push notifications.';
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return 'Push notifications are not supported in this browser.';
+  }
+
+  return 'PWA notifications work best after installing Geschenk to your home screen or dock.';
 }
 
 export async function getCurrentPushSubscription() {
@@ -13,7 +29,7 @@ export async function getCurrentPushSubscription() {
 
 export async function enablePushNotifications() {
   if (!isPushNotificationSupported()) {
-    return { error: 'Push notifications are not supported in this browser.' };
+    return { error: getPushNotificationSupportMessage() };
   }
 
   const configResponse = await apiClient.getNotificationConfig();

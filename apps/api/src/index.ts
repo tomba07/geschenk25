@@ -23,6 +23,11 @@ app.use(express.json({ limit: '10mb' })); // Increase limit to 10MB for image up
 
 // Health check
 app.get('/health', (_req: any, res: any) => {
+  if (!migrationsReady) {
+    res.status(503).json({ status: 'starting' });
+    return;
+  }
+
   res.json({ status: 'ok' });
 });
 
