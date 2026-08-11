@@ -1,3 +1,4 @@
+- New deployment adjustments
 - PWA notifications
 - Admin screen (send notifications, create group...)
 - better email notifications
