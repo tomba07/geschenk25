@@ -1,0 +1,77 @@
+services:
+  geschenk-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-geschenk25}
+      POSTGRES_USER: ${POSTGRES_USER:-geschenk25}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - geschenk_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geschenk25} -d ${POSTGRES_DB:-geschenk25}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geschenk_internal
+
+  geschenk-api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      geschenk-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      RUN_MIGRATIONS_ON_START: "true"
+      DB_SSL: "false"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-geschenk25}:${POSTGRES_PASSWORD}@geschenk-db:5432/${POSTGRES_DB:-geschenk25}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_BASE_URL: https://geschenk.mteschke.com
+      API_BASE_URL: https://geschenk.mteschke.com
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      DISABLE_EMAIL_DELIVERY: ${DISABLE_EMAIL_DELIVERY:-false}
+      AUTH_EMAIL_COOLDOWN_SECONDS: ${AUTH_EMAIL_COOLDOWN_SECONDS:-60}
+      AUTH_EMAIL_MAX_PER_HOUR: ${AUTH_EMAIL_MAX_PER_HOUR:-5}
+      AUTH_EMAIL_IP_MAX_PER_HOUR: ${AUTH_EMAIL_IP_MAX_PER_HOUR:-20}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - geschenk_internal
+      - web
+
+  geschenk-web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: https://geschenk.mteschke.com
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - web
+
+volumes:
+  geschenk_db_data:
+
+networks:
+  geschenk_internal:
+  web:
+    external: true
+    name: web
