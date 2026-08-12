@@ -16,6 +16,11 @@ import AuthCallbackScreen from './screens/AuthCallbackScreen';
 import { CONFIRM_EVENT, ConfirmDialogRequest } from './utils/confirm';
 import { showErrorToast, showSuccessToast, TOAST_EVENT, ToastRequest, ToastTone } from './utils/toast';
 import { isStandaloneApp, shouldShowIosInstallHint } from './utils/pwa';
+import {
+  enablePushNotifications,
+  getCurrentPushSubscription,
+  isPushNotificationSupported,
+} from './utils/pushNotifications';
 
 type Route =
   | { name: 'home' }
@@ -73,6 +78,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const INSTALL_HINT_DISMISSED_KEY = 'geschenk.install_hint_dismissed';
+const PUSH_HINT_DISMISSED_KEY = 'geschenk.push_hint_dismissed';
 
 function LoadingScreen({ route }: { route: Route }) {
   return (
@@ -130,6 +136,8 @@ function AppContent() {
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installHintVisible, setInstallHintVisible] = useState(false);
   const [iosInstallHintVisible, setIosInstallHintVisible] = useState(false);
+  const [pushHintVisible, setPushHintVisible] = useState(false);
+  const [pushHintBusy, setPushHintBusy] = useState(false);
 
   const navigate = (nextRoute: Route, replace = false) => {
     const path = routePath(nextRoute);
@@ -223,6 +231,37 @@ function AppContent() {
     }
   }, [isAuthenticated, profileComplete]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkPushPrompt() {
+      if (
+        !isAuthenticated
+        || !profileComplete
+        || !isStandaloneApp()
+        || !isPushNotificationSupported()
+        || localStorage.getItem(PUSH_HINT_DISMISSED_KEY) === 'true'
+        || Notification.permission !== 'default'
+      ) {
+        setPushHintVisible(false);
+        return;
+      }
+
+      const [subscription, configResponse] = await Promise.all([
+        getCurrentPushSubscription(),
+        apiClient.getNotificationConfig(),
+      ]);
+
+      if (cancelled) return;
+      setPushHintVisible(Boolean(!subscription && configResponse.data?.enabled));
+    }
+
+    checkPushPrompt();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, profileComplete]);
+
   const dismissInstallHint = () => {
     localStorage.setItem(INSTALL_HINT_DISMISSED_KEY, 'true');
     setInstallHintVisible(false);
@@ -240,6 +279,28 @@ function AppContent() {
     if (choice.outcome === 'dismissed') {
       localStorage.setItem(INSTALL_HINT_DISMISSED_KEY, 'true');
     }
+  };
+
+  const dismissPushHint = () => {
+    localStorage.setItem(PUSH_HINT_DISMISSED_KEY, 'true');
+    setPushHintVisible(false);
+  };
+
+  const enablePushFromHint = async () => {
+    setPushHintBusy(true);
+    const result = await enablePushNotifications();
+    setPushHintBusy(false);
+
+    if (result.error) {
+      showErrorToast(result.error);
+      if (Notification.permission === 'denied') {
+        dismissPushHint();
+      }
+      return;
+    }
+
+    setPushHintVisible(false);
+    showSuccessToast('Push notifications enabled');
   };
 
   const handleFriendInvite = async (username: string) => {
@@ -405,6 +466,20 @@ function AppContent() {
           </div>
           <div className="install-hint-actions">
             <button className="secondary-button compact" type="button" onClick={dismissInstallHint}>Got it</button>
+          </div>
+        </aside>
+      )}
+      {pushHintVisible && (
+        <aside className="install-hint push-hint" aria-label="Enable push notifications">
+          <div>
+            <strong>Enable notifications</strong>
+            <span>Get a heads-up for friend requests, group updates, and drawn names.</span>
+          </div>
+          <div className="install-hint-actions">
+            <button className="secondary-button compact" type="button" onClick={dismissPushHint} disabled={pushHintBusy}>Not now</button>
+            <button className="primary-button compact" type="button" onClick={enablePushFromHint} disabled={pushHintBusy}>
+              {pushHintBusy ? 'Enabling...' : 'Enable'}
+            </button>
           </div>
         </aside>
       )}
