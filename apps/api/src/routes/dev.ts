@@ -4,9 +4,9 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { SecretSantaMatcher } from '../utils/secretSantaMatcher';
 import {
   DEV_TEST_ACCOUNTS,
-  DEV_TEST_PASSWORD,
   devToolsEnabled,
   ensureDevTestAccounts,
+  getDevTestPassword,
 } from '../utils/devTestAccounts';
 
 const router = express.Router();
@@ -118,7 +118,7 @@ async function getDevState() {
   return {
     users: usersResult.rows,
     groups,
-    test_accounts: DEV_TEST_ACCOUNTS.map((account) => ({ ...account, password: DEV_TEST_PASSWORD })),
+    test_accounts: DEV_TEST_ACCOUNTS.map((account) => ({ ...account, password: getDevTestPassword() })),
   };
 }
 

@@ -9,7 +9,7 @@ Geschenk is a PWA frontend with an Express API backend in one npm workspace repo
 ├── apps/web   # React/Vite PWA
 ├── apps/api   # Express/Postgres API
 ├── package.json
-└── render.yaml
+└── deploy      # VM deployment config
 ```
 
 The repository root owns workspace scripts and deployment config. App code lives under `apps/*`.
@@ -34,21 +34,21 @@ APP_BASE_URL=http://localhost:5173
 API_BASE_URL=http://localhost:3000
 ```
 
-For common local UI work against the deployed API, run:
+For common local UI work against the live API, run:
 
 ```bash
 npm run dev
 ```
 
-This uses `apps/web/.env.deployed`.
+This uses `apps/web/.env.live`.
 
-For local API work against the deployed database, create `apps/api/.env.deployed-db` from `apps/api/.env.deployed-db.example`, then run:
+For local API work, run the API against `apps/api/.env` and the web app against localhost:
 
 ```bash
 npm run dev:local-api
 ```
 
-This starts the web app with `VITE_API_URL=http://localhost:3000` and the API with the deployed database URL.
+This starts the web app with `VITE_API_URL=http://localhost:3000` and the API with the local database URL.
 
 Optional frontend API override in `apps/web/.env`:
 
@@ -70,7 +70,7 @@ APP_BASE_URL=http://localhost:5173
 ```
 
 For local development, add `http://localhost:3000/api/auth/google/callback` as an authorized redirect URI.
-For Render, add `https://geschenk25-api.onrender.com/api/auth/google/callback` or your API custom domain equivalent.
+For live, add `https://geschenk.mteschke.com/api/auth/google/callback`.
 
 Magic-link emails are rate limited by default:
 
@@ -123,4 +123,22 @@ Build both:
 
 ```bash
 npm run build:all
+```
+
+## Deployment
+
+The live app runs on the shared VM at `https://geschenk.mteschke.com`.
+
+Deploy with:
+
+```bash
+./deploy/update-vm.sh
+```
+
+Live database maintenance commands should be run inside the API container on the VM, for example:
+
+```bash
+ssh root@165.227.2.163
+cd /opt/apps/geschenk25/deploy
+docker compose exec -T geschenk-api npm run seed-dev-accounts --workspace @geschenk/api
 ```

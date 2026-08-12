@@ -7,7 +7,7 @@ const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   console.error('ERROR: DATABASE_URL environment variable is not set!');
-  console.error('Please set DATABASE_URL in your Render environment variables.');
+  console.error('Please set DATABASE_URL in your API environment variables.');
   throw new Error('DATABASE_URL is required');
 }
 

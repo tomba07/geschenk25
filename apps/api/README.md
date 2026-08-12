@@ -58,17 +58,14 @@ All group endpoints require authentication (Authorization header).
   - Body: `{ name: string, description?: string }`
 - `DELETE /api/groups/:id` - Delete group
 
-## Deployment to Render
+## Deployment
 
-1. Create a new Web Service on Render
-2. Connect your GitHub repository
-3. Set build command: `npm install && npm run build`
-4. Set start command: `npm start`
-5. Add environment variables:
-   - `DATABASE_URL` (from your Render PostgreSQL database)
-   - `JWT_SECRET` (generate a random string)
-   - `NODE_ENV=production`
-   - `APP_BASE_URL` (web app URL)
-   - `API_BASE_URL` (API URL, used for OAuth callbacks)
-   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (optional, enables Google OAuth)
-6. After deployment, run migrations: `npm run migrate`
+The API is deployed as the `geschenk-api` service in the VM Docker Compose stack.
+
+From the repository root:
+
+```bash
+./deploy/update-vm.sh
+```
+
+The live API is available behind Caddy at `https://geschenk.mteschke.com/api/*`.

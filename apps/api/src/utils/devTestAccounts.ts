@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import pool from '../db';
 
-export const DEV_TEST_PASSWORD = 'password123';
+export const DEFAULT_DEV_TEST_PASSWORD = 'password123';
 export const DEV_TEST_ACCOUNTS = [
   { email: 'dev.alex@geschenk.test', username: 'dev_alex' },
   { email: 'dev.bailey@geschenk.test', username: 'dev_bailey' },
@@ -12,6 +12,10 @@ export const DEV_TEST_ACCOUNTS = [
 
 export function devToolsEnabled() {
   return process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_TOOLS === 'true';
+}
+
+export function getDevTestPassword() {
+  return process.env.DEV_TEST_PASSWORD || DEFAULT_DEV_TEST_PASSWORD;
 }
 
 async function createFriendship(client: any, firstUserId: number, secondUserId: number) {
@@ -28,7 +32,8 @@ async function createFriendship(client: any, firstUserId: number, secondUserId: 
 export async function ensureDevTestAccounts(friendUserId?: number) {
   const client = await pool.connect();
   try {
-    const passwordHash = await bcrypt.hash(DEV_TEST_PASSWORD, 10);
+    const password = getDevTestPassword();
+    const passwordHash = await bcrypt.hash(password, 10);
     const createdAccounts = [];
 
     await client.query('BEGIN');
@@ -57,7 +62,7 @@ export async function ensureDevTestAccounts(friendUserId?: number) {
     }
 
     await client.query('COMMIT');
-    return createdAccounts.map((account) => ({ ...account, password: DEV_TEST_PASSWORD }));
+    return createdAccounts.map((account) => ({ ...account, password }));
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
