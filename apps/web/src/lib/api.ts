@@ -41,6 +41,67 @@ export interface FriendRequest {
   created_at: string;
 }
 
+export interface DevUser {
+  id: number;
+  email: string;
+  username: string;
+  image_url?: string | null;
+  created_at?: string;
+}
+
+export interface DevTestAccount {
+  id?: number;
+  email: string;
+  username: string;
+  password: string;
+  image_url?: string | null;
+}
+
+export interface DevGroupMember extends DevUser {
+  joined_at: string;
+  role: 'owner' | 'member';
+}
+
+export interface DevAssignment {
+  giver_id: number;
+  receiver_id: number;
+  giver_username: string;
+  receiver_username: string;
+}
+
+export interface DevGiftIdea {
+  id: number;
+  group_id: number;
+  for_user_id: number;
+  created_by_id: number;
+  idea: string;
+  link?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by_username: string;
+  for_user_username: string;
+}
+
+export interface DevGroup {
+  id: number;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  created_at: string;
+  created_by: number;
+  owner_username: string;
+  member_count: number;
+  members: DevGroupMember[];
+  assignments: DevAssignment[];
+  gift_ideas: DevGiftIdea[];
+}
+
+export interface DevState {
+  users: DevUser[];
+  groups: DevGroup[];
+  test_accounts: DevTestAccount[];
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -419,6 +480,62 @@ class ApiClient {
 
   async deleteGiftIdea(groupId: number, ideaId: number) {
     return this.request<{ message: string }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Dev/testing endpoints
+  async getDevState() {
+    return this.request<DevState>('/api/dev/state');
+  }
+
+  async createDevTestAccounts() {
+    return this.request<{ accounts: DevTestAccount[]; state: DevState }>('/api/dev/test-accounts', {
+      method: 'POST',
+    });
+  }
+
+  async createDevGroup(name: string, ownerId: number, memberIds: number[]) {
+    return this.request<{ group_id: number; state: DevState }>('/api/dev/groups', {
+      method: 'POST',
+      body: JSON.stringify({ name, owner_id: ownerId, member_ids: memberIds }),
+    });
+  }
+
+  async addDevGroupMember(groupId: number, userId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    });
+  }
+
+  async removeDevGroupMember(groupId: number, userId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addDevGiftIdea(groupId: number, forUserId: number, createdById: number, idea: string, link?: string) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas`, {
+      method: 'POST',
+      body: JSON.stringify({ for_user_id: forUserId, created_by_id: createdById, idea, link }),
+    });
+  }
+
+  async removeDevGiftIdea(groupId: number, ideaId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas/${ideaId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async assignDevGroup(groupId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/assign`, {
+      method: 'POST',
+    });
+  }
+
+  async unassignDevGroup(groupId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/assignments`, {
       method: 'DELETE',
     });
   }

@@ -2912,6 +2912,198 @@ select:focus {
   transform: translateY(-1px);
 }
 
+.dev-admin-screen {
+  background: #f8fbff;
+}
+
+.dev-admin-content {
+  display: grid;
+  gap: 18px;
+}
+
+.dev-admin-panel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+}
+
+.dev-panel-heading,
+.dev-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dev-panel-heading h2,
+.dev-section-title-row h3 {
+  margin: 0;
+  color: #08245a;
+  line-height: 1.15;
+}
+
+.dev-panel-heading h2 {
+  font-size: 18px;
+}
+
+.dev-panel-heading span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dev-account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.dev-account-card {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 12px;
+}
+
+.dev-account-card strong,
+.dev-account-card span,
+.dev-account-card small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-account-card span,
+.dev-account-card small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dev-create-group {
+  align-content: start;
+}
+
+.dev-check-list {
+  max-height: 220px;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 10px;
+}
+
+.dev-check-row {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #08245a;
+  font-weight: 700;
+}
+
+.dev-check-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1559b7;
+}
+
+.dev-group-workbench {
+  min-width: 0;
+}
+
+.dev-workbench-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.dev-workbench-section {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.dev-inline-action {
+  min-width: min(100%, 320px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.dev-inline-action select {
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.dev-list {
+  display: grid;
+  gap: 8px;
+}
+
+.dev-list-row {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.dev-list-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.dev-list-row strong,
+.dev-list-row span,
+.dev-list-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-list-row small,
+.dev-list-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dev-gift-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dev-gift-form input,
+.dev-gift-form select {
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.dev-gift-form button {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+
 .file-button {
   position: relative;
   display: inline-grid;
@@ -3197,6 +3389,25 @@ hr {
   .overview-group-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .dev-admin-content {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .dev-admin-accounts,
+  .dev-group-workbench {
+    grid-column: 1 / -1;
+  }
+
+  .dev-workbench-grid {
+    grid-template-columns: minmax(240px, 0.75fr) minmax(280px, 1fr);
+    align-items: start;
+  }
+
+  .dev-gift-section {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 719px) {
@@ -3216,6 +3427,34 @@ hr {
   }
 
   .friends-screen .overview-page-header .primary-button {
+    width: 100%;
+  }
+
+  .dev-admin-screen .overview-page-header {
+    display: flex;
+    min-height: 0;
+    padding: 14px 0 6px;
+  }
+
+  .dev-panel-heading,
+  .dev-section-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dev-panel-heading .compact,
+  .dev-section-title-row .button-row,
+  .dev-inline-action,
+  .dev-gift-form {
+    width: 100%;
+  }
+
+  .dev-gift-form {
+    grid-template-columns: 1fr;
+  }
+
+  .dev-gift-form button,
+  .dev-section-title-row .button-row button {
     width: 100%;
   }
 

@@ -9,6 +9,7 @@ import GroupDetailScreen from './screens/GroupDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import FriendsScreen from './screens/FriendsScreen';
+import DevAdminScreen from './screens/DevAdminScreen';
 import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
@@ -29,6 +30,7 @@ type Route =
   | { name: 'auth-callback'; token: string | null }
   | { name: 'profile' }
   | { name: 'friends' }
+  | { name: 'dev' }
   | { name: 'group'; groupId: string }
   | { name: 'friend-invite'; username: string };
 
@@ -46,6 +48,7 @@ function parseRoute(): Route {
   if (path === '/auth/callback') return { name: 'auth-callback', token: new URLSearchParams(window.location.search).get('token') };
   if (path === '/friends') return { name: 'friends' };
   if (path === '/profile') return { name: 'profile' };
+  if (path === '/dev') return { name: 'dev' };
   return { name: 'home' };
 }
 
@@ -57,6 +60,7 @@ function routePath(route: Route): string {
   if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
   if (route.name === 'friends') return '/friends';
   if (route.name === 'profile') return '/profile';
+  if (route.name === 'dev') return '/dev';
   return '/';
 }
 
@@ -336,13 +340,14 @@ function AppContent() {
 
   const content = useMemo(() => {
     if (isLoading) {
-      if (hasStoredAuth() && ['home', 'friends', 'profile', 'group'].includes(route.name)) {
+      if (hasStoredAuth() && ['home', 'friends', 'profile', 'group', 'dev'].includes(route.name)) {
         return (
           <AppShell
-            active={route.name === 'profile' ? 'profile' : route.name === 'friends' ? 'friends' : 'groups'}
+            active={route.name === 'profile' ? 'profile' : route.name === 'friends' ? 'friends' : route.name === 'dev' ? 'dev' : 'groups'}
             onNavigateGroups={() => navigate({ name: 'home' })}
             onNavigateFriends={() => navigate({ name: 'friends' })}
             onNavigateProfile={() => navigate({ name: 'profile' })}
+            onNavigateDev={() => navigate({ name: 'dev' })}
           >
             <LoadingScreen route={route} />
           </AppShell>
@@ -394,7 +399,7 @@ function AppContent() {
 
     if (route.name === 'group') {
       return (
-        <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
           <GroupDetailScreen groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />
         </AppShell>
       );
@@ -402,7 +407,7 @@ function AppContent() {
 
     if (route.name === 'friends') {
       return (
-        <AppShell active="friends" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <AppShell active="friends" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
           <FriendsScreen />
         </AppShell>
       );
@@ -410,14 +415,22 @@ function AppContent() {
 
     if (route.name === 'profile') {
       return (
-        <AppShell active="profile" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+        <AppShell active="profile" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
           <ProfileScreen onBack={() => navigate({ name: 'home' })} />
         </AppShell>
       );
     }
 
+    if (route.name === 'dev') {
+      return (
+        <AppShell active="dev" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
+          <DevAdminScreen />
+        </AppShell>
+      );
+    }
+
     return (
-      <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })}>
+      <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
         <HomeScreen
           key={refreshHomeKey}
           onGroupPress={(groupId) => navigate({ name: 'group', groupId })}

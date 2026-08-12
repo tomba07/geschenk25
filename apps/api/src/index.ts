@@ -5,7 +5,9 @@ import authRoutes from './routes/auth';
 import friendsRoutes from './routes/friends';
 import groupsRoutes from './routes/groups';
 import notificationsRoutes from './routes/notifications';
+import devRoutes from './routes/dev';
 import { runMigrations } from './migrate';
+import { devToolsEnabled, ensureDevTestAccounts } from './utils/devTestAccounts';
 
 dotenv.config();
 
@@ -14,6 +16,8 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 const MIGRATION_RETRY_DELAY_MS = 5000;
 const MIGRATION_MAX_ATTEMPTS = 12;
+const DEV_SEED_RETRY_DELAY_MS = 1000;
+const DEV_SEED_MAX_ATTEMPTS = 5;
 let migrationsReady = process.env.RUN_MIGRATIONS_ON_START !== 'true';
 
 // Middleware
@@ -45,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/dev', devRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: any, res: any, _next: any) => {
@@ -58,6 +63,7 @@ async function runStartupMigrationsWithRetry() {
       await runMigrations();
       migrationsReady = true;
       console.log('Startup migrations completed successfully');
+      seedDevTestAccountsWithRetry();
       return;
     } catch (error) {
       console.error(`Startup migrations failed (attempt ${attempt}/${MIGRATION_MAX_ATTEMPTS}):`, error);
@@ -72,12 +78,35 @@ async function runStartupMigrationsWithRetry() {
   }
 }
 
+async function seedDevTestAccountsWithRetry() {
+  if (!devToolsEnabled()) return;
+
+  for (let attempt = 1; attempt <= DEV_SEED_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const accounts = await ensureDevTestAccounts();
+      console.log(`Dev test accounts ready: ${accounts.map((account) => account.email).join(', ')}`);
+      return;
+    } catch (error) {
+      console.error(`Dev test account seed failed (attempt ${attempt}/${DEV_SEED_MAX_ATTEMPTS}):`, error);
+
+      if (attempt === DEV_SEED_MAX_ATTEMPTS) {
+        console.error('Dev test account seed failed after all retry attempts');
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, DEV_SEED_RETRY_DELAY_MS));
+    }
+  }
+}
+
 function startServer() {
   app.listen(Number(PORT), HOST, () => {
     console.log(`Server running on ${HOST}:${PORT}`);
 
     if (process.env.RUN_MIGRATIONS_ON_START === 'true') {
       runStartupMigrationsWithRetry();
+    } else {
+      seedDevTestAccountsWithRetry();
     }
   }).on('error', (err: any) => {
     console.error('Failed to start server:', err);

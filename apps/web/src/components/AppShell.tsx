@@ -4,14 +4,15 @@ import { apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
 import { FRIEND_REQUESTS_UPDATED_EVENT } from '../utils/friendRequests';
 
-type SidebarIconName = 'groups' | 'friends' | 'profile' | 'signout';
+type SidebarIconName = 'groups' | 'friends' | 'profile' | 'dev' | 'signout';
 
 interface AppShellProps {
-  active: 'groups' | 'friends' | 'profile';
+  active: 'groups' | 'friends' | 'profile' | 'dev';
   children: ReactNode;
   onNavigateGroups: () => void;
   onNavigateFriends: () => void;
   onNavigateProfile: () => void;
+  onNavigateDev?: () => void;
 }
 
 function SidebarIcon({ name }: { name: SidebarIconName }) {
@@ -38,6 +39,16 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
           <path d="M14.75 15.25a4.25 4.25 0 0 1 5.5 4" />
         </>
       )}
+      {name === 'dev' && (
+        <>
+          <path d="M4.75 6.75h14.5" />
+          <path d="M4.75 12h14.5" />
+          <path d="M4.75 17.25h14.5" />
+          <path d="M8.25 4.75v4" />
+          <path d="M15.75 10v4" />
+          <path d="M10.75 15.25v4" />
+        </>
+      )}
       {name === 'signout' && (
         <>
           <path d="M14.25 5.25h-7.5v13.5h7.5" />
@@ -49,11 +60,12 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
   );
 }
 
-export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile }: AppShellProps) {
+export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile, onNavigateDev }: AppShellProps) {
   const { signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
-  const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Edit Profile' : 'Groups';
+  const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Edit Profile' : active === 'dev' ? 'Dev Admin' : 'Groups';
+  const devNavVisible = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true';
 
   const loadFriendRequestCount = useCallback(async () => {
     const response = await apiClient.getFriendRequests();
@@ -106,6 +118,11 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
           <button className={`sidebar-nav-item ${active === 'profile' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateProfile(); }}>
             <SidebarIcon name="profile" /> <span className="sidebar-nav-label">Profile</span>
           </button>
+          {devNavVisible && onNavigateDev && (
+            <button className={`sidebar-nav-item ${active === 'dev' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateDev(); }}>
+              <SidebarIcon name="dev" /> <span className="sidebar-nav-label">Dev</span>
+            </button>
+          )}
         </nav>
         <button className="sidebar-signout" type="button" onClick={signOutConfirmed}>
           <SidebarIcon name="signout" /> <span className="sidebar-nav-label">Sign out</span>
