@@ -1,30 +1,32 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import pool from '../db';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
-import { escapeHtml, renderEmailTemplate } from '../utils/emailTemplates';
+import {
+  PASSWORD_RESET_EXPIRES_MINUTES,
+  createLocalMagicLinkToken,
+  createPasswordResetToken,
+  sendMagicLink,
+  sendPasswordResetEmail,
+} from '../services/authEmailService';
+import { checkAuthEmailRateLimit } from '../services/authRateLimitService';
+import {
+  createMagicToken,
+  createOAuthState,
+  createSessionToken,
+  hashMagicToken,
+  shortHash,
+  shouldLogMagicLinkDetails,
+  verifyOAuthState,
+} from '../services/authTokenService';
+import { appBaseUrl, googleRedirectUri, magicLinkBaseUrl, oauthErrorRedirect } from '../services/authUrlService';
 
 const router = express.Router();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
-const EMAIL_COOLDOWN_MS = Number(process.env.AUTH_EMAIL_COOLDOWN_SECONDS || 60) * 1000;
-const EMAIL_MAX_PER_HOUR = Number(process.env.AUTH_EMAIL_MAX_PER_HOUR || 5);
-const IP_MAX_PER_HOUR = Number(process.env.AUTH_EMAIL_IP_MAX_PER_HOUR || 20);
-const EMAIL_RATE_WINDOW_MS = 60 * 60 * 1000;
-const PASSWORD_RESET_EXPIRES_MINUTES = 30;
-
-type RateLimitBucket = {
-  count: number;
-  firstAttemptAt: number;
-  lastAttemptAt: number;
-};
-
-const emailRateLimits = new Map<string, RateLimitBucket>();
-const ipRateLimits = new Map<string, RateLimitBucket>();
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -40,262 +42,6 @@ function validateUsername(username: string) {
   return null;
 }
 
-function pruneRateLimitMap(map: Map<string, RateLimitBucket>, now: number) {
-  for (const [key, bucket] of map.entries()) {
-    if (now - bucket.firstAttemptAt > EMAIL_RATE_WINDOW_MS) {
-      map.delete(key);
-    }
-  }
-}
-
-function getRateLimitBucket(map: Map<string, RateLimitBucket>, key: string, now: number) {
-  const bucket = map.get(key);
-  if (!bucket || now - bucket.firstAttemptAt > EMAIL_RATE_WINDOW_MS) {
-    const nextBucket = { count: 0, firstAttemptAt: now, lastAttemptAt: 0 };
-    map.set(key, nextBucket);
-    return nextBucket;
-  }
-  return bucket;
-}
-
-function checkMagicLinkRateLimit(req: Request, email: string) {
-  const now = Date.now();
-  pruneRateLimitMap(emailRateLimits, now);
-  pruneRateLimitMap(ipRateLimits, now);
-
-  const emailBucket = getRateLimitBucket(emailRateLimits, email, now);
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
-  const ipBucket = getRateLimitBucket(ipRateLimits, ip, now);
-
-  const emailCooldownRemainingMs = emailBucket.lastAttemptAt > 0
-    ? EMAIL_COOLDOWN_MS - (now - emailBucket.lastAttemptAt)
-    : 0;
-
-  if (emailCooldownRemainingMs > 0) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.ceil(emailCooldownRemainingMs / 1000),
-      message: 'Please wait before requesting another email.',
-    };
-  }
-
-  if (emailBucket.count >= EMAIL_MAX_PER_HOUR) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.ceil((EMAIL_RATE_WINDOW_MS - (now - emailBucket.firstAttemptAt)) / 1000),
-      message: 'Too many emails requested for this address. Please try again later.',
-    };
-  }
-
-  if (ipBucket.count >= IP_MAX_PER_HOUR) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.ceil((EMAIL_RATE_WINDOW_MS - (now - ipBucket.firstAttemptAt)) / 1000),
-      message: 'Too many email requests. Please try again later.',
-    };
-  }
-
-  emailBucket.count += 1;
-  emailBucket.lastAttemptAt = now;
-  ipBucket.count += 1;
-  ipBucket.lastAttemptAt = now;
-
-  return { allowed: true, retryAfterSeconds: 0, message: '' };
-}
-
-function createSessionToken(user: any) {
-  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-  return jwt.sign(
-    { userId: user.id, username: user.username || null },
-    secret,
-    { expiresIn: '7d' }
-  );
-}
-
-function createOAuthState(mode: string) {
-  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-  return jwt.sign({ provider: 'google', mode }, secret, { expiresIn: '10m' });
-}
-
-function verifyOAuthState(state: string) {
-  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-  const decoded = jwt.verify(state, secret) as any;
-  if (decoded.provider !== 'google') {
-    throw new Error('Invalid OAuth state');
-  }
-  return decoded;
-}
-
-function createMagicToken() {
-  return crypto.randomBytes(32).toString('base64url');
-}
-
-function hashMagicToken(token: string) {
-  return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-function shortHash(value: string) {
-  return value.slice(0, 10);
-}
-
-function shouldLogMagicLinkDetails() {
-  return process.env.DEBUG_MAGIC_LINKS === 'true';
-}
-
-function appBaseUrl() {
-  return process.env.APP_BASE_URL || process.env.WEB_URL || 'http://localhost:5173';
-}
-
-function magicLinkBaseUrl(req: Request) {
-  const origin = req.get('origin');
-  const isLocalOrigin = origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  return process.env.NODE_ENV !== 'production' && isLocalOrigin ? origin : appBaseUrl();
-}
-
-function apiBaseUrl(req: Request) {
-  return (process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-}
-
-function googleRedirectUri(req: Request) {
-  return `${apiBaseUrl(req)}/api/auth/google/callback`;
-}
-
-function oauthErrorRedirect(message: string) {
-  const baseUrl = appBaseUrl().replace(/\/$/, '');
-  return `${baseUrl}/login?error=${encodeURIComponent(message)}`;
-}
-
-async function createLocalMagicLinkToken(email: string) {
-  const token = createMagicToken();
-  const tokenHash = hashMagicToken(token);
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
-  await pool.query(
-    'UPDATE magic_links SET used_at = NOW() WHERE email = $1 AND used_at IS NULL',
-    [email]
-  );
-
-  await pool.query(
-    'INSERT INTO magic_links (email, username, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
-    [email, null, tokenHash, expiresAt]
-  );
-
-  return token;
-}
-
-async function sendTransactionalEmail({
-  to,
-  subject,
-  html,
-  text,
-}: {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-}) {
-  const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
-
-  if (emailDeliveryDisabled || !resendApiKey || !from) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('Email provider is not configured');
-    }
-
-    return { delivered: false };
-  }
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject,
-      html,
-      text,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to send email: ${body}`);
-  }
-
-  return { delivered: true };
-}
-
-async function sendMagicLink(email: string, link: string) {
-  const delivery = await sendTransactionalEmail({
-    to: email,
-    subject: 'Sign in to Geschenk',
-    html: renderEmailTemplate({
-      preheader: 'Use this link to sign in to Geschenk. It expires in 15 minutes.',
-      eyebrow: 'Secure sign in',
-      title: 'Sign in to Geschenk',
-      bodyHtml: '<p style="margin: 0;">Use this secure link to sign in. It expires in 15 minutes.</p>',
-      action: {
-        label: 'Sign in to Geschenk',
-        url: link,
-      },
-      footerHtml: `If you did not request this email, you can ignore it. For security, this link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
-    }),
-    text: `Use this link to sign in to Geschenk: ${link}\n\nThis link expires in 15 minutes.`,
-  });
-
-  if (!delivery.delivered) {
-    console.log(`Magic link for ${email}: ${link}`);
-  }
-
-  return delivery;
-}
-
-async function createPasswordResetToken(userId: number) {
-  const token = createMagicToken();
-  const tokenHash = hashMagicToken(token);
-  const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRES_MINUTES * 60 * 1000);
-
-  await pool.query(
-    'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
-    [userId]
-  );
-
-  await pool.query(
-    'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
-    [userId, tokenHash, expiresAt]
-  );
-
-  return { token, tokenHash, expiresAt };
-}
-
-async function sendPasswordResetEmail(email: string, link: string) {
-  const delivery = await sendTransactionalEmail({
-    to: email,
-    subject: 'Reset your Geschenk password',
-    html: renderEmailTemplate({
-      preheader: `Use this link to reset your Geschenk password. It expires in ${PASSWORD_RESET_EXPIRES_MINUTES} minutes.`,
-      eyebrow: 'Password reset',
-      title: 'Reset your Geschenk password',
-      bodyHtml: '<p style="margin: 0;">Use this secure link to choose a new password.</p>',
-      action: {
-        label: 'Reset password',
-        url: link,
-      },
-      footerHtml: `If you did not request this email, you can ignore it. This link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
-    }),
-    text: `Use this link to reset your Geschenk password: ${link}\n\nThis link expires in ${PASSWORD_RESET_EXPIRES_MINUTES} minutes.`,
-  });
-
-  if (!delivery.delivered) {
-    console.log(`Password reset link for ${email}: ${link}`);
-  }
-
-  return delivery;
-}
 
 router.get('/google/start', (req: Request, res: Response) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -416,7 +162,7 @@ router.post('/request-link', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    const rateLimit = checkMagicLinkRateLimit(req, normalizedEmail);
+    const rateLimit = checkAuthEmailRateLimit(req, normalizedEmail);
     if (!rateLimit.allowed) {
       res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
       return res.status(429).json({
@@ -500,7 +246,7 @@ router.post('/password-reset/request', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    const rateLimit = checkMagicLinkRateLimit(req, normalizedEmail);
+    const rateLimit = checkAuthEmailRateLimit(req, normalizedEmail);
     if (!rateLimit.allowed) {
       res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
       return res.status(429).json({
