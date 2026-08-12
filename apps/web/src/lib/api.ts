@@ -45,6 +45,7 @@ export interface DevUser {
   id: number;
   email: string;
   username: string;
+  is_test_account?: boolean;
   image_url?: string | null;
   created_at?: string;
 }

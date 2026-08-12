@@ -39,13 +39,14 @@ export async function ensureDevTestAccounts(friendUserId?: number) {
     await client.query('BEGIN');
     for (const account of DEV_TEST_ACCOUNTS) {
       const result = await client.query(
-        `INSERT INTO users (email, username, password_hash, email_verified_at)
-         VALUES ($1, $2, $3, NOW())
+        `INSERT INTO users (email, username, password_hash, email_verified_at, is_test_account)
+         VALUES ($1, $2, $3, NOW(), true)
          ON CONFLICT (email) DO UPDATE
          SET username = EXCLUDED.username,
              password_hash = EXCLUDED.password_hash,
-             email_verified_at = COALESCE(users.email_verified_at, NOW())
-         RETURNING id, email, username, image_url`,
+             email_verified_at = COALESCE(users.email_verified_at, NOW()),
+             is_test_account = true
+         RETURNING id, email, username, image_url, is_test_account`,
         [account.email, account.username, passwordHash]
       );
       createdAccounts.push(result.rows[0]);

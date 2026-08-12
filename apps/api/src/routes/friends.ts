@@ -18,7 +18,7 @@ async function findUserByUsername(username: string) {
   if (!normalizedUsername) return null;
 
   const result = await pool.query(
-    'SELECT id, username, image_url FROM users WHERE LOWER(username) = $1',
+    'SELECT id, username, image_url FROM users WHERE LOWER(username) = $1 AND is_test_account = false',
     [normalizedUsername]
   );
 
@@ -128,6 +128,7 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
          ON incoming.requester_id = u.id AND incoming.addressee_id = $1 AND incoming.status = 'pending'
        WHERE u.id != $1
          AND u.username IS NOT NULL
+         AND u.is_test_account = false
          AND LOWER(u.username) LIKE $2
        ORDER BY u.username
        LIMIT 20`,
@@ -154,7 +155,7 @@ router.post('/requests', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'You cannot add yourself' });
     }
 
-    const targetResult = await pool.query('SELECT id, username FROM users WHERE id = $1 AND username IS NOT NULL', [targetUserId]);
+    const targetResult = await pool.query('SELECT id, username FROM users WHERE id = $1 AND username IS NOT NULL AND is_test_account = false', [targetUserId]);
     if (targetResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }

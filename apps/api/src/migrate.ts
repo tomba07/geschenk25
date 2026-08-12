@@ -10,6 +10,7 @@ export async function runMigrations() {
         password_hash VARCHAR(255),
         image_url TEXT,
         email_verified_at TIMESTAMPTZ,
+        is_test_account BOOLEAN NOT NULL DEFAULT false,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -80,6 +81,26 @@ export async function runMigrations() {
           ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMPTZ;
         END IF;
       END $$;
+    `);
+
+  // Mark seeded test accounts explicitly so production behavior does not rely on email heuristics.
+  await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'is_test_account'
+        ) THEN
+          ALTER TABLE users ADD COLUMN is_test_account BOOLEAN NOT NULL DEFAULT false;
+        END IF;
+      END $$;
+    `);
+
+  await pool.query(`
+      UPDATE users
+      SET is_test_account = true
+      WHERE email LIKE 'dev.%@geschenk.test'
+         OR username LIKE 'dev\\_%' ESCAPE '\\'
     `);
 
   await pool.query(`
@@ -313,6 +334,10 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_is_test_account ON users(is_test_account)
     `);
 
   await pool.query(`

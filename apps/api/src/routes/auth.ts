@@ -589,7 +589,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const searchTerm = `%${q.toLowerCase().trim()}%`;
     const result = await pool.query(
-      'SELECT id, username, image_url FROM users WHERE username IS NOT NULL AND username LIKE $1 ORDER BY username LIMIT 20',
+      'SELECT id, username, image_url FROM users WHERE username IS NOT NULL AND is_test_account = false AND username LIKE $1 ORDER BY username LIMIT 20',
       [searchTerm]
     );
 

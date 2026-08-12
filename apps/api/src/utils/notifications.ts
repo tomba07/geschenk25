@@ -55,8 +55,11 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
   const preferences = await ensureNotificationPreferences(userId);
   if (!preferences.email_enabled) return;
 
-  const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
-  const email = userResult.rows[0]?.email;
+  const userResult = await pool.query('SELECT email, is_test_account FROM users WHERE id = $1', [userId]);
+  const user = userResult.rows[0];
+  if (!user || user.is_test_account) return;
+
+  const email = user.email;
   if (!email) return;
   if (!isDeliverableNotificationEmail(email)) return;
 

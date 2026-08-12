@@ -43,12 +43,12 @@ function requireDevTools(_req: AuthRequest, res: Response, next: NextFunction) {
 
 async function getGroupMembers(groupId: number) {
   const result = await pool.query(
-    `SELECT u.id, u.username, u.email, u.image_url, g.created_at as joined_at, 'owner' as role
+    `SELECT u.id, u.username, u.email, u.image_url, u.is_test_account, g.created_at as joined_at, 'owner' as role
      FROM groups g
      JOIN users u ON u.id = g.created_by
      WHERE g.id = $1
      UNION ALL
-     SELECT u.id, u.username, u.email, u.image_url, gm.joined_at, 'member' as role
+     SELECT u.id, u.username, u.email, u.image_url, u.is_test_account, gm.joined_at, 'member' as role
      FROM group_members gm
      JOIN users u ON u.id = gm.user_id
      WHERE gm.group_id = $1 AND (gm.status IS NULL OR gm.status = 'active')
@@ -62,7 +62,7 @@ async function getGroupMembers(groupId: number) {
 async function getDevState() {
   const [usersResult, groupsResult] = await Promise.all([
     pool.query(
-      `SELECT id, email, username, image_url, created_at
+      `SELECT id, email, username, image_url, is_test_account, created_at
        FROM users
        WHERE username IS NOT NULL
        ORDER BY username ASC`

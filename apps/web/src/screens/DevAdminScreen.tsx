@@ -33,7 +33,7 @@ export default function DevAdminScreen() {
   const availableMembers = users.filter((user) => !selectedGroupMemberIds.has(user.id));
   const selectedGroupMembers = selectedGroup?.members || [];
   const devUserIds = useMemo(
-    () => users.filter((user) => user.email.endsWith('@geschenk.test')).map((user) => user.id),
+    () => users.filter((user) => user.is_test_account || user.email.endsWith('@geschenk.test')).map((user) => user.id),
     [users]
   );
   const canCreateGroup = Boolean(groupName.trim() && ownerId);
@@ -41,7 +41,7 @@ export default function DevAdminScreen() {
 
   const applyDevState = useCallback((nextState: DevState) => {
     setState(nextState);
-    const devUsers = nextState.users.filter((user) => user.email.endsWith('@geschenk.test'));
+    const devUsers = nextState.users.filter((user) => user.is_test_account || user.email.endsWith('@geschenk.test'));
     const nextOwnerId = userId || devUsers[0]?.id || nextState.users[0]?.id || '';
     setOwnerId((currentOwnerId) => currentOwnerId || nextOwnerId);
     setMemberIds((currentMemberIds) => (
