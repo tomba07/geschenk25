@@ -1,7 +1,8 @@
 import express from 'express';
 import pool from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-import { ensureNotificationPreferences, getPushNotificationConfig } from '../utils/notifications';
+import { devToolsEnabled } from '../utils/devTestAccounts';
+import { ensureNotificationPreferences, getPushNotificationConfig, sendPushNotificationToUser } from '../utils/notifications';
 
 const router = express.Router();
 
@@ -136,6 +137,35 @@ router.delete('/push-subscriptions', async (req: AuthRequest, res) => {
   } catch (error: any) {
     console.error('Error removing push subscription:', error);
     res.status(500).json({ error: 'Failed to disable push notifications' });
+  }
+});
+
+router.post('/push-test', async (req: AuthRequest, res) => {
+  if (!devToolsEnabled()) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  try {
+    const subscriptionsResult = await pool.query(
+      'SELECT COUNT(*)::int as count FROM push_subscriptions WHERE user_id = $1',
+      [req.userId!]
+    );
+    const count = subscriptionsResult.rows[0]?.count || 0;
+
+    if (count === 0) {
+      return res.status(400).json({ error: 'No push subscription is saved for this user.' });
+    }
+
+    await sendPushNotificationToUser(req.userId!, {
+      title: 'Geschenk test notification',
+      body: 'Push notifications are working on this device.',
+      url: '/profile',
+    });
+
+    res.json({ message: 'Test push sent' });
+  } catch (error: any) {
+    console.error('Error sending test push:', error);
+    res.status(500).json({ error: 'Failed to send test push' });
   }
 });
 

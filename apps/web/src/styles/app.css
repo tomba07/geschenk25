@@ -2160,6 +2160,8 @@ select:focus {
 
 .profile-save-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
 }
 
@@ -2956,37 +2958,6 @@ select:focus {
   font-weight: 800;
 }
 
-.dev-account-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-.dev-account-card {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #f8fbff;
-  padding: 12px;
-}
-
-.dev-account-card strong,
-.dev-account-card span,
-.dev-account-card small {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dev-account-card span,
-.dev-account-card small {
-  color: var(--muted);
-  font-size: 13px;
-}
-
 .dev-create-group {
   align-content: start;
 }
@@ -3391,13 +3362,12 @@ hr {
   }
 
   .dev-admin-content {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
-  .dev-admin-accounts,
   .dev-group-workbench {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .dev-workbench-grid {

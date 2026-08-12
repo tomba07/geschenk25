@@ -10,6 +10,15 @@ export function isIosDevice() {
   return /iphone|ipad|ipod/.test(userAgent) || iPadOnDesktopSafari;
 }
 
+export function isSafariBrowser() {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return userAgent.includes('safari')
+    && !userAgent.includes('chrome')
+    && !userAgent.includes('crios')
+    && !userAgent.includes('fxios')
+    && !userAgent.includes('edg');
+}
+
 export function shouldShowIosInstallHint() {
   return isIosDevice() && !isStandaloneApp();
 }

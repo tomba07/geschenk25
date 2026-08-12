@@ -32,12 +32,23 @@ export default function DevAdminScreen() {
   const users = state?.users || [];
   const availableMembers = users.filter((user) => !selectedGroupMemberIds.has(user.id));
   const selectedGroupMembers = selectedGroup?.members || [];
+  const devUserIds = useMemo(
+    () => users.filter((user) => user.email.endsWith('@geschenk.test')).map((user) => user.id),
+    [users]
+  );
   const canCreateGroup = Boolean(groupName.trim() && ownerId);
   const canAddGiftIdea = Boolean(selectedGroup && giftForUserId && giftCreatedById && giftIdea.trim());
 
   const applyDevState = useCallback((nextState: DevState) => {
     setState(nextState);
-    setOwnerId((currentOwnerId) => currentOwnerId || userId || nextState.users[0]?.id || '');
+    const devUsers = nextState.users.filter((user) => user.email.endsWith('@geschenk.test'));
+    const nextOwnerId = userId || devUsers[0]?.id || nextState.users[0]?.id || '';
+    setOwnerId((currentOwnerId) => currentOwnerId || nextOwnerId);
+    setMemberIds((currentMemberIds) => (
+      currentMemberIds.length > 0
+        ? currentMemberIds
+        : devUsers.map((user) => user.id).filter((id) => id !== nextOwnerId)
+    ));
     setGiftCreatedById((currentCreatorId) => currentCreatorId || userId || nextState.users[0]?.id || '');
     setSelectedGroupId((currentGroupId) => {
       if (currentGroupId && nextState.groups.some((group) => group.id === currentGroupId)) return currentGroupId;
@@ -72,6 +83,15 @@ export default function DevAdminScreen() {
     setGiftCreatedById((currentId) => currentId && selectedGroupMemberIds.has(currentId) ? currentId : firstMemberId);
   }, [selectedGroup, selectedGroupMemberIds]);
 
+  useEffect(() => {
+    if (!ownerId || devUserIds.length === 0) return;
+    setMemberIds((currentMemberIds) => {
+      const devMembers = devUserIds.filter((id) => id !== ownerId);
+      const nonDevMembers = currentMemberIds.filter((id) => !devUserIds.includes(id) && id !== ownerId);
+      return [...devMembers, ...nonDevMembers];
+    });
+  }, [devUserIds, ownerId]);
+
   const runAction = async (label: string, action: () => Promise<DevState | undefined>, successMessage: string) => {
     setBusyAction(label);
     try {
@@ -87,12 +107,6 @@ export default function DevAdminScreen() {
     }
   };
 
-  const createTestAccounts = () => runAction('test-accounts', async () => {
-    const response = await apiClient.createDevTestAccounts();
-    if (response.error || !response.data) throw new Error(response.error || 'Failed to create test accounts');
-    return response.data.state;
-  }, 'Test accounts ready');
-
   const createGroup = (event: FormEvent) => {
     event.preventDefault();
     if (!ownerId) return;
@@ -102,7 +116,7 @@ export default function DevAdminScreen() {
       if (response.error || !response.data) throw new Error(response.error || 'Failed to create group');
       setSelectedGroupId(response.data.group_id);
       setGroupName('Dev Gift Exchange');
-      setMemberIds([]);
+      setMemberIds(devUserIds.filter((id) => id !== ownerId));
       return response.data.state;
     }, 'Group created');
   };
@@ -154,6 +168,15 @@ export default function DevAdminScreen() {
     }, 'Gift idea removed');
   };
 
+  const addRandomGiftIdeas = () => {
+    if (!selectedGroup) return;
+    runAction('random-gifts', async () => {
+      const response = await apiClient.addRandomDevGiftIdeas(selectedGroup.id);
+      if (response.error || !response.data) throw new Error(response.error || 'Failed to add random gift ideas');
+      return response.data.state;
+    }, 'Random gift ideas added');
+  };
+
   const assignGroup = () => {
     if (!selectedGroup) return;
     runAction('assign', async () => {
@@ -203,24 +226,6 @@ export default function DevAdminScreen() {
       </header>
 
       <div className="overview-content dev-admin-content">
-        <section className="dev-admin-panel dev-admin-accounts">
-          <div className="dev-panel-heading">
-            <h2>Testing Accounts</h2>
-            <button className="primary-button compact" type="button" onClick={createTestAccounts} disabled={Boolean(busyAction)}>
-              {busyAction === 'test-accounts' ? 'Creating...' : 'Create Accounts'}
-            </button>
-          </div>
-          <div className="dev-account-grid">
-            {(state?.test_accounts || []).map((account) => (
-              <article className="dev-account-card" key={account.email}>
-                <strong>@{account.username}</strong>
-                <span>{account.email}</span>
-                <small>{account.password}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <form className="dev-admin-panel dev-create-group" onSubmit={createGroup}>
           <div className="dev-panel-heading">
             <h2>Create Group</h2>
@@ -326,8 +331,11 @@ export default function DevAdminScreen() {
 
               <section className="dev-workbench-section dev-gift-section">
                 <div className="dev-section-title-row">
-                  <h3>Gift Ideas</h3>
-                </div>
+              <h3>Gift Ideas</h3>
+              <button className="secondary-button compact" type="button" onClick={addRandomGiftIdeas} disabled={Boolean(busyAction)}>
+                {busyAction === 'random-gifts' ? 'Creating...' : 'Create Random Gift Ideas'}
+              </button>
+            </div>
                 <form className="dev-gift-form" onSubmit={addGiftIdea}>
                   <select value={giftForUserId} onChange={(event) => setGiftForUserId(event.target.value ? Number(event.target.value) : '')}>
                     <option value="">For</option>

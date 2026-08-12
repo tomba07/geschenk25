@@ -10,6 +10,28 @@ import {
 } from '../utils/devTestAccounts';
 
 const router = express.Router();
+const RANDOM_GIFT_IDEAS = [
+  'Cozy wool socks',
+  'Insulated travel mug',
+  'Board game night pick',
+  'Local coffee beans',
+  'Nice notebook',
+  'Desk plant',
+  'Puzzle book',
+  'Favorite candy sampler',
+  'Reusable tote bag',
+  'Scented candle',
+  'Bookstore gift card',
+  'Movie night snacks',
+  'Kitchen gadget',
+  'Warm beanie',
+  'Tea variety box',
+  'Phone stand',
+  'Art print',
+  'Cookie mix kit',
+  'Mini Bluetooth tracker',
+  'Craft chocolate bar',
+];
 
 function requireDevTools(_req: AuthRequest, res: Response, next: NextFunction) {
   if (!devToolsEnabled()) {
@@ -256,6 +278,50 @@ router.post('/groups/:id/gift-ideas', async (req: AuthRequest, res: Response) =>
   } catch (error: any) {
     console.error('Error adding dev gift idea:', error);
     res.status(500).json({ error: 'Failed to add gift idea' });
+  }
+});
+
+router.post('/groups/:id/gift-ideas/random', async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const groupId = parseInt(req.params.id);
+    const members = await getGroupMembers(groupId);
+
+    if (isNaN(groupId)) {
+      return res.status(400).json({ error: 'Invalid group ID' });
+    }
+
+    if (members.length === 0) {
+      return res.status(400).json({ error: 'Group has no members' });
+    }
+
+    await client.query('BEGIN');
+    let createdCount = 0;
+
+    for (const member of members) {
+      const shuffledIdeas = [...RANDOM_GIFT_IDEAS].sort(() => Math.random() - 0.5);
+      const ideaCount = 2 + Math.floor(Math.random() * 2);
+      const creators = members.filter((creator: any) => creator.id !== member.id);
+
+      for (let index = 0; index < ideaCount; index += 1) {
+        const creator = creators[index % creators.length] || member;
+        await client.query(
+          `INSERT INTO gift_ideas (group_id, for_user_id, created_by_id, idea, link)
+           VALUES ($1, $2, $3, $4, NULL)`,
+          [groupId, member.id, creator.id, shuffledIdeas[index]]
+        );
+        createdCount += 1;
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: `${createdCount} gift ideas added`, state: await getDevState() });
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error('Error adding random dev gift ideas:', error);
+    res.status(500).json({ error: 'Failed to add random gift ideas' });
+  } finally {
+    client.release();
   }
 });
 

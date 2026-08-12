@@ -20,7 +20,7 @@ import { isStandaloneApp, shouldShowIosInstallHint } from './utils/pwa';
 import {
   enablePushNotifications,
   getCurrentPushSubscription,
-  isPushNotificationSupported,
+  getPushNotificationAvailability,
 } from './utils/pushNotifications';
 
 type Route =
@@ -239,13 +239,13 @@ function AppContent() {
     let cancelled = false;
 
     async function checkPushPrompt() {
+      const pushAvailability = getPushNotificationAvailability();
       if (
         !isAuthenticated
         || !profileComplete
         || !isStandaloneApp()
-        || !isPushNotificationSupported()
+        || !pushAvailability.canPrompt
         || localStorage.getItem(PUSH_HINT_DISMISSED_KEY) === 'true'
-        || Notification.permission !== 'default'
       ) {
         setPushHintVisible(false);
         return;

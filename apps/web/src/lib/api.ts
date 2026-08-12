@@ -400,6 +400,12 @@ class ApiClient {
     });
   }
 
+  async sendTestPushNotification() {
+    return this.request<{ message: string }>('/api/notifications/push-test', {
+      method: 'POST',
+    });
+  }
+
   // Invite link endpoints
   async getInviteLink(groupId: number) {
     return this.request<{ invite_token: string }>(`/api/groups/${groupId}/invite-link`);
@@ -519,6 +525,12 @@ class ApiClient {
     return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas`, {
       method: 'POST',
       body: JSON.stringify({ for_user_id: forUserId, created_by_id: createdById, idea, link }),
+    });
+  }
+
+  async addRandomDevGiftIdeas(groupId: number) {
+    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas/random`, {
+      method: 'POST',
     });
   }
 

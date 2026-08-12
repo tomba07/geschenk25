@@ -8,8 +8,7 @@ import {
   disablePushNotifications,
   enablePushNotifications,
   getCurrentPushSubscription,
-  getPushNotificationSupportMessage,
-  isPushNotificationSupported,
+  getPushNotificationAvailability,
 } from '../utils/pushNotifications';
 
 interface ProfileScreenProps {
@@ -27,6 +26,9 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [emailNotificationsBusy, setEmailNotificationsBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [pushTestBusy, setPushTestBusy] = useState(false);
+  const [pushAvailability, setPushAvailability] = useState(() => getPushNotificationAvailability());
+  const devPushTestVisible = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true';
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +37,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       apiClient.getNotificationPreferences(),
     ]).then(([subscription, preferencesResponse]) => {
       if (cancelled) return;
+      setPushAvailability(getPushNotificationAvailability());
       setPushEnabled(Boolean(subscription));
       if (preferencesResponse.data) {
         setEmailNotificationsEnabled(preferencesResponse.data.email_enabled);
@@ -101,16 +104,36 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const handleTogglePushNotifications = async () => {
     setPushBusy(true);
-    const result = pushEnabled ? await disablePushNotifications() : await enablePushNotifications();
-    setPushBusy(false);
+    try {
+      const result = pushEnabled ? await disablePushNotifications() : await enablePushNotifications();
 
-    if (result.error) {
-      showErrorToast(result.error);
+      if (result.error) {
+        setPushAvailability(getPushNotificationAvailability());
+        showErrorToast(result.error);
+        return;
+      }
+
+      setPushAvailability(getPushNotificationAvailability());
+      setPushEnabled(!pushEnabled);
+      showSuccessToast(pushEnabled ? 'Push notifications disabled' : 'Push notifications enabled');
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error.message : 'Failed to update push notifications');
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setPushTestBusy(true);
+    const response = await apiClient.sendTestPushNotification();
+    setPushTestBusy(false);
+
+    if (response.error) {
+      showErrorToast(response.error);
       return;
     }
 
-    setPushEnabled(!pushEnabled);
-    showSuccessToast(pushEnabled ? 'Push notifications disabled' : 'Push notifications enabled');
+    showSuccessToast('Test push sent');
   };
 
   const handleToggleEmailNotifications = async () => {
@@ -130,8 +153,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const hasChanges = editingImage !== (imageUrl || null) || Boolean(newPassword || confirmPassword);
   const initial = (username || 'U').charAt(0).toUpperCase();
-  const pushSupported = isPushNotificationSupported();
-  const pushSupportMessage = getPushNotificationSupportMessage();
+  const pushControlsVisible = pushAvailability.canPrompt || pushEnabled;
 
   return (
     <section className="screen profile-screen">
@@ -236,20 +258,40 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
           <div className="readonly-field">
             <span>Push</span>
-            <strong>{pushEnabled ? 'Enabled on this device' : 'Off on this device'}</strong>
-            <small>{pushSupportMessage}</small>
+            <strong>
+              {pushEnabled
+                ? 'Enabled on this device'
+                : pushAvailability.status === 'denied'
+                  ? 'Blocked on this device'
+                  : pushAvailability.status === 'unsupported'
+                    ? 'Unavailable on this browser'
+                    : 'Off on this device'}
+            </strong>
+            <small>{pushAvailability.message}</small>
           </div>
 
-          <div className="profile-save-row">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={handleTogglePushNotifications}
-              disabled={pushBusy || !pushSupported}
-            >
-              {pushBusy ? 'Updating...' : pushEnabled ? 'Disable Push' : 'Enable Push'}
-            </button>
-          </div>
+          {pushControlsVisible && (
+            <div className="profile-save-row">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={handleTogglePushNotifications}
+                disabled={pushBusy}
+              >
+                {pushBusy ? 'Updating...' : pushEnabled ? 'Disable Push' : 'Enable Push'}
+              </button>
+              {devPushTestVisible && (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={handleSendTestPush}
+                  disabled={pushTestBusy || !pushEnabled}
+                >
+                  {pushTestBusy ? 'Sending...' : 'Send Test Push'}
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="profile-card profile-danger-card">

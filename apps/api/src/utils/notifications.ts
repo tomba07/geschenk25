@@ -34,7 +34,7 @@ export function getPushNotificationConfig() {
 export async function sendNotificationToUser(userId: number, payload: NotificationPayload) {
   await Promise.allSettled([
     sendEmailNotification(userId, payload),
-    sendPushNotification(userId, payload),
+    sendPushNotificationToUser(userId, payload),
   ]);
 }
 
@@ -84,7 +84,7 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
   }
 }
 
-async function sendPushNotification(userId: number, payload: NotificationPayload) {
+export async function sendPushNotificationToUser(userId: number, payload: NotificationPayload) {
   if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
     return;
   }
