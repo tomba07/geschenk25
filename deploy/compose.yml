@@ -1,3 +1,5 @@
+name: geschenk25
+
 services:
   geschenk-db:
     image: postgres:16-alpine
@@ -69,6 +71,8 @@ services:
 
 volumes:
   geschenk_db_data:
+    name: deploy_geschenk_db_data
+    external: true
 
 networks:
   geschenk_internal:
