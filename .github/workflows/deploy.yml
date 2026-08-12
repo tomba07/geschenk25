@@ -1,0 +1,57 @@
+name: Deploy Geschenk25
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          VM_HOST: ${{ secrets.VM_HOST || '165.227.2.163' }}
+          VM_USER: ${{ secrets.VM_USER || 'root' }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          : "${VM_HOST:?Set the VM_HOST repository secret}"
+          : "${VM_SSH_KEY:?Set the VM_SSH_KEY repository secret}"
+
+          ssh_host="$VM_HOST"
+          ssh_user="$VM_USER"
+
+          if [[ "$ssh_host" == *@* ]]; then
+            [ -n "$ssh_user" ] || ssh_user="${ssh_host%@*}"
+            ssh_host="${ssh_host#*@}"
+          fi
+
+          : "${ssh_user:?Set VM_USER, or include the user in VM_HOST as user@host}"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$ssh_host" >> ~/.ssh/known_hosts
+
+          {
+            echo "Host vm-deploy"
+            echo "  HostName $ssh_host"
+            echo "  User $ssh_user"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking yes"
+            echo "  UserKnownHostsFile ~/.ssh/known_hosts"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy
+        env:
+          VM_HOST: vm-deploy
+          KNOWN_HOSTS_FILE: ~/.ssh/known_hosts
+        run: deploy/update-vm.sh
