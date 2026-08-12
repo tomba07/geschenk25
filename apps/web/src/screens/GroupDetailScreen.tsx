@@ -402,12 +402,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <h3>
                     {members.length < 3
                       ? 'Add more members'
-                      : 'Ready to draw names'}
+                      : isOwner
+                        ? 'Ready to draw names'
+                        : 'Waiting for names'}
                   </h3>
                   <p>
                     {members.length < 3
                       ? 'Secret Santa needs at least three members.'
-                      : 'Draw names when the member list looks right.'}
+                      : isOwner
+                        ? 'Draw names when the member list looks right.'
+                        : 'The group owner can draw names when everything is ready.'}
                   </p>
                 </div>
                 {isOwner && members.length < 3 && !assignmentsLocked && (
