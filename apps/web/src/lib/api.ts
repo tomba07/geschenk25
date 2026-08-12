@@ -1,4 +1,32 @@
 import { parseError, logError, AppError, ErrorType } from '../utils/errors';
+import type {
+  ApiUserDto,
+  AssignmentResponse,
+  AuthEmailLinkResponse,
+  AuthSessionResponse,
+  DevStateDto,
+  DevTestAccountDto,
+  DevGroupDto,
+  DevUserDto,
+  FriendRequestDto,
+  FriendSearchResultDto,
+  FriendDto,
+  FriendInviteResponse,
+  FriendRequestsResponse,
+  FriendSearchResponse,
+  GiftIdeaResponse,
+  GiftIdeasResponse,
+  GroupResponse,
+  GroupsResponse,
+  InviteLinkResponse,
+  JoinFriendResponse,
+  JoinGroupResponse,
+  MessageResponse,
+  NotificationConfigResponse,
+  NotificationPreferencesResponse,
+  PasswordResetRequestResponse,
+  SearchUsersResponse,
+} from '../../../api/src/contracts/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -8,100 +36,14 @@ export interface ApiResponse<T> {
   appError?: AppError;
 }
 
-export interface ApiUser {
-  id: number;
-  email: string;
-  username?: string | null;
-  image_url?: string | null;
-  profile_complete?: boolean;
-}
-
-export interface SearchUser {
-  id: number;
-  username: string;
-  image_url?: string | null;
-}
-
-export interface Friend {
-  id: number;
-  username: string;
-  image_url?: string | null;
-  created_at?: string;
-}
-
-export interface FriendSearchResult extends SearchUser {
-  friendship_status: 'none' | 'friend' | 'incoming_pending' | 'outgoing_pending';
-}
-
-export interface FriendRequest {
-  id: number;
-  user_id: number;
-  username: string;
-  image_url?: string | null;
-  created_at: string;
-}
-
-export interface DevUser {
-  id: number;
-  email: string;
-  username: string;
-  is_test_account?: boolean;
-  image_url?: string | null;
-  created_at?: string;
-}
-
-export interface DevTestAccount {
-  id?: number;
-  email: string;
-  username: string;
-  password: string;
-  image_url?: string | null;
-}
-
-export interface DevGroupMember extends DevUser {
-  joined_at: string;
-  role: 'owner' | 'member';
-}
-
-export interface DevAssignment {
-  giver_id: number;
-  receiver_id: number;
-  giver_username: string;
-  receiver_username: string;
-}
-
-export interface DevGiftIdea {
-  id: number;
-  group_id: number;
-  for_user_id: number;
-  created_by_id: number;
-  idea: string;
-  link?: string | null;
-  created_at: string;
-  updated_at: string;
-  created_by_username: string;
-  for_user_username: string;
-}
-
-export interface DevGroup {
-  id: number;
-  name: string;
-  description?: string | null;
-  image_url?: string | null;
-  created_at: string;
-  created_by: number;
-  owner_username: string;
-  member_count: number;
-  members: DevGroupMember[];
-  assignments: DevAssignment[];
-  gift_ideas: DevGiftIdea[];
-}
-
-export interface DevState {
-  users: DevUser[];
-  groups: DevGroup[];
-  test_accounts: DevTestAccount[];
-}
+export type ApiUser = ApiUserDto;
+export type DevGroup = DevGroupDto;
+export type DevState = DevStateDto;
+export type DevTestAccount = DevTestAccountDto;
+export type DevUser = DevUserDto;
+export type Friend = FriendDto;
+export type FriendRequest = FriendRequestDto;
+export type FriendSearchResult = FriendSearchResultDto;
 
 class ApiClient {
   private baseUrl: string;
@@ -214,7 +156,7 @@ class ApiClient {
 
   // Auth endpoints
   async requestMagicLink(email: string, username?: string, mode?: 'login' | 'signup') {
-    return this.request<{ message: string; expires_in_minutes: number; devMagicLink?: string }>(
+    return this.request<AuthEmailLinkResponse>(
       '/api/auth/request-link',
       {
         method: 'POST',
@@ -225,7 +167,7 @@ class ApiClient {
   }
 
   async verifyMagicLink(token: string) {
-    return this.request<{ token: string; user: ApiUser }>(
+    return this.request<AuthSessionResponse>(
       '/api/auth/verify-link',
       {
         method: 'POST',
@@ -236,7 +178,7 @@ class ApiClient {
   }
 
   async loginWithPassword(email: string, password: string) {
-    return this.request<{ token: string; user: ApiUser }>(
+    return this.request<AuthSessionResponse>(
       '/api/auth/login',
       {
         method: 'POST',
@@ -247,7 +189,7 @@ class ApiClient {
   }
 
   async requestPasswordReset(email: string) {
-    return this.request<{ message: string; expires_in_minutes: number; devPasswordResetLink?: string }>(
+    return this.request<PasswordResetRequestResponse>(
       '/api/auth/password-reset/request',
       {
         method: 'POST',
@@ -258,7 +200,7 @@ class ApiClient {
   }
 
   async confirmPasswordReset(token: string, password: string) {
-    return this.request<{ message: string }>(
+    return this.request<MessageResponse>(
       '/api/auth/password-reset/confirm',
       {
         method: 'POST',
@@ -269,17 +211,17 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request<{ user: ApiUser }>('/api/auth/me');
+    return this.request<{ user: ApiUserDto }>('/api/auth/me');
   }
 
   async searchUsers(query: string) {
-    return this.request<{ users: SearchUser[] }>(
+    return this.request<SearchUsersResponse>(
       `/api/auth/search?q=${encodeURIComponent(query)}`
     );
   }
 
   async updateProfileImage(image_url?: string) {
-    return this.request<{ user: ApiUser }>(
+    return this.request<{ user: ApiUserDto }>(
       '/api/auth/profile/image',
       {
         method: 'PUT',
@@ -289,50 +231,50 @@ class ApiClient {
   }
 
   async completeProfile(username: string, password?: string, image_url?: string | null) {
-    return this.request<{ user: ApiUser }>('/api/auth/profile', {
+    return this.request<{ user: ApiUserDto }>('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ username, password, image_url }),
     });
   }
 
   async deleteAccount() {
-    return this.request<{ message: string }>('/api/auth/account', {
+    return this.request<MessageResponse>('/api/auth/account', {
       method: 'DELETE',
     });
   }
 
   // Groups endpoints
   async getGroups() {
-    return this.request<{ groups: any[] }>('/api/groups');
+    return this.request<GroupsResponse>('/api/groups');
   }
 
   async getGroup(id: number) {
-    return this.request<{ group: any }>(`/api/groups/${id}`);
+    return this.request<GroupResponse>(`/api/groups/${id}`);
   }
 
   async createGroup(name: string, image_url?: string, member_ids: number[] = []) {
-    return this.request<{ group: any }>('/api/groups', {
+    return this.request<GroupResponse>('/api/groups', {
       method: 'POST',
       body: JSON.stringify({ name, image_url, member_ids }),
     });
   }
 
   async updateGroup(id: number, image_url?: string) {
-    return this.request<{ group: any }>(`/api/groups/${id}`, {
+    return this.request<GroupResponse>(`/api/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ image_url }),
     });
   }
 
   async deleteGroup(id: number) {
-    return this.request<{ message: string }>(`/api/groups/${id}`, {
+    return this.request<MessageResponse>(`/api/groups/${id}`, {
       method: 'DELETE',
     });
   }
 
   // Group membership endpoints
   async inviteUserToGroup(groupId: number, userId: number) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/invite`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/invite`, {
       method: 'POST',
       body: JSON.stringify({ user_id: userId }),
     });
@@ -340,122 +282,122 @@ class ApiClient {
 
   // Friends endpoints
   async getFriends() {
-    return this.request<{ friends: Friend[] }>('/api/friends');
+    return this.request<{ friends: FriendDto[] }>('/api/friends');
   }
 
   async getFriendRequests() {
-    return this.request<{ incoming: FriendRequest[]; outgoing: FriendRequest[] }>('/api/friends/requests');
+    return this.request<FriendRequestsResponse>('/api/friends/requests');
   }
 
   async searchFriends(query: string) {
-    return this.request<{ users: FriendSearchResult[] }>(`/api/friends/search?q=${encodeURIComponent(query)}`);
+    return this.request<FriendSearchResponse>(`/api/friends/search?q=${encodeURIComponent(query)}`);
   }
 
   async sendFriendRequest(userId: number) {
-    return this.request<{ message: string }>('/api/friends/requests', {
+    return this.request<MessageResponse>('/api/friends/requests', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId }),
     });
   }
 
   async acceptFriendRequest(requestId: number) {
-    return this.request<{ message: string }>(`/api/friends/requests/${requestId}/accept`, {
+    return this.request<MessageResponse>(`/api/friends/requests/${requestId}/accept`, {
       method: 'POST',
     });
   }
 
   async declineFriendRequest(requestId: number) {
-    return this.request<{ message: string }>(`/api/friends/requests/${requestId}/decline`, {
+    return this.request<MessageResponse>(`/api/friends/requests/${requestId}/decline`, {
       method: 'POST',
     });
   }
 
   async getFriendInviteByUsername(username: string) {
-    return this.request<{ user: Friend }>(`/api/friends/user/${encodeURIComponent(username)}`, { requireAuth: false });
+    return this.request<FriendInviteResponse>(`/api/friends/user/${encodeURIComponent(username)}`, { requireAuth: false });
   }
 
   async joinFriendByUsername(username: string) {
-    return this.request<{ message: string; friend_id: number }>(`/api/friends/user/${encodeURIComponent(username)}`, {
+    return this.request<JoinFriendResponse>(`/api/friends/user/${encodeURIComponent(username)}`, {
       method: 'POST',
     });
   }
 
   async removeFriend(friendId: number) {
-    return this.request<{ message: string }>(`/api/friends/${friendId}`, {
+    return this.request<MessageResponse>(`/api/friends/${friendId}`, {
       method: 'DELETE',
     });
   }
 
   // Notification endpoints
   async getNotificationConfig() {
-    return this.request<{ enabled: boolean; publicKey: string | null }>('/api/notifications/config');
+    return this.request<NotificationConfigResponse>('/api/notifications/config');
   }
 
   async getNotificationPreferences() {
-    return this.request<{ email_enabled: boolean }>('/api/notifications/preferences');
+    return this.request<NotificationPreferencesResponse>('/api/notifications/preferences');
   }
 
   async updateNotificationPreferences(emailEnabled: boolean) {
-    return this.request<{ email_enabled: boolean }>('/api/notifications/preferences', {
+    return this.request<NotificationPreferencesResponse>('/api/notifications/preferences', {
       method: 'PUT',
       body: JSON.stringify({ email_enabled: emailEnabled }),
     });
   }
 
   async savePushSubscription(subscription: PushSubscription) {
-    return this.request<{ message: string }>('/api/notifications/push-subscriptions', {
+    return this.request<MessageResponse>('/api/notifications/push-subscriptions', {
       method: 'POST',
       body: JSON.stringify({ subscription }),
     });
   }
 
   async deletePushSubscription(endpoint: string) {
-    return this.request<{ message: string }>('/api/notifications/push-subscriptions', {
+    return this.request<MessageResponse>('/api/notifications/push-subscriptions', {
       method: 'DELETE',
       body: JSON.stringify({ endpoint }),
     });
   }
 
   async sendTestPushNotification() {
-    return this.request<{ message: string }>('/api/notifications/push-test', {
+    return this.request<MessageResponse>('/api/notifications/push-test', {
       method: 'POST',
     });
   }
 
   // Invite link endpoints
   async getInviteLink(groupId: number) {
-    return this.request<{ invite_token: string }>(`/api/groups/${groupId}/invite-link`);
+    return this.request<InviteLinkResponse>(`/api/groups/${groupId}/invite-link`);
   }
 
   async joinGroupByToken(token: string) {
-    return this.request<{ message: string; group_id: number }>(`/api/groups/join/${token}`, {
+    return this.request<JoinGroupResponse>(`/api/groups/join/${token}`, {
       method: 'POST',
     });
   }
 
   async getGroupByInviteToken(token: string) {
     // Public endpoint, no auth required
-    return this.request<{ group: { id: number; name: string; description?: string; image_url?: string | null; member_count: number; assignments_created?: boolean } }>(
+    return this.request<GroupResponse>(
       `/api/groups/invite/${token}`,
       { requireAuth: false }
     );
   }
 
   async leaveGroup(groupId: number) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/leave`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/leave`, {
       method: 'POST',
     });
   }
 
   async removeMember(groupId: number, userId: number) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/members/${userId}`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',
     });
   }
 
   // Assignment endpoints
   async assignSecretSanta(groupId: number, exclusions: Array<{ firstUserId: number; secondUserId: number }> = []) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/assign`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/assign`, {
       method: 'POST',
       body: JSON.stringify({
         exclusions: exclusions.map((pair) => ({
@@ -467,20 +409,20 @@ class ApiClient {
   }
 
   async getAssignment(groupId: number) {
-    return this.request<{ assignment: { receiver_id: number; receiver_username: string; receiver_image_url?: string | null; created_at?: string } | null }>(
+    return this.request<AssignmentResponse>(
       `/api/groups/${groupId}/assignment`
     );
   }
 
   async deleteAssignments(groupId: number) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/assignments`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/assignments`, {
       method: 'DELETE',
     });
   }
 
   // Gift ideas endpoints
   async createGiftIdea(groupId: number, forUserId: number, idea: string, link?: string) {
-    return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas`, {
+    return this.request<GiftIdeaResponse>(`/api/groups/${groupId}/gift-ideas`, {
       method: 'POST',
       body: JSON.stringify({ for_user_id: forUserId, idea, link }),
     });
@@ -490,80 +432,80 @@ class ApiClient {
     const url = forUserId
       ? `/api/groups/${groupId}/gift-ideas?for_user_id=${forUserId}`
       : `/api/groups/${groupId}/gift-ideas`;
-    return this.request<{ gift_ideas: any[] }>(url);
+    return this.request<GiftIdeasResponse>(url);
   }
 
   async updateGiftIdea(groupId: number, ideaId: number, idea: string, link?: string) {
-    return this.request<{ gift_idea: any }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
+    return this.request<GiftIdeaResponse>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
       method: 'PUT',
       body: JSON.stringify({ idea, link }),
     });
   }
 
   async deleteGiftIdea(groupId: number, ideaId: number) {
-    return this.request<{ message: string }>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
+    return this.request<MessageResponse>(`/api/groups/${groupId}/gift-ideas/${ideaId}`, {
       method: 'DELETE',
     });
   }
 
   // Dev/testing endpoints
   async getDevState() {
-    return this.request<DevState>('/api/dev/state');
+    return this.request<DevStateDto>('/api/dev/state');
   }
 
   async createDevTestAccounts() {
-    return this.request<{ accounts: DevTestAccount[]; state: DevState }>('/api/dev/test-accounts', {
+    return this.request<{ accounts: DevTestAccountDto[]; state: DevStateDto }>('/api/dev/test-accounts', {
       method: 'POST',
     });
   }
 
   async createDevGroup(name: string, ownerId: number, memberIds: number[]) {
-    return this.request<{ group_id: number; state: DevState }>('/api/dev/groups', {
+    return this.request<{ group_id: number; state: DevStateDto }>('/api/dev/groups', {
       method: 'POST',
       body: JSON.stringify({ name, owner_id: ownerId, member_ids: memberIds }),
     });
   }
 
   async addDevGroupMember(groupId: number, userId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/members`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/members`, {
       method: 'POST',
       body: JSON.stringify({ user_id: userId }),
     });
   }
 
   async removeDevGroupMember(groupId: number, userId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/members/${userId}`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',
     });
   }
 
   async addDevGiftIdea(groupId: number, forUserId: number, createdById: number, idea: string, link?: string) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/gift-ideas`, {
       method: 'POST',
       body: JSON.stringify({ for_user_id: forUserId, created_by_id: createdById, idea, link }),
     });
   }
 
   async addRandomDevGiftIdeas(groupId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas/random`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/gift-ideas/random`, {
       method: 'POST',
     });
   }
 
   async removeDevGiftIdea(groupId: number, ideaId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/gift-ideas/${ideaId}`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/gift-ideas/${ideaId}`, {
       method: 'DELETE',
     });
   }
 
   async assignDevGroup(groupId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/assign`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/assign`, {
       method: 'POST',
     });
   }
 
   async unassignDevGroup(groupId: number) {
-    return this.request<{ message: string; state: DevState }>(`/api/dev/groups/${groupId}/assignments`, {
+    return this.request<{ message: string; state: DevStateDto }>(`/api/dev/groups/${groupId}/assignments`, {
       method: 'DELETE',
     });
   }

@@ -21,6 +21,14 @@ import {
   verifyOAuthState,
 } from '../services/authTokenService';
 import { appBaseUrl, googleRedirectUri, magicLinkBaseUrl, oauthErrorRedirect } from '../services/authUrlService';
+import type {
+  AuthEmailLinkResponse,
+  AuthSessionResponse,
+  MessageResponse,
+  PasswordResetRequestResponse,
+  SearchUsersResponse,
+  UserResponse,
+} from '../contracts/api';
 
 const router = express.Router();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -220,11 +228,12 @@ router.post('/request-link', async (req: Request, res: Response) => {
     }
     const delivery = await sendMagicLink(normalizedEmail, link);
 
-    res.json({
+    const response = {
       message: 'Check your email for a sign-in link.',
       expires_in_minutes: 15,
       ...(delivery.delivered ? {} : { devMagicLink: link }),
-    });
+    } satisfies AuthEmailLinkResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Magic link request error:', error);
     res.status(500).json({ error: 'Failed to send sign-in link' });
@@ -274,17 +283,19 @@ router.post('/password-reset/request', async (req: Request, res: Response) => {
         });
       }
       const delivery = await sendPasswordResetEmail(user.email, link);
-      return res.json({
+      const response = {
         message: 'If an account exists for that email, a password reset link has been sent.',
         expires_in_minutes: PASSWORD_RESET_EXPIRES_MINUTES,
         ...(delivery.delivered ? {} : { devPasswordResetLink: link }),
-      });
+      } satisfies PasswordResetRequestResponse;
+      return res.json(response);
     }
 
-    res.json({
+    const response = {
       message: 'If an account exists for that email, a password reset link has been sent.',
       expires_in_minutes: PASSWORD_RESET_EXPIRES_MINUTES,
-    });
+    } satisfies PasswordResetRequestResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Password reset request error:', error);
     res.status(500).json({ error: 'Failed to send password reset link' });
@@ -340,7 +351,8 @@ router.post('/password-reset/confirm', async (req: Request, res: Response) => {
     );
     await client.query('COMMIT');
 
-    res.json({ message: 'Password reset successfully' });
+    const response = { message: 'Password reset successfully' } satisfies MessageResponse;
+    res.json(response);
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Password reset confirm error:', error);
@@ -439,7 +451,7 @@ router.post('/verify-link', async (req: Request, res: Response) => {
 
     await client.query('COMMIT');
 
-    res.json({
+    const response = {
       token: createSessionToken(user),
       user: {
         id: user.id,
@@ -448,7 +460,8 @@ router.post('/verify-link', async (req: Request, res: Response) => {
         image_url: user.image_url,
         profile_complete: Boolean(user.username),
       },
-    });
+    } satisfies AuthSessionResponse;
+    res.json(response);
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Magic link verification error:', error);
@@ -486,7 +499,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    res.json({
+    const response = {
       token: createSessionToken(user),
       user: {
         id: user.id,
@@ -495,7 +508,8 @@ router.post('/login', async (req: Request, res: Response) => {
         image_url: user.image_url,
         profile_complete: Boolean(user.username),
       },
-    });
+    } satisfies AuthSessionResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
@@ -517,7 +531,8 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const { q } = req.query;
     if (!q || typeof q !== 'string' || q.trim().length < 1) {
-      return res.json({ users: [] });
+      const response = { users: [] } satisfies SearchUsersResponse;
+      return res.json(response);
     }
 
     const searchTerm = `%${q.toLowerCase().trim()}%`;
@@ -532,7 +547,8 @@ router.get('/search', async (req: Request, res: Response) => {
       image_url: row.image_url,
     }));
 
-    res.json({ users });
+    const response = { users } satisfies SearchUsersResponse;
+    res.json(response);
   } catch (error: any) {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Invalid or expired token' });
@@ -563,7 +579,7 @@ router.get('/me', async (req: Request, res: Response) => {
     }
 
     const user = result.rows[0];
-    res.json({
+    const response = {
       user: {
         id: user.id,
         email: user.email,
@@ -571,7 +587,8 @@ router.get('/me', async (req: Request, res: Response) => {
         image_url: user.image_url,
         profile_complete: Boolean(user.username),
       },
-    });
+    } satisfies UserResponse;
+    res.json(response);
   } catch (error: any) {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Invalid or expired token' });
@@ -602,7 +619,7 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
 
     const user = result.rows[0];
 
-    res.json({
+    const response = {
       user: {
         id: user.id,
         email: user.email,
@@ -610,7 +627,8 @@ router.put('/profile/image', authenticateToken, async (req: AuthRequest, res: Re
         image_url: user.image_url,
         profile_complete: Boolean(user.username),
       },
-    });
+    } satisfies UserResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Error updating profile image:', error);
     res.status(500).json({ error: 'Failed to update profile image' });
@@ -670,7 +688,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
     }
 
     const user = result.rows[0];
-    res.json({
+    const response = {
       user: {
         id: user.id,
         email: user.email,
@@ -678,7 +696,8 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
         image_url: user.image_url,
         profile_complete: true,
       },
-    });
+    } satisfies UserResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Error completing profile:', error);
     res.status(500).json({ error: 'Failed to complete profile' });
@@ -710,7 +729,8 @@ router.delete('/account', authenticateToken, async (req: AuthRequest, res: Respo
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ message: 'Account deleted successfully' });
+    const response = { message: 'Account deleted successfully' } satisfies MessageResponse;
+    res.json(response);
   } catch (error: any) {
     console.error('Error deleting account:', error);
     res.status(500).json({ error: 'Failed to delete account' });
