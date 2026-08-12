@@ -17,7 +17,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   completeProfile: (username: string, password?: string, image_url?: string | null) => Promise<{ error: any }>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
-  updatePassword: (password: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
 }
 
@@ -186,18 +185,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updatePassword = async (password: string) => {
-    try {
-      const response = await apiClient.updatePassword(password);
-      if (response.error) {
-        return { error: { message: response.appError?.userMessage || response.error } };
-      }
-      return { error: null };
-    } catch (error) {
-      return { error: { message: getErrorMessage(error) } };
-    }
-  };
-
   const signOut = async () => {
     clearAuth();
   };
@@ -232,7 +219,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         completeProfile,
         updateProfileImage,
-        updatePassword,
         deleteAccount,
       }}
     >

@@ -1,7 +1,7 @@
 import React, { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
-import { showErrorToast } from '../utils/toast';
+import { showErrorToast, showSuccessToast } from '../utils/toast';
 
 interface LoginScreenProps {
   onSwitchToSignup: () => void;
@@ -16,6 +16,7 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
   const [sentEmail, setSentEmail] = useState('');
   const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
   const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
+  const [devPasswordResetLink, setDevPasswordResetLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { requestSignInLink, signInWithPassword } = useAuth();
 
@@ -64,6 +65,7 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
       setSentEmail('');
       setExpiresInMinutes(null);
       setDevMagicLink(null);
+      setDevPasswordResetLink(null);
     }
   };
 
@@ -73,6 +75,27 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
     setSentEmail('');
     setExpiresInMinutes(null);
     setDevMagicLink(null);
+    setDevPasswordResetLink(null);
+  };
+
+  const requestPasswordReset = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      showErrorToast('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    const response = await apiClient.requestPasswordReset(trimmedEmail);
+    setLoading(false);
+
+    if (response.error) {
+      showErrorToast(response.error);
+      return;
+    }
+
+    setDevPasswordResetLink(response.data?.devPasswordResetLink || null);
+    showSuccessToast('Password reset email sent');
   };
 
   const startGoogleLogin = () => {
@@ -138,6 +161,7 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
                 {expiresInMinutes ? ` It expires in ${expiresInMinutes} minutes.` : ''}
               </span>
               {devMagicLink && <a href={devMagicLink}>Open dev sign-in link</a>}
+              {devPasswordResetLink && <a href={devPasswordResetLink}>Open dev password reset link</a>}
             </div>
           )}
 
@@ -148,6 +172,12 @@ export default function LoginScreen({ onSwitchToSignup, friendInviteMode = false
           <button className="link-button auth-mode-button" type="button" onClick={togglePasswordMode}>
             {usePassword ? 'Use a sign-in link instead' : 'Use password instead'}
           </button>
+
+          {usePassword && (
+            <button className="link-button auth-mode-button" type="button" onClick={requestPasswordReset} disabled={loading}>
+              Forgot password?
+            </button>
+          )}
 
           <div className="auth-footer">
             <span>Don't have an account?</span>

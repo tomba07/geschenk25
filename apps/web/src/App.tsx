@@ -10,6 +10,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import FriendsScreen from './screens/FriendsScreen';
 import DevAdminScreen from './screens/DevAdminScreen';
+import PasswordResetScreen from './screens/PasswordResetScreen';
 import InviteLandingScreen from './screens/InviteLandingScreen';
 import AppShell from './components/AppShell';
 import LandingScreen from './screens/LandingScreen';
@@ -28,6 +29,7 @@ type Route =
   | { name: 'login'; friendInvite?: boolean }
   | { name: 'signup' }
   | { name: 'auth-callback'; token: string | null }
+  | { name: 'reset-password'; token: string | null }
   | { name: 'profile' }
   | { name: 'friends' }
   | { name: 'dev' }
@@ -46,6 +48,7 @@ function parseRoute(): Route {
   if (path === '/login/friend-invite') return { name: 'login', friendInvite: true };
   if (path === '/login') return { name: 'login' };
   if (path === '/auth/callback') return { name: 'auth-callback', token: new URLSearchParams(window.location.search).get('token') };
+  if (path === '/reset-password') return { name: 'reset-password', token: new URLSearchParams(window.location.search).get('token') };
   if (path === '/friends') return { name: 'friends' };
   if (path === '/profile') return { name: 'profile' };
   if (path === '/dev') return { name: 'dev' };
@@ -58,6 +61,7 @@ function routePath(route: Route): string {
   if (route.name === 'signup') return '/signup';
   if (route.name === 'login') return route.friendInvite ? '/login/friend-invite' : '/login';
   if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
+  if (route.name === 'reset-password') return route.token ? `/reset-password?token=${encodeURIComponent(route.token)}` : '/reset-password';
   if (route.name === 'friends') return '/friends';
   if (route.name === 'profile') return '/profile';
   if (route.name === 'dev') return '/dev';
@@ -190,7 +194,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'friend-invite', 'auth-callback'].includes(route.name)) {
+    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'friend-invite', 'auth-callback', 'reset-password'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
   }, [isAuthenticated, isLoading, route.name]);
@@ -374,6 +378,15 @@ function AppContent() {
           token={route.token}
           onDone={() => navigate({ name: 'home' }, true)}
           onFailed={() => navigate({ name: 'login' }, true)}
+        />
+      );
+    }
+
+    if (route.name === 'reset-password') {
+      return (
+        <PasswordResetScreen
+          token={route.token}
+          onDone={() => navigate({ name: 'login' }, true)}
         />
       );
     }

@@ -136,6 +136,17 @@ export async function runMigrations() {
     `);
 
   await pool.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+  await pool.query(`
       DO $$ 
       BEGIN
         IF EXISTS (
@@ -157,6 +168,27 @@ export async function runMigrations() {
           WHERE table_name = 'magic_links' AND column_name = 'created_at' AND data_type != 'timestamp with time zone'
         ) THEN
           ALTER TABLE magic_links ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'password_reset_tokens' AND column_name = 'expires_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE password_reset_tokens ALTER COLUMN expires_at TYPE TIMESTAMPTZ USING expires_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'password_reset_tokens' AND column_name = 'used_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE password_reset_tokens ALTER COLUMN used_at TYPE TIMESTAMPTZ USING used_at AT TIME ZONE 'UTC';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'password_reset_tokens' AND column_name = 'created_at' AND data_type != 'timestamp with time zone'
+        ) THEN
+          ALTER TABLE password_reset_tokens ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC';
         END IF;
       END $$;
     `);
@@ -346,6 +378,14 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token_hash ON password_reset_tokens(token_hash)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)
     `);
 
   await pool.query(`

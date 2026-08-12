@@ -246,6 +246,28 @@ class ApiClient {
     );
   }
 
+  async requestPasswordReset(email: string) {
+    return this.request<{ message: string; expires_in_minutes: number; devPasswordResetLink?: string }>(
+      '/api/auth/password-reset/request',
+      {
+        method: 'POST',
+        requireAuth: false,
+        body: JSON.stringify({ email }),
+      }
+    );
+  }
+
+  async confirmPasswordReset(token: string, password: string) {
+    return this.request<{ message: string }>(
+      '/api/auth/password-reset/confirm',
+      {
+        method: 'POST',
+        requireAuth: false,
+        body: JSON.stringify({ token, password }),
+      }
+    );
+  }
+
   async getMe() {
     return this.request<{ user: ApiUser }>('/api/auth/me');
   }
@@ -270,13 +292,6 @@ class ApiClient {
     return this.request<{ user: ApiUser }>('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ username, password, image_url }),
-    });
-  }
-
-  async updatePassword(password: string) {
-    return this.request<{ message: string }>('/api/auth/profile/password', {
-      method: 'PUT',
-      body: JSON.stringify({ password }),
     });
   }
 

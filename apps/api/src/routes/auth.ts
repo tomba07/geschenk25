@@ -15,6 +15,7 @@ const EMAIL_COOLDOWN_MS = Number(process.env.AUTH_EMAIL_COOLDOWN_SECONDS || 60) 
 const EMAIL_MAX_PER_HOUR = Number(process.env.AUTH_EMAIL_MAX_PER_HOUR || 5);
 const IP_MAX_PER_HOUR = Number(process.env.AUTH_EMAIL_IP_MAX_PER_HOUR || 20);
 const EMAIL_RATE_WINDOW_MS = 60 * 60 * 1000;
+const PASSWORD_RESET_EXPIRES_MINUTES = 30;
 
 type RateLimitBucket = {
   count: number;
@@ -182,7 +183,17 @@ async function createLocalMagicLinkToken(email: string) {
   return token;
 }
 
-async function sendMagicLink(email: string, link: string) {
+async function sendTransactionalEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}) {
   const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
@@ -192,7 +203,6 @@ async function sendMagicLink(email: string, link: string) {
       throw new Error('Email provider is not configured');
     }
 
-    console.log(`Magic link for ${email}: ${link}`);
     return { delivered: false };
   }
 
@@ -204,29 +214,87 @@ async function sendMagicLink(email: string, link: string) {
     },
     body: JSON.stringify({
       from,
-      to: email,
-      subject: 'Sign in to Geschenk',
-      html: renderEmailTemplate({
-        preheader: 'Use this link to sign in to Geschenk. It expires in 15 minutes.',
-        eyebrow: 'Secure sign in',
-        title: 'Sign in to Geschenk',
-        bodyHtml: '<p style="margin: 0;">Use this secure link to sign in. It expires in 15 minutes.</p>',
-        action: {
-          label: 'Sign in to Geschenk',
-          url: link,
-        },
-        footerHtml: `If you did not request this email, you can ignore it. For security, this link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
-      }),
-      text: `Use this link to sign in to Geschenk: ${link}\n\nThis link expires in 15 minutes.`,
+      to,
+      subject,
+      html,
+      text,
     }),
   });
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Failed to send magic link email: ${body}`);
+    throw new Error(`Failed to send email: ${body}`);
   }
 
   return { delivered: true };
+}
+
+async function sendMagicLink(email: string, link: string) {
+  const delivery = await sendTransactionalEmail({
+    to: email,
+    subject: 'Sign in to Geschenk',
+    html: renderEmailTemplate({
+      preheader: 'Use this link to sign in to Geschenk. It expires in 15 minutes.',
+      eyebrow: 'Secure sign in',
+      title: 'Sign in to Geschenk',
+      bodyHtml: '<p style="margin: 0;">Use this secure link to sign in. It expires in 15 minutes.</p>',
+      action: {
+        label: 'Sign in to Geschenk',
+        url: link,
+      },
+      footerHtml: `If you did not request this email, you can ignore it. For security, this link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
+    }),
+    text: `Use this link to sign in to Geschenk: ${link}\n\nThis link expires in 15 minutes.`,
+  });
+
+  if (!delivery.delivered) {
+    console.log(`Magic link for ${email}: ${link}`);
+  }
+
+  return delivery;
+}
+
+async function createPasswordResetToken(userId: number) {
+  const token = createMagicToken();
+  const tokenHash = hashMagicToken(token);
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRES_MINUTES * 60 * 1000);
+
+  await pool.query(
+    'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+    [userId]
+  );
+
+  await pool.query(
+    'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+    [userId, tokenHash, expiresAt]
+  );
+
+  return { token, tokenHash, expiresAt };
+}
+
+async function sendPasswordResetEmail(email: string, link: string) {
+  const delivery = await sendTransactionalEmail({
+    to: email,
+    subject: 'Reset your Geschenk password',
+    html: renderEmailTemplate({
+      preheader: `Use this link to reset your Geschenk password. It expires in ${PASSWORD_RESET_EXPIRES_MINUTES} minutes.`,
+      eyebrow: 'Password reset',
+      title: 'Reset your Geschenk password',
+      bodyHtml: '<p style="margin: 0;">Use this secure link to choose a new password.</p>',
+      action: {
+        label: 'Reset password',
+        url: link,
+      },
+      footerHtml: `If you did not request this email, you can ignore it. This link works once and expires soon.<br><br><span style="word-break: break-all;">${escapeHtml(link)}</span>`,
+    }),
+    text: `Use this link to reset your Geschenk password: ${link}\n\nThis link expires in ${PASSWORD_RESET_EXPIRES_MINUTES} minutes.`,
+  });
+
+  if (!delivery.delivered) {
+    console.log(`Password reset link for ${email}: ${link}`);
+  }
+
+  return delivery;
 }
 
 router.get('/google/start', (req: Request, res: Response) => {
@@ -414,6 +482,125 @@ router.post('/request-link', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Magic link request error:', error);
     res.status(500).json({ error: 'Failed to send sign-in link' });
+  }
+});
+
+// Request a password reset email. Always return success for valid email-shaped
+// input so account existence is not exposed.
+router.post('/password-reset/request', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    const rateLimit = checkMagicLinkRateLimit(req, normalizedEmail);
+    if (!rateLimit.allowed) {
+      res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+      return res.status(429).json({
+        error: rateLimit.message,
+        retry_after_seconds: rateLimit.retryAfterSeconds,
+      });
+    }
+
+    const userResult = await pool.query(
+      'SELECT id, email, is_test_account FROM users WHERE email = $1',
+      [normalizedEmail]
+    );
+    const user = userResult.rows[0];
+
+    if (user && !user.is_test_account) {
+      const { token, tokenHash, expiresAt } = await createPasswordResetToken(user.id);
+      const baseUrl = magicLinkBaseUrl(req);
+      const link = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+      if (shouldLogMagicLinkDetails()) {
+        console.log('Password reset link created:', {
+          email: normalizedEmail,
+          token: shortHash(tokenHash),
+          expiresAt: expiresAt.toISOString(),
+          appBaseUrl: baseUrl,
+        });
+      }
+      const delivery = await sendPasswordResetEmail(user.email, link);
+      return res.json({
+        message: 'If an account exists for that email, a password reset link has been sent.',
+        expires_in_minutes: PASSWORD_RESET_EXPIRES_MINUTES,
+        ...(delivery.delivered ? {} : { devPasswordResetLink: link }),
+      });
+    }
+
+    res.json({
+      message: 'If an account exists for that email, a password reset link has been sent.',
+      expires_in_minutes: PASSWORD_RESET_EXPIRES_MINUTES,
+    });
+  } catch (error: any) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({ error: 'Failed to send password reset link' });
+  }
+});
+
+router.post('/password-reset/confirm', async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const { token, password } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Reset token is required' });
+    }
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const tokenHash = hashMagicToken(token);
+    await client.query('BEGIN');
+
+    const tokenResult = await client.query(
+      `SELECT prt.id, prt.user_id, prt.expires_at, prt.used_at
+       FROM password_reset_tokens prt
+       JOIN users u ON u.id = prt.user_id
+       WHERE prt.token_hash = $1 AND u.is_test_account = false
+       FOR UPDATE`,
+      [tokenHash]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid or expired password reset link' });
+    }
+
+    const resetToken = tokenResult.rows[0];
+    if (resetToken.used_at || new Date(resetToken.expires_at).getTime() < Date.now()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid or expired password reset link' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetToken.user_id]);
+    await client.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetToken.id]);
+    await client.query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+      [resetToken.user_id]
+    );
+    await client.query('COMMIT');
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error('Password reset confirm error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  } finally {
+    client.release();
   }
 });
 
@@ -752,28 +939,9 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
-// Set or replace optional password.
+// Password changes must go through the email reset flow.
 router.put('/profile/password', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const { password } = req.body;
-
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({ error: 'Password is required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
-
-    res.json({ message: 'Password updated successfully' });
-  } catch (error: any) {
-    console.error('Error updating password:', error);
-    res.status(500).json({ error: 'Failed to update password' });
-  }
+  res.status(410).json({ error: 'Password changes require an email reset link.' });
 });
 
 // Delete account

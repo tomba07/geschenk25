@@ -1,4 +1,3 @@
-- password change in edit profile (should be via email link)
 - rename project
 - edit Gift ideas
 - "quick befriend" if in same group
