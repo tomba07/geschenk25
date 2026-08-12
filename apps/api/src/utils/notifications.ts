@@ -19,6 +19,15 @@ const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || (emailFrom ? `mailto:${emailFrom}` : undefined);
+const blockedNotificationEmailDomains = new Set([
+  'geschenk.test',
+  'example.com',
+  'example.net',
+  'example.org',
+  'invalid',
+  'localhost',
+  'test',
+]);
 
 if (vapidPublicKey && vapidPrivateKey && vapidSubject) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
@@ -49,6 +58,7 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
   const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
   const email = userResult.rows[0]?.email;
   if (!email) return;
+  if (!isDeliverableNotificationEmail(email)) return;
 
   const unsubscribeUrl = getUnsubscribeUrl(preferences.unsubscribe_token);
   const emailHtml = renderNotificationEmail(payload, unsubscribeUrl);
@@ -82,6 +92,11 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
     const body = await response.text();
     console.error(`Failed to send notification email to user ${userId}: ${body}`);
   }
+}
+
+function isDeliverableNotificationEmail(email: string) {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return Boolean(domain && !blockedNotificationEmailDomains.has(domain));
 }
 
 export async function sendPushNotificationToUser(userId: number, payload: NotificationPayload) {
