@@ -126,8 +126,14 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             <div className="overview-group-grid">
               {groups.map((group) => {
                 const memberCount = group.member_count ?? group.members?.length;
+                const unreadMessageCount = group.unread_message_count || 0;
                 return (
                   <button className="overview-group-card" type="button" key={group.id} onClick={() => onGroupPress(String(group.id))}>
+                    {unreadMessageCount > 0 && (
+                      <span className="overview-unread-badge" aria-label={`${unreadMessageCount} unread messages`}>
+                        {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                      </span>
+                    )}
                     <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
                     <div className="overview-group-card-body">
                       <h3>{group.name}</h3>

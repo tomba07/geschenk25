@@ -53,6 +53,7 @@ export interface GroupDto {
   created_by: number;
   member_count?: number;
   assignments_created?: boolean;
+  unread_message_count?: number;
   members?: GroupMemberDto[];
   owner?: GroupOwnerDto;
 }
@@ -98,6 +99,7 @@ export interface AssignmentChatDto {
   subtitle: string;
   receiver_id?: number;
   receiver_username?: string;
+  unread_count: number;
   created_at?: string;
 }
 

@@ -185,6 +185,18 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     try {
       const messages = await groupService.getAssignmentChatMessages(groupId, chat.assignment_id);
       setAssignmentChatMessages(messages);
+      setAssignmentChats((currentChats) => {
+        const nextChats = currentChats.map((currentChat) => (
+          currentChat.assignment_id === chat.assignment_id
+            ? { ...currentChat, unread_count: 0 }
+            : currentChat
+        ));
+        const nextUnreadCount = nextChats.reduce((sum, currentChat) => sum + currentChat.unread_count, 0);
+        setGroup((currentGroup) => currentGroup
+          ? { ...currentGroup, unread_message_count: nextUnreadCount }
+          : currentGroup);
+        return nextChats;
+      });
     } catch (error) {
       if (showLoading) {
         showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
@@ -208,6 +220,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const members = group?.members || [];
   const assignmentsLocked = Boolean(assignment);
   const canDrawAssignments = isOwner && members.length >= 3 && !assignmentsLocked;
+  const assignmentUnreadMessageCount = assignmentChats.reduce((sum, chat) => sum + chat.unread_count, 0);
   const assignmentCreatedDate = assignment?.created_at
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
@@ -588,7 +601,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </article>
                 {assignmentChats.length > 0 && (
                   <div className="assignment-chat-panel">
-                    <h3>Messages</h3>
+                    <div className="assignment-chat-panel-header">
+                      <h3>Messages</h3>
+                      {assignmentUnreadMessageCount > 0 && (
+                        <span className="unread-count-badge" aria-label={`${assignmentUnreadMessageCount} unread messages`}>
+                          {assignmentUnreadMessageCount > 9 ? '9+' : assignmentUnreadMessageCount}
+                        </span>
+                      )}
+                    </div>
                     <div className="assignment-chat-card-list">
                       {assignmentChats.map((chat) => (
                         <button
@@ -601,7 +621,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                             <strong>{chat.role === 'giver' ? `Message ${chat.title}` : chat.title}</strong>
                             <small>{chat.subtitle}</small>
                           </span>
-                          <span className="assignment-chat-card-action">Open</span>
+                          <span className="assignment-chat-card-trailing">
+                            {chat.unread_count > 0 && (
+                              <span className="unread-count-badge" aria-label={`${chat.unread_count} unread messages`}>
+                                {chat.unread_count > 9 ? '9+' : chat.unread_count}
+                              </span>
+                            )}
+                            <span className="assignment-chat-card-action">Open</span>
+                          </span>
                         </button>
                       ))}
                     </div>

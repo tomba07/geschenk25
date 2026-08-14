@@ -343,6 +343,16 @@ export async function runMigrations() {
       )
     `);
 
+  // Track read position per user and assignment chat
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS assignment_chat_reads (
+        assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        last_read_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (assignment_id, user_id)
+      )
+    `);
+
   await pool.query('DROP TABLE IF EXISTS exclusions');
 
   // Add link column if it doesn't exist (for existing databases)
@@ -478,6 +488,10 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_assignment_chat_messages_sender_id ON assignment_chat_messages(sender_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_assignment_chat_reads_user_id ON assignment_chat_reads(user_id)
     `);
 
 }

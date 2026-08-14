@@ -2387,6 +2387,12 @@ select:focus {
   padding-top: 16px;
 }
 
+.assignment-chat-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .assignment-chat-panel h3 {
   margin: 0;
   color: var(--color-text);
@@ -2448,6 +2454,26 @@ select:focus {
   color: var(--color-evergreen);
   font-size: 15px;
   font-weight: 800;
+}
+
+.assignment-chat-card-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unread-count-badge {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .assigned-ideas-panel {
@@ -3019,6 +3045,7 @@ select:focus {
 }
 
 .overview-group-card {
+  position: relative;
   width: 100%;
   min-height: 92px;
   display: grid;
@@ -3032,6 +3059,25 @@ select:focus {
   color: inherit;
   text-align: left;
   box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+}
+
+.overview-unread-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  min-width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(211, 51, 43, 0.18);
 }
 
 .overview-group-card:hover {

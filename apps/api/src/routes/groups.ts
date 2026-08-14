@@ -37,6 +37,19 @@ function appUrl(path: string) {
   return `${process.env.APP_BASE_URL || ''}${path}`;
 }
 
+function unreadMessagesSql(groupAlias: string) {
+  return `(
+    SELECT COUNT(*)
+    FROM assignment_chat_messages acm
+    JOIN assignments aa ON acm.assignment_id = aa.id
+    LEFT JOIN assignment_chat_reads acr ON acr.assignment_id = aa.id AND acr.user_id = $1
+    WHERE aa.group_id = ${groupAlias}.id
+      AND (aa.giver_id = $1 OR aa.receiver_id = $1)
+      AND acm.sender_id <> $1
+      AND acm.created_at > COALESCE(acr.last_read_at, '-infinity'::timestamptz)
+  )`;
+}
+
 function mapAssignmentChat(row: any, userId: number) {
   const role = row.giver_id === userId ? 'giver' : 'receiver';
 
@@ -51,6 +64,7 @@ function mapAssignmentChat(row: any, userId: number) {
       : 'Ask a question without knowing who they are.',
     receiver_id: role === 'giver' ? row.receiver_id : undefined,
     receiver_username: role === 'giver' ? row.receiver_username : undefined,
+    unread_count: parseInt(row.unread_count || '0', 10),
     created_at: row.created_at,
   };
 }
@@ -201,7 +215,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     const result = await pool.query(
       `SELECT DISTINCT g.id, g.name, g.description, g.image_url, g.created_at, g.created_by,
-              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count
+              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count,
+              ${unreadMessagesSql('g')} as unread_message_count
        FROM groups g
        LEFT JOIN group_members gm ON g.id = gm.group_id AND (gm.status IS NULL OR gm.status = 'active')
        WHERE (g.created_by = $1 OR (gm.user_id = $1 AND (gm.status IS NULL OR gm.status = 'active')))
@@ -213,6 +228,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const groups = result.rows.map((row: any) => ({
       ...row,
       member_count: parseInt(row.member_count, 10),
+      unread_message_count: parseInt(row.unread_message_count || '0', 10),
     }));
 
     res.json({ groups });
@@ -230,11 +246,12 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
     // Check if user has access to this group (owner or active member, not left)
     const accessCheck = await pool.query(
-      `SELECT g.id, g.name, g.description, g.image_url, g.created_at, g.created_by
+      `SELECT g.id, g.name, g.description, g.image_url, g.created_at, g.created_by,
+              ${unreadMessagesSql('g')} as unread_message_count
        FROM groups g
-       LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $2 AND (gm.status IS NULL OR gm.status = 'active')
-       WHERE g.id = $1 AND (g.created_by = $2 OR gm.user_id = $2)`,
-      [groupId, userId]
+       LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $1 AND (gm.status IS NULL OR gm.status = 'active')
+       WHERE g.id = $2 AND (g.created_by = $1 OR gm.user_id = $1)`,
+      [userId, groupId]
     );
 
     if (accessCheck.rows.length === 0) {
@@ -242,6 +259,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     const group = accessCheck.rows[0];
+    group.unread_message_count = parseInt(group.unread_message_count || '0', 10);
 
     // Get owner info
     const ownerResult = await pool.query(
@@ -868,7 +886,15 @@ router.get('/:id/assignment-chats', async (req: AuthRequest, res: Response) => {
 
     const chatsResult = await pool.query(
       `SELECT a.id, a.group_id, a.giver_id, a.receiver_id, a.created_at,
-              receiver.username as receiver_username
+              receiver.username as receiver_username,
+              (
+                SELECT COUNT(*)
+                FROM assignment_chat_messages acm
+                LEFT JOIN assignment_chat_reads acr ON acr.assignment_id = a.id AND acr.user_id = $2
+                WHERE acm.assignment_id = a.id
+                  AND acm.sender_id <> $2
+                  AND acm.created_at > COALESCE(acr.last_read_at, '-infinity'::timestamptz)
+              ) as unread_count
        FROM assignments a
        JOIN users receiver ON a.receiver_id = receiver.id
        WHERE a.group_id = $1 AND (a.giver_id = $2 OR a.receiver_id = $2)
@@ -908,6 +934,14 @@ router.get('/:id/assignment-chats/:assignmentId/messages', async (req: AuthReque
        ORDER BY created_at ASC, id ASC
        LIMIT 200`,
       [assignmentId]
+    );
+
+    await pool.query(
+      `INSERT INTO assignment_chat_reads (assignment_id, user_id, last_read_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (assignment_id, user_id)
+       DO UPDATE SET last_read_at = EXCLUDED.last_read_at`,
+      [assignmentId, userId]
     );
 
     res.json({
