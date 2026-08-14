@@ -4,6 +4,7 @@ import {
   DEV_TEST_ACCOUNTS,
   ensureDevTestAccounts,
   getDevTestPassword,
+  localDatabaseConfigured,
 } from './utils/devTestAccounts';
 
 async function seedDevAccounts() {
@@ -27,11 +28,15 @@ async function seedDevAccounts() {
   }
 
   try {
-    const accounts = await ensureDevTestAccounts();
+    const includeSampleGroup = localDatabaseConfigured();
+    const accounts = await ensureDevTestAccounts(undefined, { includeSampleGroup });
     console.log(`Seeded ${accounts.length} dev testing account(s):`);
     accounts.forEach((account) => {
       console.log(`- ${account.email} / @${account.username}`);
     });
+    if (includeSampleGroup) {
+      console.log('Seeded local sample group: Dev Gift Exchange');
+    }
 
     if (!isProduction && getDevTestPassword() === DEFAULT_DEV_TEST_PASSWORD) {
       console.log(`Local password: ${DEFAULT_DEV_TEST_PASSWORD}`);

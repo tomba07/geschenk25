@@ -7,7 +7,7 @@ import groupsRoutes from './routes/groups';
 import notificationsRoutes from './routes/notifications';
 import devRoutes from './routes/dev';
 import { runMigrations } from './migrate';
-import { devToolsEnabled, ensureDevTestAccounts } from './utils/devTestAccounts';
+import { devToolsEnabled, ensureDevTestAccounts, localDatabaseConfigured } from './utils/devTestAccounts';
 
 dotenv.config();
 
@@ -83,8 +83,12 @@ async function seedDevTestAccountsWithRetry() {
 
   for (let attempt = 1; attempt <= DEV_SEED_MAX_ATTEMPTS; attempt += 1) {
     try {
-      const accounts = await ensureDevTestAccounts();
+      const includeSampleGroup = localDatabaseConfigured();
+      const accounts = await ensureDevTestAccounts(undefined, { includeSampleGroup });
       console.log(`Dev test accounts ready: ${accounts.map((account) => account.email).join(', ')}`);
+      if (includeSampleGroup) {
+        console.log('Local dev sample group ready: Dev Gift Exchange');
+      }
       return;
     } catch (error) {
       console.error(`Dev test account seed failed (attempt ${attempt}/${DEV_SEED_MAX_ATTEMPTS}):`, error);
