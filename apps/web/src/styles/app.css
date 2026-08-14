@@ -2474,7 +2474,44 @@ select:focus {
 .idea-card-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.gift-idea-action-button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: #3f5578;
+  padding: 0;
+}
+
+.gift-idea-action-button:hover,
+.gift-idea-action-button:focus-visible {
+  border-color: #cfe0f6;
+  background: #eef5ff;
+  color: #08245a;
+}
+
+.gift-idea-action-button.danger:hover,
+.gift-idea-action-button.danger:focus-visible {
+  border-color: #f2c6c0;
+  background: #fff1ef;
+  color: var(--danger);
+}
+
+.gift-idea-action-icon {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .idea-native-card strong,

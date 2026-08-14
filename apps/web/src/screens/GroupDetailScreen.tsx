@@ -9,6 +9,29 @@ import { showErrorToast, showSuccessToast } from '../utils/toast';
 import { Assignment, GiftIdea, Group, GroupMember } from '../types/group';
 
 type DrawExclusion = { firstUserId: number; secondUserId: number };
+type GiftIdeaActionIconName = 'edit' | 'delete';
+
+function GiftIdeaActionIcon({ name }: { name: GiftIdeaActionIconName }) {
+  return (
+    <svg className="gift-idea-action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      {name === 'edit' && (
+        <>
+          <path d="m4.75 15.75-.5 4 4-.5L18.5 9 15 5.5 4.75 15.75Z" />
+          <path d="m13.75 6.75 3.5 3.5" />
+        </>
+      )}
+      {name === 'delete' && (
+        <>
+          <path d="M5.25 7.25h13.5" />
+          <path d="M9.25 7.25V5.5h5.5v1.75" />
+          <path d="m7.25 7.25.75 12h8l.75-12" />
+          <path d="M10.25 10.75v5" />
+          <path d="M13.75 10.75v5" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function getDrawExclusionValidationMessage(members: GroupMember[], exclusions: DrawExclusion[]) {
   if (members.length < 3 || exclusions.length === 0) return null;
@@ -577,8 +600,24 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       <small>for @{idea.for_user.username}</small>
                     </div>
                     <div className="idea-card-actions">
-                      <button className="link-button" type="button" onClick={() => handleEditGiftIdea(idea)}>Edit</button>
-                      <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
+                      <button
+                        className="gift-idea-action-button"
+                        type="button"
+                        onClick={() => handleEditGiftIdea(idea)}
+                        aria-label="Edit gift idea"
+                        title="Edit gift idea"
+                      >
+                        <GiftIdeaActionIcon name="edit" />
+                      </button>
+                      <button
+                        className="gift-idea-action-button danger"
+                        type="button"
+                        onClick={() => handleDeleteGiftIdea(idea.id)}
+                        aria-label="Delete gift idea"
+                        title="Delete gift idea"
+                      >
+                        <GiftIdeaActionIcon name="delete" />
+                      </button>
                     </div>
                   </article>
                 ))}
