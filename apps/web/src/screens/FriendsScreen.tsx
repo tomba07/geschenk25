@@ -295,12 +295,11 @@ export default function FriendsScreen() {
                   {renderPersonAvatar(friend)}
                   <div className="overview-group-card-body">
                     <h3>@{friend.username}</h3>
-                    <div className="overview-group-meta">
-                      <span>Friend</span>
-                      {friend.created_at && (
+                    {friend.created_at && (
+                      <div className="overview-group-meta">
                         <span>{new Date(friend.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                   <button className="link-button danger-text friend-remove-button" type="button" onClick={() => handleUnfriend(friend)}>
                     Unfriend
