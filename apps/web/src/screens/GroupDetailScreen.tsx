@@ -594,7 +594,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <div className="native-list">
                 {giftIdeas.map((idea) => (
                   <article className="native-card idea-native-card" key={idea.id}>
-                    <div>
+                    <div className="idea-card-content">
                       <strong>{idea.idea}</strong>
                       {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
                       <small>for @{idea.for_user.username}</small>
