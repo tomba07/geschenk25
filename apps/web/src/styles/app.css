@@ -1122,7 +1122,9 @@ select:focus {
   overflow: hidden;
   background: #e6f1fc;
   color: var(--primary);
+  font-size: 18px;
   font-weight: 800;
+  letter-spacing: 0;
 }
 
 .group-image.large {
@@ -1893,7 +1895,7 @@ select:focus {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .detail-title-copy {

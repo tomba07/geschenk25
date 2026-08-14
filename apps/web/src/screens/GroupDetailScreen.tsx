@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
+import { getInitials } from '../utils/initials';
 import { showErrorToast, showSuccessToast } from '../utils/toast';
 import { Assignment, AssignmentChat, AssignmentChatMessage, GiftIdea, Group, GroupMember } from '../types/group';
 
@@ -572,7 +573,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <span className="detail-back-compact">←</span>
         </button>
         <button className="detail-title-button" type="button" onClick={openDetails} aria-label="Open group details">
-          <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</span>
+          <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>{getInitials(group.name)}</span>}</span>
           <span className="detail-title-copy">
             <strong>{group.name}</strong>
             <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
@@ -1011,7 +1012,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
             <section className="details-image-section">
               <div className="group-image large">
-                {editingImage ? <img src={editingImage} alt="" /> : <span>G</span>}
+                {editingImage ? <img src={editingImage} alt="" /> : <span>{getInitials(group.name)}</span>}
               </div>
               {isOwner && (
                 <div className="button-row">

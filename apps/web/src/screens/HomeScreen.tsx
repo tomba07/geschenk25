@@ -3,6 +3,7 @@ import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
 import { fileToDataUrl } from '../utils/file';
+import { getInitials } from '../utils/initials';
 import { showErrorToast } from '../utils/toast';
 import { Group } from '../types/group';
 
@@ -134,7 +135,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                         {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
                       </span>
                     )}
-                    <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>G</span>}</div>
+                    <div className="group-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>{getInitials(group.name)}</span>}</div>
                     <div className="overview-group-card-body">
                       <h3>{group.name}</h3>
                       {group.description && <p>{group.description}</p>}
