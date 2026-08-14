@@ -75,6 +75,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteOpen, setInviteOpen] = useState(false);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const [pairingRulesOpen, setPairingRulesOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<number[]>([]);
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
@@ -266,6 +267,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setDrawExclusions([]);
     setExclusionGiverId('');
     setExclusionReceiverId('');
+    setPairingRulesOpen(false);
     setDrawOpen(true);
   };
 
@@ -678,39 +680,47 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </div>
             )}
 
-            <section className="draw-exclusions-section">
-              <h3>Pairing rules</h3>
-              {drawExclusions.length === 0 ? (
-                <p className="empty-inline">No pairing rules set</p>
-              ) : (
-                <div className="native-list">
-                  {drawExclusions.map((exclusionPair) => (
-                    <article className="native-card exclusion-native-card" key={`${exclusionPair.firstUserId}-${exclusionPair.secondUserId}`}>
-                      <span>@{usernameById.get(exclusionPair.firstUserId)} and @{usernameById.get(exclusionPair.secondUserId)} cannot draw each other</span>
-                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusionPair.firstUserId, exclusionPair.secondUserId)}>Remove</button>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
+            {pairingRulesOpen ? (
+              <>
+                <section className="draw-exclusions-section">
+                  <h3>Pairing rules</h3>
+                  {drawExclusions.length === 0 ? (
+                    <p className="empty-inline">No pairing rules set</p>
+                  ) : (
+                    <div className="native-list">
+                      {drawExclusions.map((exclusionPair) => (
+                        <article className="native-card exclusion-native-card" key={`${exclusionPair.firstUserId}-${exclusionPair.secondUserId}`}>
+                          <span>@{usernameById.get(exclusionPair.firstUserId)} and @{usernameById.get(exclusionPair.secondUserId)} cannot draw each other</span>
+                          <button className="link-button danger-text" type="button" onClick={() => handleRemoveExclusion(exclusionPair.firstUserId, exclusionPair.secondUserId)}>Remove</button>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-            <form className="inline-exclusion-form" onSubmit={handleAddExclusion}>
-              <label>
-                <span>First person</span>
-                <select value={exclusionGiverId} onChange={(event) => setExclusionGiverId(event.target.value ? Number(event.target.value) : '')} required>
-                  <option value="">Choose member</option>
-                  {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Second person</span>
-                <select value={exclusionReceiverId} onChange={(event) => setExclusionReceiverId(event.target.value ? Number(event.target.value) : '')} required>
-                  <option value="">Choose member</option>
-                  {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
-                </select>
-              </label>
-              <button className="secondary-button" type="submit" disabled={drawing || !canAddExclusion}>Avoid Pair</button>
-            </form>
+                <form className="inline-exclusion-form" onSubmit={handleAddExclusion}>
+                  <label>
+                    <span>First person</span>
+                    <select value={exclusionGiverId} onChange={(event) => setExclusionGiverId(event.target.value ? Number(event.target.value) : '')} required>
+                      <option value="">Choose member</option>
+                      {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Second person</span>
+                    <select value={exclusionReceiverId} onChange={(event) => setExclusionReceiverId(event.target.value ? Number(event.target.value) : '')} required>
+                      <option value="">Choose member</option>
+                      {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
+                    </select>
+                  </label>
+                  <button className="secondary-button" type="submit" disabled={drawing || !canAddExclusion}>Avoid Pair</button>
+                </form>
+              </>
+            ) : (
+              <button className="secondary-button" type="button" onClick={() => setPairingRulesOpen(true)} disabled={drawing}>
+                Add Pairing Rules
+              </button>
+            )}
 
             <div className="button-row end">
               <button
@@ -719,6 +729,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 onClick={() => {
                   setDrawOpen(false);
                   setDrawExclusions([]);
+                  setPairingRulesOpen(false);
                 }}
                 disabled={drawing}
               >
