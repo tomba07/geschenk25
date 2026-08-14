@@ -159,6 +159,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     () => getDrawExclusionValidationMessage(members, drawExclusions),
     [drawExclusions, members]
   );
+  const selectedExclusionExists = Boolean(exclusionGiverId && exclusionReceiverId) && drawExclusions.some((pair) => {
+    const [firstUserId, secondUserId] = [Number(exclusionGiverId), Number(exclusionReceiverId)].sort((a, b) => a - b);
+    return pair.firstUserId === firstUserId && pair.secondUserId === secondUserId;
+  });
+  const canAddExclusion = Boolean(
+    exclusionGiverId &&
+    exclusionReceiverId &&
+    exclusionGiverId !== exclusionReceiverId &&
+    !selectedExclusionExists
+  );
   const normalizedFriendSearch = friendSearchQuery.trim().toLowerCase();
   const filteredFriends = friends.filter((friend) =>
     !normalizedFriendSearch || friend.username.toLowerCase().includes(normalizedFriendSearch)
@@ -699,7 +709,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {members.map((member) => <option key={member.id} value={member.id}>@{member.username}</option>)}
                 </select>
               </label>
-              <button className="secondary-button" type="submit" disabled={drawing}>Avoid Pair</button>
+              <button className="secondary-button" type="submit" disabled={drawing || !canAddExclusion}>Avoid Pair</button>
             </form>
 
             <div className="button-row end">
