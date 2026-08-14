@@ -169,53 +169,6 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    let touchStart: { x: number; y: number } | null = null;
-    const edgeWidth = 24;
-    const horizontalIntentThreshold = 16;
-    const verticalIntentThreshold = 8;
-
-    const handleTouchStart = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!touchStart || !event.cancelable) return;
-
-      const touch = event.touches[0];
-      if (!touch) return;
-
-      const deltaX = touch.clientX - touchStart.x;
-      const deltaY = touch.clientY - touchStart.y;
-      const isHorizontalSwipe = deltaX > horizontalIntentThreshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
-      if (touchStart.x <= edgeWidth && isHorizontalSwipe) {
-        event.preventDefault();
-        return;
-      }
-
-      const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('.modal-panel, .menu-popover')) return;
-
-      const scrollContainer = document.querySelector<HTMLElement>('.app-frame-main');
-      if (!scrollContainer || !target || !scrollContainer.contains(target)) return;
-
-      const isVerticalDrag = Math.abs(deltaY) > verticalIntentThreshold && Math.abs(deltaY) > Math.abs(deltaX) * 1.2;
-      const atTop = scrollContainer.scrollTop <= 0;
-      const atBottom = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 1;
-      if (isVerticalDrag && ((deltaY > 0 && atTop) || (deltaY < 0 && atBottom))) {
-        event.preventDefault();
-      }
-    };
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, []);
-
-  useEffect(() => {
     const handleConfirm = (event: Event) => {
       event.preventDefault();
       const customEvent = event as CustomEvent<ConfirmDialogRequest>;
