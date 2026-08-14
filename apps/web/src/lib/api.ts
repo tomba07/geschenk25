@@ -138,9 +138,11 @@ class ApiClient {
         // Override for specific status codes
         if (response.status === 401) {
           error.type = ErrorType.AUTHENTICATION;
-          error.userMessage = 'Your session has expired. Please log in again.';
           if (requireAuth) {
+            error.userMessage = 'Your session has expired. Please log in again.';
             this.authenticationRejectedHandler?.();
+          } else {
+            error.userMessage = data.error || 'Authentication failed. Please try again.';
           }
         } else if (response.status === 403) {
           error.type = ErrorType.AUTHORIZATION;
