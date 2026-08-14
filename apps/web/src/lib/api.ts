@@ -48,13 +48,22 @@ export type FriendSearchResult = FriendSearchResultDto;
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
+  private authenticationRejectedHandler: (() => void) | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
 
+  getBaseUrl() {
+    return this.baseUrl;
+  }
+
   setToken(token: string | null) {
     this.token = token;
+  }
+
+  setAuthenticationRejectedHandler(handler: (() => void) | null) {
+    this.authenticationRejectedHandler = handler;
   }
 
   getGoogleOAuthUrl(mode: 'login' | 'signup' = 'login') {
@@ -130,6 +139,9 @@ class ApiClient {
         if (response.status === 401) {
           error.type = ErrorType.AUTHENTICATION;
           error.userMessage = 'Your session has expired. Please log in again.';
+          if (requireAuth) {
+            this.authenticationRejectedHandler?.();
+          }
         } else if (response.status === 403) {
           error.type = ErrorType.AUTHORIZATION;
           error.userMessage = 'You do not have permission to perform this action.';

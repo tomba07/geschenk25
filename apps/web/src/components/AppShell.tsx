@@ -61,24 +61,27 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
 }
 
 export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile, onNavigateDev }: AppShellProps) {
-  const { signOut } = useAuth();
+  const { isAuthenticated, isLoading, signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
   const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Edit Profile' : active === 'dev' ? 'Dev Admin' : 'Groups';
-  const devNavVisible = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true';
+  const devNavVisible = import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true'
+    || (import.meta.env.DEV && apiClient.getBaseUrl().includes('localhost'));
 
   const loadFriendRequestCount = useCallback(async () => {
+    if (isLoading || !isAuthenticated) return;
     const response = await apiClient.getFriendRequests();
     if (!response.error) {
       setIncomingFriendRequestCount(response.data?.incoming.length || 0);
     }
-  }, []);
+  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
+    if (isLoading || !isAuthenticated) return undefined;
     loadFriendRequestCount();
     window.addEventListener(FRIEND_REQUESTS_UPDATED_EVENT, loadFriendRequestCount);
     return () => window.removeEventListener(FRIEND_REQUESTS_UPDATED_EVENT, loadFriendRequestCount);
-  }, [loadFriendRequestCount]);
+  }, [isAuthenticated, isLoading, loadFriendRequestCount]);
 
   const closeSidebar = () => setSidebarVisible(false);
   const navigateGroups = () => {

@@ -64,6 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfileComplete(false);
   };
 
+  useEffect(() => {
+    apiClient.setAuthenticationRejectedHandler(clearAuth);
+    return () => apiClient.setAuthenticationRejectedHandler(null);
+  }, []);
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem(TOKEN_KEY);

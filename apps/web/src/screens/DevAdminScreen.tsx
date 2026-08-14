@@ -9,6 +9,7 @@ export default function DevAdminScreen() {
   const [state, setState] = useState<DevState | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | ''>('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ message: string; devToolsUnavailable: boolean } | null>(null);
   const [busyAction, setBusyAction] = useState('');
   const [groupName, setGroupName] = useState('Dev Gift Exchange');
   const [ownerId, setOwnerId] = useState<number | ''>(userId || '');
@@ -38,6 +39,7 @@ export default function DevAdminScreen() {
   );
   const canCreateGroup = Boolean(groupName.trim() && ownerId);
   const canAddGiftIdea = Boolean(selectedGroup && giftForUserId && giftCreatedById && giftIdea.trim());
+  const apiBaseUrl = apiClient.getBaseUrl();
 
   const applyDevState = useCallback((nextState: DevState) => {
     setState(nextState);
@@ -58,14 +60,26 @@ export default function DevAdminScreen() {
 
   const loadState = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const response = await apiClient.getDevState();
       if (response.error || !response.data) {
-        showErrorToast(response.error || 'Dev tools are unavailable');
+        const devToolsUnavailable = response.appError?.statusCode === 404;
+        setLoadError({
+          message: devToolsUnavailable
+            ? 'Dev tools are not enabled on this API.'
+            : response.error || 'Dev tools are unavailable',
+          devToolsUnavailable,
+        });
+        if (!devToolsUnavailable) {
+          showErrorToast(response.error || 'Dev tools are unavailable');
+        }
         return;
       }
+      setLoadError(null);
       applyDevState(response.data);
     } catch (error) {
+      setLoadError({ message: getErrorMessage(error), devToolsUnavailable: false });
       showErrorToast(getErrorMessage(error));
     } finally {
       setLoading(false);
@@ -208,6 +222,38 @@ export default function DevAdminScreen() {
       <section className="overview-screen dev-admin-screen">
         <div className="overview-content">
           <div className="app-loading-card"><span className="spinner" /></div>
+        </div>
+      </section>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <section className="overview-screen dev-admin-screen">
+        <header className="overview-page-header">
+          <div>
+            <h1>Dev Admin</h1>
+            <p>{loadError.message}</p>
+          </div>
+          <button className="secondary-button compact" type="button" onClick={loadState}>
+            Retry
+          </button>
+        </header>
+
+        <div className="overview-content dev-admin-content">
+          <section className="dev-admin-panel">
+            <div className="dev-panel-heading">
+              <h2>{loadError.devToolsUnavailable ? 'Wrong API for Dev Tools' : 'Could Not Load Dev Tools'}</h2>
+            </div>
+            <p className="empty-inline">
+              Current API: {apiBaseUrl}
+            </p>
+            {loadError.devToolsUnavailable && (
+              <p className="empty-inline">
+                Start the local API and web app with local mode, or enable dev tools on the target API.
+              </p>
+            )}
+          </section>
         </div>
       </section>
     );
