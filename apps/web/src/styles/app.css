@@ -3467,6 +3467,21 @@ hr {
     grid-template-columns: 150px 1fr 1fr auto;
   }
 
+  .assignment-chat-card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .assignment-chat-card {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .assignment-chat-card-trailing {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .app-shell:has(.group-detail-screen) {
     width: 100%;
     margin: 0;
