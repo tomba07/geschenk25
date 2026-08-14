@@ -356,12 +356,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     const [firstUserId, secondUserId] = [Number(exclusionGiverId), Number(exclusionReceiverId)].sort((a, b) => a - b);
     const exists = drawExclusions.some((pair) => pair.firstUserId === firstUserId && pair.secondUserId === secondUserId);
     if (!exists) {
-      const nextPairs = [...drawExclusions, { firstUserId, secondUserId }];
-      const validationMessage = getDrawExclusionValidationMessage(members, nextPairs);
-      setDrawExclusions(nextPairs);
-      if (validationMessage) {
-        showErrorToast(validationMessage);
-      }
+      setDrawExclusions((currentPairs) => [...currentPairs, { firstUserId, secondUserId }]);
     }
     setExclusionGiverId('');
     setExclusionReceiverId('');
