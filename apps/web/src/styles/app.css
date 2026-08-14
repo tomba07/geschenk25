@@ -94,7 +94,7 @@
 }
 
 html {
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
 }
 
 body {
@@ -103,7 +103,7 @@ body {
   min-height: 100vh;
   color: var(--color-text);
   background: var(--color-bg);
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
 }
 
 button,
@@ -2442,6 +2442,7 @@ select:focus {
   grid-template-rows: auto minmax(0, 1fr);
   padding-bottom: 0;
   background: #eef5ff;
+  overscroll-behavior: none;
   overflow: hidden;
 }
 
@@ -2455,8 +2456,10 @@ select:focus {
 
 .app-frame-main {
   min-width: 0;
+  overscroll-behavior: none;
   overflow: auto;
   background: #f8fbff;
+  -webkit-overflow-scrolling: touch;
 }
 
 .overview-screen {
