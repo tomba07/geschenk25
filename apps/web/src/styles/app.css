@@ -2460,6 +2460,12 @@ select:focus {
   gap: 4px;
 }
 
+.idea-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .idea-native-card strong,
 .idea-native-card a,
 .idea-native-card small {

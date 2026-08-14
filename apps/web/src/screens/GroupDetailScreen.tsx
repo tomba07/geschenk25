@@ -83,6 +83,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteCopied, setInviteCopied] = useState(false);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [groupNameInput, setGroupNameInput] = useState('');
+  const [editingGiftIdeaId, setEditingGiftIdeaId] = useState<number | null>(null);
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [giftIdeaLink, setGiftIdeaLink] = useState('');
   const [giftIdeaForUserId, setGiftIdeaForUserId] = useState<number | ''>('');
@@ -352,6 +353,30 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     });
   };
 
+  const openGiftIdeaModal = () => {
+    setEditingGiftIdeaId(null);
+    setGiftIdeaText('');
+    setGiftIdeaLink('');
+    setGiftIdeaForUserId('');
+    setGiftIdeaOpen(true);
+  };
+
+  const closeGiftIdeaModal = () => {
+    setGiftIdeaOpen(false);
+    setEditingGiftIdeaId(null);
+    setGiftIdeaText('');
+    setGiftIdeaLink('');
+    setGiftIdeaForUserId('');
+  };
+
+  const handleEditGiftIdea = (idea: GiftIdea) => {
+    setEditingGiftIdeaId(idea.id);
+    setGiftIdeaText(idea.idea);
+    setGiftIdeaLink(idea.link || '');
+    setGiftIdeaForUserId(idea.for_user_id);
+    setGiftIdeaOpen(true);
+  };
+
   const handleSaveGiftIdea = async (event: FormEvent) => {
     event.preventDefault();
     const forUserId = giftIdeaForUserId || userId;
@@ -359,14 +384,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
     setBusy(true);
     try {
-      const newIdea = await groupService.createGiftIdea(groupId, Number(forUserId), giftIdeaText.trim(), giftIdeaLink.trim() || undefined);
-      setGiftIdeaText('');
-      setGiftIdeaLink('');
-      setGiftIdeaForUserId('');
-      setGiftIdeaOpen(false);
-      if (newIdea.created_by_id === userId) {
-        setGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
+      if (editingGiftIdeaId) {
+        const updatedIdea = await groupService.updateGiftIdea(groupId, editingGiftIdeaId, giftIdeaText.trim(), giftIdeaLink.trim() || undefined);
+        closeGiftIdeaModal();
+        setGiftIdeas((currentIdeas) => currentIdeas.map((currentIdea) => (
+          currentIdea.id === updatedIdea.id ? updatedIdea : currentIdea
+        )));
+        setAssignedPersonGiftIdeas((currentIdeas) => currentIdeas.map((currentIdea) => (
+          currentIdea.id === updatedIdea.id ? updatedIdea : currentIdea
+        )));
+        showSuccessToast('Gift idea updated');
+        return;
       }
+
+      const newIdea = await groupService.createGiftIdea(groupId, Number(forUserId), giftIdeaText.trim(), giftIdeaLink.trim() || undefined);
+      closeGiftIdeaModal();
+      setGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
       if (assignment && newIdea.for_user_id === assignment.receiver_id) {
         setAssignedPersonGiftIdeas((currentIdeas) => [newIdea, ...currentIdeas]);
       }
@@ -527,7 +560,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <section className="detail-section ideas-section">
             <div className="native-section-header">
               <h2>My Gift Ideas</h2>
-              <button className="primary-button compact pill-action" type="button" onClick={() => setGiftIdeaOpen(true)}>+ Add Idea</button>
+              <button className="primary-button compact pill-action" type="button" onClick={openGiftIdeaModal}>+ Add Idea</button>
             </div>
             {giftIdeas.length === 0 ? (
               <article className="native-card empty-card">
@@ -543,7 +576,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
                       <small>for @{idea.for_user.username}</small>
                     </div>
-                    <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
+                    <div className="idea-card-actions">
+                      <button className="link-button" type="button" onClick={() => handleEditGiftIdea(idea)}>Edit</button>
+                      <button className="link-button danger-text" type="button" onClick={() => handleDeleteGiftIdea(idea.id)}>Delete</button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -656,12 +692,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <div className="modal-backdrop">
           <form className="modal-panel" onSubmit={handleSaveGiftIdea}>
             <header>
-              <h2>Add Gift Idea</h2>
-              <button type="button" className="icon-button" onClick={() => setGiftIdeaOpen(false)} aria-label="Close">×</button>
+              <h2>{editingGiftIdeaId ? 'Edit Gift Idea' : 'Add Gift Idea'}</h2>
+              <button type="button" className="icon-button" onClick={closeGiftIdeaModal} aria-label="Close">×</button>
             </header>
             <label>
               <span>For</span>
-              <select value={giftIdeaForUserId} onChange={(event) => setGiftIdeaForUserId(event.target.value ? Number(event.target.value) : '')}>
+              <select
+                value={giftIdeaForUserId}
+                onChange={(event) => setGiftIdeaForUserId(event.target.value ? Number(event.target.value) : '')}
+                disabled={Boolean(editingGiftIdeaId)}
+              >
                 <option value="">Me</option>
                 {members.filter((member) => member.id !== userId).map((member) => (
                   <option key={member.id} value={member.id}>@{member.username}</option>
@@ -677,8 +717,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <input value={giftIdeaLink} onChange={(event) => setGiftIdeaLink(event.target.value)} placeholder="https://..." />
             </label>
             <div className="button-row end">
-              <button className="secondary-button" type="button" onClick={() => setGiftIdeaOpen(false)}>Cancel</button>
-              <button className="primary-button" type="submit" disabled={busy}>Add Idea</button>
+              <button className="secondary-button" type="button" onClick={closeGiftIdeaModal}>Cancel</button>
+              <button className="primary-button" type="submit" disabled={busy}>
+                {editingGiftIdeaId ? 'Save Idea' : 'Add Idea'}
+              </button>
             </div>
           </form>
         </div>
