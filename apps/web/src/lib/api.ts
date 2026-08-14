@@ -273,10 +273,10 @@ class ApiClient {
     });
   }
 
-  async updateGroup(id: number, image_url?: string) {
+  async updateGroup(id: number, updates: { name?: string; image_url?: string | null }) {
     return this.request<GroupResponse>(`/api/groups/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ image_url }),
+      body: JSON.stringify(updates),
     });
   }
 

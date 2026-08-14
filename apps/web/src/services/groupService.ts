@@ -81,7 +81,7 @@ export const groupService = {
   },
 
   // Update a group
-  async updateGroup(groupId: string, imageUrl?: string): Promise<Group> {
+  async updateGroup(groupId: string, updates: { name?: string; imageUrl?: string | null }): Promise<Group> {
     const id = parseInt(groupId);
     if (isNaN(id)) {
       const appError: AppError = {
@@ -93,7 +93,10 @@ export const groupService = {
       throw new GroupServiceError(appError);
     }
 
-    const response = await apiClient.updateGroup(id, imageUrl);
+    const response = await apiClient.updateGroup(id, {
+      name: updates.name,
+      image_url: updates.imageUrl,
+    });
     
     if (response.error) {
       const appError = response.appError || parseError(response.error);

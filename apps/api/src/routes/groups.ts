@@ -306,15 +306,29 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const groupId = parseInt(req.params.id);
-    const { image_url } = req.body;
+    const hasName = Object.prototype.hasOwnProperty.call(req.body, 'name');
+    const hasImageUrl = Object.prototype.hasOwnProperty.call(req.body, 'image_url');
+    const { name, image_url } = req.body;
 
     if (isNaN(groupId)) {
       return res.status(400).json({ error: 'Invalid group ID' });
     }
 
+    if (!hasName && !hasImageUrl) {
+      return res.status(400).json({ error: 'No group updates provided' });
+    }
+
+    if (hasName && (typeof name !== 'string' || !name.trim())) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+
+    if (hasImageUrl && image_url !== null && typeof image_url !== 'string') {
+      return res.status(400).json({ error: 'image_url must be a string or null' });
+    }
+
     // Check if group exists and user is the owner
     const groupCheck = await pool.query(
-      'SELECT id, created_by FROM groups WHERE id = $1',
+      'SELECT id, name, image_url, created_by FROM groups WHERE id = $1',
       [groupId]
     );
 
@@ -326,10 +340,14 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Only the group owner can update the group' });
     }
 
-    // Update group image
+    const currentGroup = groupCheck.rows[0];
+    const nextName = hasName ? name.trim() : currentGroup.name;
+    const nextImageUrl = hasImageUrl ? (image_url || null) : currentGroup.image_url;
+
+    // Update group details
     const result = await pool.query(
-      'UPDATE groups SET image_url = $1 WHERE id = $2 RETURNING id, name, description, image_url, created_at, created_by',
-      [image_url || null, groupId]
+      'UPDATE groups SET name = $1, image_url = $2 WHERE id = $3 RETURNING id, name, description, image_url, created_at, created_by',
+      [nextName, nextImageUrl, groupId]
     );
 
     res.json({ group: result.rows[0] });

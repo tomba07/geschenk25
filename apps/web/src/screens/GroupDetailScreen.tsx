@@ -82,6 +82,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [editingImage, setEditingImage] = useState<string | null>(null);
+  const [groupNameInput, setGroupNameInput] = useState('');
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [giftIdeaLink, setGiftIdeaLink] = useState('');
   const [giftIdeaForUserId, setGiftIdeaForUserId] = useState<number | ''>('');
@@ -178,6 +179,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
   const openDetails = () => {
     setEditingImage(group?.image_url || null);
+    setGroupNameInput(group?.name || '');
     setDetailsOpen(true);
   };
 
@@ -192,9 +194,31 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setBusy(true);
     try {
       setEditingImage(imageUrl || null);
-      const updatedGroup = await groupService.updateGroup(groupId, imageUrl);
-      setGroup(updatedGroup);
+      const updatedGroup = await groupService.updateGroup(groupId, { imageUrl: imageUrl || null });
+      setGroup((currentGroup) => currentGroup ? { ...currentGroup, ...updatedGroup } : updatedGroup);
       setEditingImage(updatedGroup.image_url || null);
+    } catch (error) {
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveGroupName = async (event: FormEvent) => {
+    event.preventDefault();
+    const nextName = groupNameInput.trim();
+    if (!nextName) {
+      showErrorToast('Group name is required');
+      return;
+    }
+    if (!group || nextName === group.name) return;
+
+    setBusy(true);
+    try {
+      const updatedGroup = await groupService.updateGroup(groupId, { name: nextName });
+      setGroup((currentGroup) => currentGroup ? { ...currentGroup, ...updatedGroup } : updatedGroup);
+      setGroupNameInput(updatedGroup.name);
+      showSuccessToast('Group renamed');
     } catch (error) {
       showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
     } finally {
@@ -775,7 +799,27 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <dl className="details-list">
               <div>
                 <dt>Name</dt>
-                <dd>{group.name}</dd>
+                <dd>
+                  {isOwner ? (
+                    <form className="details-name-form" onSubmit={handleSaveGroupName}>
+                      <input
+                        value={groupNameInput}
+                        onChange={(event) => setGroupNameInput(event.target.value)}
+                        disabled={busy}
+                        required
+                      />
+                      <button
+                        className="secondary-button compact"
+                        type="submit"
+                        disabled={busy || !groupNameInput.trim() || groupNameInput.trim() === group.name}
+                      >
+                        Save
+                      </button>
+                    </form>
+                  ) : (
+                    group.name
+                  )}
+                </dd>
               </div>
               {group.description && (
                 <div>

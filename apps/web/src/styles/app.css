@@ -1747,6 +1747,28 @@ select:focus {
   color: #17202a;
 }
 
+.details-name-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.details-name-form input {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 10px;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.details-name-form input:focus {
+  outline: 2px solid rgba(11, 107, 203, 0.18);
+  border-color: var(--primary);
+}
+
 .details-members-section {
   display: grid;
   gap: 14px;
