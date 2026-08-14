@@ -568,7 +568,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       </div>
                       <div>
                         <strong>@{friend.username}</strong>
-                        <small>{isMember ? 'Already in group' : 'Friend'}</small>
                       </div>
                       {isMember ? (
                         <span className="friend-picker-status">Added</span>
