@@ -430,14 +430,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       <div className="detail-layout">
         <div className="detail-main">
           <section className="detail-section assignments-section">
-            <div className="native-section-header">
-              <h2>Assignments</h2>
-              {isOwner && !assignmentsLocked && (
-                <button className="primary-button compact pill-action" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
-                  + Add Members
-                </button>
-              )}
-            </div>
+            <h2>Assignments</h2>
             {assignment ? (
               <>
                 <article className="native-card assignment-result-card">
@@ -490,6 +483,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         : 'The group owner can draw names when everything is ready.'}
                   </p>
                 </div>
+                {isOwner && members.length < 3 && !assignmentsLocked && (
+                  <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
+                    + Add
+                  </button>
+                )}
                 {canDrawAssignments && (
                   <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
                 )}
