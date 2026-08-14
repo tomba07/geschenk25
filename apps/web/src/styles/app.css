@@ -1817,6 +1817,9 @@ select:focus {
 }
 
 .detail-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   width: 100%;
   min-height: 56px;
   grid-template-columns: 48px minmax(0, 1fr) 48px;
@@ -2429,6 +2432,7 @@ select:focus {
 
 .app-frame {
   height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   padding-bottom: 0;
@@ -2680,6 +2684,9 @@ select:focus {
 }
 
 .overview-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   width: min(100% - 40px, 1040px);
   margin: 0 auto;
   min-height: 92px;
@@ -2688,6 +2695,7 @@ select:focus {
   justify-content: space-between;
   gap: 24px;
   padding: 24px 0 14px;
+  background: #f8fbff;
 }
 
 .overview-page-header h1,
@@ -3132,6 +3140,7 @@ hr {
   .group-detail-screen,
   .app-shell:has(.group-detail-screen) .screen {
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .app-shell:has(.group-detail-screen) .mobile-overview-bar {
@@ -3145,7 +3154,7 @@ hr {
     grid-template-columns: minmax(88px, 1fr) minmax(0, auto) minmax(88px, 1fr);
     gap: 12px;
     padding: max(10px, env(safe-area-inset-top)) 0 10px;
-    background: transparent;
+    background: #f4f7fa;
     border-bottom: 0;
   }
 
