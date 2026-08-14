@@ -17,12 +17,78 @@ async function groupHasAssignments(groupId: number): Promise<boolean> {
   return result.rows.length > 0;
 }
 
+async function userCanAccessGroup(groupId: number, userId: number): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT g.id
+     FROM groups g
+     LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $2 AND (gm.status IS NULL OR gm.status = 'active')
+     WHERE g.id = $1 AND (g.created_by = $2 OR gm.user_id = $2)`,
+    [groupId, userId]
+  );
+
+  return result.rows.length > 0;
+}
+
 function assignmentLockError() {
   return 'Names have already been drawn for this group.';
 }
 
 function appUrl(path: string) {
   return `${process.env.APP_BASE_URL || ''}${path}`;
+}
+
+function mapAssignmentChat(row: any, userId: number) {
+  const role = row.giver_id === userId ? 'giver' : 'receiver';
+
+  return {
+    id: row.id,
+    assignment_id: row.id,
+    group_id: row.group_id,
+    role,
+    title: role === 'giver' ? `@${row.receiver_username}` : 'Your Secret Santa',
+    subtitle: role === 'giver'
+      ? 'Message them as their Secret Santa.'
+      : 'Ask a question without knowing who they are.',
+    receiver_id: role === 'giver' ? row.receiver_id : undefined,
+    receiver_username: role === 'giver' ? row.receiver_username : undefined,
+    created_at: row.created_at,
+  };
+}
+
+function mapAssignmentChatMessage(row: any, chat: any, userId: number) {
+  const sentByMe = row.sender_id === userId;
+  const senderLabel = sentByMe
+    ? 'You'
+    : userId === chat.receiver_id
+      ? 'Your Secret Santa'
+      : `@${chat.receiver_username}`;
+
+  return {
+    id: row.id,
+    assignment_id: row.assignment_id,
+    body: row.body,
+    created_at: row.created_at,
+    sent_by_me: sentByMe,
+    sender_label: senderLabel,
+    sender_role: sentByMe ? 'me' : userId === chat.receiver_id ? 'secret_santa' : 'receiver',
+  };
+}
+
+async function getAssignmentChat(groupId: number, assignmentId: number, userId: number) {
+  const result = await pool.query(
+    `SELECT a.id, a.group_id, a.giver_id, a.receiver_id, a.created_at,
+            g.name as group_name,
+            receiver.username as receiver_username
+     FROM assignments a
+     JOIN groups g ON a.group_id = g.id
+     JOIN users receiver ON a.receiver_id = receiver.id
+     WHERE a.group_id = $1
+       AND a.id = $2
+       AND (a.giver_id = $3 OR a.receiver_id = $3)`,
+    [groupId, assignmentId, userId]
+  );
+
+  return result.rows[0] || null;
 }
 
 // Public route: Get group info from invite token (no auth required)
@@ -783,6 +849,129 @@ router.get('/:id/assignment', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching assignment:', error);
     res.status(500).json({ error: 'Failed to fetch assignment' });
+  }
+});
+
+// Get anonymous Secret Santa chats for the current user
+router.get('/:id/assignment-chats', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const groupId = parseInt(req.params.id);
+
+    if (isNaN(groupId)) {
+      return res.status(400).json({ error: 'Invalid group ID' });
+    }
+
+    if (!(await userCanAccessGroup(groupId, userId))) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    const chatsResult = await pool.query(
+      `SELECT a.id, a.group_id, a.giver_id, a.receiver_id, a.created_at,
+              receiver.username as receiver_username
+       FROM assignments a
+       JOIN users receiver ON a.receiver_id = receiver.id
+       WHERE a.group_id = $1 AND (a.giver_id = $2 OR a.receiver_id = $2)
+       ORDER BY CASE WHEN a.giver_id = $2 THEN 0 ELSE 1 END, a.id`,
+      [groupId, userId]
+    );
+
+    res.json({
+      chats: chatsResult.rows.map((row: any) => mapAssignmentChat(row, userId)),
+    });
+  } catch (error: any) {
+    console.error('Error fetching assignment chats:', error);
+    res.status(500).json({ error: 'Failed to fetch assignment chats' });
+  }
+});
+
+// Get messages for one anonymous Secret Santa chat
+router.get('/:id/assignment-chats/:assignmentId/messages', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const groupId = parseInt(req.params.id);
+    const assignmentId = parseInt(req.params.assignmentId);
+
+    if (isNaN(groupId) || isNaN(assignmentId)) {
+      return res.status(400).json({ error: 'Invalid chat ID' });
+    }
+
+    const chat = await getAssignmentChat(groupId, assignmentId, userId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    const messagesResult = await pool.query(
+      `SELECT id, assignment_id, sender_id, body, created_at
+       FROM assignment_chat_messages
+       WHERE assignment_id = $1
+       ORDER BY created_at ASC, id ASC
+       LIMIT 200`,
+      [assignmentId]
+    );
+
+    res.json({
+      messages: messagesResult.rows.map((row: any) => mapAssignmentChatMessage(row, chat, userId)),
+    });
+  } catch (error: any) {
+    console.error('Error fetching assignment chat messages:', error);
+    res.status(500).json({ error: 'Failed to fetch chat messages' });
+  }
+});
+
+// Send a message in one anonymous Secret Santa chat
+router.post('/:id/assignment-chats/:assignmentId/messages', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const groupId = parseInt(req.params.id);
+    const assignmentId = parseInt(req.params.assignmentId);
+    const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+
+    if (isNaN(groupId) || isNaN(assignmentId)) {
+      return res.status(400).json({ error: 'Invalid chat ID' });
+    }
+
+    if (!body) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (body.length > 2000) {
+      return res.status(400).json({ error: 'Message is too long' });
+    }
+
+    const chat = await getAssignmentChat(groupId, assignmentId, userId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    const messageResult = await pool.query(
+      `INSERT INTO assignment_chat_messages (assignment_id, group_id, sender_id, body)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, assignment_id, sender_id, body, created_at`,
+      [assignmentId, groupId, userId, body]
+    );
+
+    const recipientId = userId === chat.giver_id ? chat.receiver_id : chat.giver_id;
+    const recipientSeesSecretSanta = recipientId === chat.receiver_id;
+    const notificationBody = recipientSeesSecretSanta
+      ? `Your Secret Santa sent you a message in "${chat.group_name}".`
+      : `@${chat.receiver_username} replied in "${chat.group_name}".`;
+
+    sendNotificationToUser(recipientId, {
+      title: 'New Secret Santa message',
+      body: notificationBody,
+      url: appUrl(`/groups/${groupId}`),
+      emailSubject: 'New Secret Santa message',
+      emailText: notificationBody,
+      emailActionLabel: 'Open chat',
+    }).catch((error) => console.error('Failed to send assignment chat notification:', error));
+
+    res.status(201).json({
+      message: mapAssignmentChatMessage(messageResult.rows[0], chat, userId),
+    });
+  } catch (error: any) {
+    console.error('Error sending assignment chat message:', error);
+    res.status(500).json({ error: 'Failed to send chat message' });
   }
 });
 

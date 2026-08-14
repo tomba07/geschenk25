@@ -1,5 +1,7 @@
 export type {
   AssignmentDto as Assignment,
+  AssignmentChatDto as AssignmentChat,
+  AssignmentChatMessageDto as AssignmentChatMessage,
   GiftIdeaDto as GiftIdea,
   GiftIdeaUserDto as GiftIdeaUser,
   GroupDto as Group,

@@ -89,6 +89,28 @@ export interface GiftIdeaDto {
   for_user: GiftIdeaUserDto;
 }
 
+export interface AssignmentChatDto {
+  id: number;
+  assignment_id: number;
+  group_id: number;
+  role: 'giver' | 'receiver';
+  title: string;
+  subtitle: string;
+  receiver_id?: number;
+  receiver_username?: string;
+  created_at?: string;
+}
+
+export interface AssignmentChatMessageDto {
+  id: number;
+  assignment_id: number;
+  body: string;
+  created_at: string;
+  sent_by_me: boolean;
+  sender_label: string;
+  sender_role: 'me' | 'secret_santa' | 'receiver';
+}
+
 export interface DevUserDto {
   id: number;
   email: string;
@@ -201,6 +223,18 @@ export interface GiftIdeaResponse {
 
 export interface GiftIdeasResponse {
   gift_ideas: GiftIdeaDto[];
+}
+
+export interface AssignmentChatsResponse {
+  chats: AssignmentChatDto[];
+}
+
+export interface AssignmentChatMessagesResponse {
+  messages: AssignmentChatMessageDto[];
+}
+
+export interface AssignmentChatMessageResponse {
+  message: AssignmentChatMessageDto;
 }
 
 export interface FriendsResponse {

@@ -1,6 +1,11 @@
 import { parseError, logError, AppError, ErrorType } from '../utils/errors';
 import type {
   ApiUserDto,
+  AssignmentChatDto,
+  AssignmentChatMessageDto,
+  AssignmentChatMessagesResponse,
+  AssignmentChatMessageResponse,
+  AssignmentChatsResponse,
   AssignmentResponse,
   AuthEmailLinkResponse,
   AuthSessionResponse,
@@ -44,6 +49,8 @@ export type DevUser = DevUserDto;
 export type Friend = FriendDto;
 export type FriendRequest = FriendRequestDto;
 export type FriendSearchResult = FriendSearchResultDto;
+export type AssignmentChat = AssignmentChatDto;
+export type AssignmentChatMessage = AssignmentChatMessageDto;
 
 class ApiClient {
   private baseUrl: string;
@@ -431,6 +438,21 @@ class ApiClient {
   async deleteAssignments(groupId: number) {
     return this.request<MessageResponse>(`/api/groups/${groupId}/assignments`, {
       method: 'DELETE',
+    });
+  }
+
+  async getAssignmentChats(groupId: number) {
+    return this.request<AssignmentChatsResponse>(`/api/groups/${groupId}/assignment-chats`);
+  }
+
+  async getAssignmentChatMessages(groupId: number, assignmentId: number) {
+    return this.request<AssignmentChatMessagesResponse>(`/api/groups/${groupId}/assignment-chats/${assignmentId}/messages`);
+  }
+
+  async sendAssignmentChatMessage(groupId: number, assignmentId: number, body: string) {
+    return this.request<AssignmentChatMessageResponse>(`/api/groups/${groupId}/assignment-chats/${assignmentId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
     });
   }
 

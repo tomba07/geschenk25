@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api';
-import { Group, Assignment, GiftIdea } from '../types/group';
+import { Group, Assignment, AssignmentChat, AssignmentChatMessage, GiftIdea } from '../types/group';
 import { AppError, ErrorType, parseError, logError } from '../utils/errors';
 
 export class GroupServiceError extends Error {
@@ -272,6 +272,85 @@ export const groupService = {
       logError(appError, 'groupService.deleteAssignments');
       throw new GroupServiceError(appError);
     }
+  },
+
+  async getAssignmentChats(groupId: string): Promise<AssignmentChat[]> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.getAssignmentChats');
+      return [];
+    }
+
+    const response = await apiClient.getAssignmentChats(id);
+
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.getAssignmentChats');
+      return [];
+    }
+
+    return response.data?.chats || [];
+  },
+
+  async getAssignmentChatMessages(groupId: string, assignmentId: number): Promise<AssignmentChatMessage[]> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.getAssignmentChatMessages');
+      return [];
+    }
+
+    const response = await apiClient.getAssignmentChatMessages(id, assignmentId);
+
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.getAssignmentChatMessages');
+      throw new GroupServiceError(appError);
+    }
+
+    return response.data?.messages || [];
+  },
+
+  async sendAssignmentChatMessage(groupId: string, assignmentId: number, body: string): Promise<AssignmentChatMessage> {
+    const id = parseInt(groupId);
+    if (isNaN(id)) {
+      const appError: AppError = {
+        type: ErrorType.VALIDATION,
+        message: `Invalid group ID: ${groupId}`,
+        userMessage: 'Invalid group ID',
+      };
+      logError(appError, 'groupService.sendAssignmentChatMessage');
+      throw new GroupServiceError(appError);
+    }
+
+    const response = await apiClient.sendAssignmentChatMessage(id, assignmentId, body);
+
+    if (response.error) {
+      const appError = response.appError || parseError(response.error);
+      logError(appError, 'groupService.sendAssignmentChatMessage');
+      throw new GroupServiceError(appError);
+    }
+
+    if (!response.data?.message) {
+      const appError: AppError = {
+        type: ErrorType.API,
+        message: 'No chat message data returned',
+        userMessage: 'Failed to send message. Please try again.',
+      };
+      logError(appError, 'groupService.sendAssignmentChatMessage');
+      throw new GroupServiceError(appError);
+    }
+
+    return response.data.message;
   },
 
   // Create gift idea

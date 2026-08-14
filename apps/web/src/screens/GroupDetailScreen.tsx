@@ -6,7 +6,7 @@ import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
 import { showErrorToast, showSuccessToast } from '../utils/toast';
-import { Assignment, GiftIdea, Group, GroupMember } from '../types/group';
+import { Assignment, AssignmentChat, AssignmentChatMessage, GiftIdea, Group, GroupMember } from '../types/group';
 
 type DrawExclusion = { firstUserId: number; secondUserId: number };
 type GiftIdeaActionIconName = 'edit' | 'delete';
@@ -88,6 +88,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const { userId, username } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [assignmentChats, setAssignmentChats] = useState<AssignmentChat[]>([]);
+  const [activeAssignmentChat, setActiveAssignmentChat] = useState<AssignmentChat | null>(null);
+  const [assignmentChatMessages, setAssignmentChatMessages] = useState<AssignmentChatMessage[]>([]);
   const [giftIdeas, setGiftIdeas] = useState<GiftIdea[]>([]);
   const [assignedPersonGiftIdeas, setAssignedPersonGiftIdeas] = useState<GiftIdea[]>([]);
   const [drawExclusions, setDrawExclusions] = useState<Array<{ firstUserId: number; secondUserId: number }>>([]);
@@ -110,6 +113,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [giftIdeaText, setGiftIdeaText] = useState('');
   const [giftIdeaLink, setGiftIdeaLink] = useState('');
   const [giftIdeaForUserId, setGiftIdeaForUserId] = useState<number | ''>('');
+  const [assignmentChatText, setAssignmentChatText] = useState('');
+  const [assignmentChatLoading, setAssignmentChatLoading] = useState(false);
+  const [assignmentChatSending, setAssignmentChatSending] = useState(false);
   const [exclusionGiverId, setExclusionGiverId] = useState<number | ''>('');
   const [exclusionReceiverId, setExclusionReceiverId] = useState<number | ''>('');
 
@@ -124,14 +130,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
 
       setGroup(groupData);
-      const [assignmentData, ideas] = await Promise.all([
+      const [assignmentData, ideas, chats] = await Promise.all([
         groupService.getAssignment(groupId),
         groupService.getGiftIdeas(groupId),
+        groupService.getAssignmentChats(groupId),
       ]);
       const receiverIdeas = assignmentData
         ? await groupService.getGiftIdeas(groupId, assignmentData.receiver_id)
         : [];
       setAssignment(assignmentData);
+      setAssignmentChats(chats);
       setGiftIdeas(userId ? ideas.filter((idea) => idea.created_by_id === userId) : ideas);
       setAssignedPersonGiftIdeas(receiverIdeas);
     } catch (error) {
@@ -172,6 +180,30 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     };
   }, [inviteOpen, username]);
 
+  const refreshAssignmentChatMessages = useCallback(async (chat: AssignmentChat, showLoading = false) => {
+    if (showLoading) setAssignmentChatLoading(true);
+    try {
+      const messages = await groupService.getAssignmentChatMessages(groupId, chat.assignment_id);
+      setAssignmentChatMessages(messages);
+    } catch (error) {
+      if (showLoading) {
+        showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+      }
+    } finally {
+      if (showLoading) setAssignmentChatLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    if (!activeAssignmentChat) return undefined;
+
+    const interval = window.setInterval(() => {
+      refreshAssignmentChatMessages(activeAssignmentChat).catch(() => undefined);
+    }, 7000);
+
+    return () => window.clearInterval(interval);
+  }, [activeAssignmentChat, refreshAssignmentChatMessages]);
+
   const isOwner = Boolean(group && userId === group.created_by);
   const members = group?.members || [];
   const assignmentsLocked = Boolean(assignment);
@@ -205,6 +237,35 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setEditingImage(group?.image_url || null);
     setGroupNameInput(group?.name || '');
     setDetailsOpen(true);
+  };
+
+  const openAssignmentChat = (chat: AssignmentChat) => {
+    setActiveAssignmentChat(chat);
+    setAssignmentChatMessages([]);
+    setAssignmentChatText('');
+    refreshAssignmentChatMessages(chat, true).catch(() => undefined);
+  };
+
+  const closeAssignmentChat = () => {
+    setActiveAssignmentChat(null);
+    setAssignmentChatMessages([]);
+    setAssignmentChatText('');
+  };
+
+  const handleSendAssignmentChatMessage = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!activeAssignmentChat || !assignmentChatText.trim()) return;
+
+    setAssignmentChatSending(true);
+    try {
+      const message = await groupService.sendAssignmentChatMessage(groupId, activeAssignmentChat.assignment_id, assignmentChatText.trim());
+      setAssignmentChatMessages((currentMessages) => [...currentMessages, message]);
+      setAssignmentChatText('');
+    } catch (error) {
+      showErrorToast(error instanceof GroupServiceError ? error.appError.userMessage : getErrorMessage(error));
+    } finally {
+      setAssignmentChatSending(false);
+    }
   };
 
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -525,6 +586,27 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     </div>
                   </div>
                 </article>
+                {assignmentChats.length > 0 && (
+                  <div className="assignment-chat-panel">
+                    <h3>Messages</h3>
+                    <div className="assignment-chat-card-list">
+                      {assignmentChats.map((chat) => (
+                        <button
+                          className="assignment-chat-card"
+                          type="button"
+                          key={`${chat.role}-${chat.assignment_id}`}
+                          onClick={() => openAssignmentChat(chat)}
+                        >
+                          <span>
+                            <strong>{chat.role === 'giver' ? `Message ${chat.title}` : chat.title}</strong>
+                            <small>{chat.subtitle}</small>
+                          </span>
+                          <span className="assignment-chat-card-action">Open</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="assigned-ideas-panel">
                   <h3>Gift Ideas for @{assignment.receiver_username}</h3>
                   {assignedPersonGiftIdeas.length === 0 ? (
@@ -627,6 +709,51 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         </div>
 
       </div>
+
+      {activeAssignmentChat && (
+        <div className="modal-backdrop">
+          <section className="modal-panel assignment-chat-modal" role="dialog" aria-modal="true" aria-labelledby="assignment-chat-title">
+            <header>
+              <div>
+                <h2 id="assignment-chat-title">
+                  {activeAssignmentChat.role === 'giver' ? `Message ${activeAssignmentChat.title}` : activeAssignmentChat.title}
+                </h2>
+                <p>{activeAssignmentChat.subtitle}</p>
+              </div>
+              <button type="button" className="icon-button" onClick={closeAssignmentChat} aria-label="Close">×</button>
+            </header>
+
+            <div className="assignment-chat-messages">
+              {assignmentChatLoading ? (
+                <p className="empty-inline">Loading messages...</p>
+              ) : assignmentChatMessages.length === 0 ? (
+                <p className="empty-inline">No messages yet.</p>
+              ) : (
+                assignmentChatMessages.map((message) => (
+                  <article className={`assignment-chat-message ${message.sent_by_me ? 'mine' : ''}`} key={message.id}>
+                    <small>{message.sender_label}</small>
+                    <p>{message.body}</p>
+                  </article>
+                ))
+              )}
+            </div>
+
+            <form className="assignment-chat-form" onSubmit={handleSendAssignmentChatMessage}>
+              <textarea
+                value={assignmentChatText}
+                onChange={(event) => setAssignmentChatText(event.target.value)}
+                placeholder={activeAssignmentChat.role === 'giver' ? 'Write as their Secret Santa...' : 'Ask your Secret Santa...'}
+                maxLength={2000}
+                rows={3}
+                disabled={assignmentChatSending}
+              />
+              <button className="primary-button compact" type="submit" disabled={assignmentChatSending || !assignmentChatText.trim()}>
+                {assignmentChatSending ? 'Sending...' : 'Send'}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
 
       {inviteOpen && (
         <div className="modal-backdrop">

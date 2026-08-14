@@ -331,6 +331,18 @@ export async function runMigrations() {
       )
     `);
 
+  // Create anonymous assignment chat messages
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS assignment_chat_messages (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL CHECK (length(trim(body)) > 0),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
   await pool.query('DROP TABLE IF EXISTS exclusions');
 
   // Add link column if it doesn't exist (for existing databases)
@@ -454,6 +466,18 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_gift_ideas_created_by_id ON gift_ideas(created_by_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_assignment_chat_messages_assignment_id ON assignment_chat_messages(assignment_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_assignment_chat_messages_group_id ON assignment_chat_messages(group_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_assignment_chat_messages_sender_id ON assignment_chat_messages(sender_id)
     `);
 
 }
