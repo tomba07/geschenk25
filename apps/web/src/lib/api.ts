@@ -150,7 +150,7 @@ class ApiClient {
         } else if (response.status === 404) {
           error.type = ErrorType.NOT_FOUND;
           error.userMessage = 'The requested resource was not found.';
-        } else if (response.status === 400) {
+        } else if (response.status === 400 || response.status === 422) {
           error.type = ErrorType.VALIDATION;
           error.userMessage = data.error || 'Please check your input and try again.';
         }

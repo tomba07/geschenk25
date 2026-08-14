@@ -688,7 +688,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
 
     // Check if we got a complete matching
     if (pairs.size < members.length) {
-      return res.status(500).json({
+      return res.status(422).json({
         error: 'Failed to create valid assignments with current exclusions. Some members may have too many exclusions. Please try again or adjust exclusions.',
       });
     }

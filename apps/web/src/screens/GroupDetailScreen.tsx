@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,55 @@ import { getErrorMessage } from '../utils/errors';
 import { confirmDestructive } from '../utils/confirm';
 import { fileToDataUrl } from '../utils/file';
 import { showErrorToast, showSuccessToast } from '../utils/toast';
-import { Assignment, GiftIdea, Group } from '../types/group';
+import { Assignment, GiftIdea, Group, GroupMember } from '../types/group';
+
+type DrawExclusion = { firstUserId: number; secondUserId: number };
+
+function getDrawExclusionValidationMessage(members: GroupMember[], exclusions: DrawExclusion[]) {
+  if (members.length < 3 || exclusions.length === 0) return null;
+
+  const blockedPairs = new Set<string>();
+  exclusions.forEach((pair) => {
+    blockedPairs.add(`${pair.firstUserId}-${pair.secondUserId}`);
+    blockedPairs.add(`${pair.secondUserId}-${pair.firstUserId}`);
+  });
+
+  const memberIds = members.map((member) => member.id);
+  for (const member of members) {
+    const validReceivers = memberIds.filter((receiverId) => (
+      receiverId !== member.id && !blockedPairs.has(`${member.id}-${receiverId}`)
+    ));
+    if (validReceivers.length === 0) {
+      return `@${member.username} cannot draw anyone with these pairing rules.`;
+    }
+  }
+
+  const receiverMatches = new Map<number, number>();
+  const canMatchGiver = (giverId: number, visitedReceivers: Set<number>): boolean => {
+    for (const receiverId of memberIds) {
+      if (receiverId === giverId || blockedPairs.has(`${giverId}-${receiverId}`) || visitedReceivers.has(receiverId)) {
+        continue;
+      }
+
+      visitedReceivers.add(receiverId);
+      const matchedGiverId = receiverMatches.get(receiverId);
+      if (matchedGiverId === undefined || canMatchGiver(matchedGiverId, visitedReceivers)) {
+        receiverMatches.set(receiverId, giverId);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  for (const giverId of memberIds) {
+    if (!canMatchGiver(giverId, new Set())) {
+      return 'These pairing rules make a complete draw impossible. Remove one rule and try again.';
+    }
+  }
+
+  return null;
+}
 
 interface GroupDetailScreenProps {
   groupId: string;
@@ -107,6 +155,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     : null;
   const usernameById = new Map(members.map((member) => [member.id, member.username]));
   const memberIds = new Set(members.map((member) => member.id));
+  const drawValidationMessage = useMemo(
+    () => getDrawExclusionValidationMessage(members, drawExclusions),
+    [drawExclusions, members]
+  );
   const normalizedFriendSearch = friendSearchQuery.trim().toLowerCase();
   const filteredFriends = friends.filter((friend) =>
     !normalizedFriendSearch || friend.username.toLowerCase().includes(normalizedFriendSearch)
@@ -208,6 +260,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleConfirmAssign = async () => {
+    if (drawValidationMessage) {
+      showErrorToast(drawValidationMessage);
+      return;
+    }
+
     setDrawing(true);
     try {
       await groupService.assignSecretSanta(groupId, drawExclusions);
@@ -299,7 +356,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     const [firstUserId, secondUserId] = [Number(exclusionGiverId), Number(exclusionReceiverId)].sort((a, b) => a - b);
     const exists = drawExclusions.some((pair) => pair.firstUserId === firstUserId && pair.secondUserId === secondUserId);
     if (!exists) {
-      setDrawExclusions((currentPairs) => [...currentPairs, { firstUserId, secondUserId }]);
+      const nextPairs = [...drawExclusions, { firstUserId, secondUserId }];
+      const validationMessage = getDrawExclusionValidationMessage(members, nextPairs);
+      setDrawExclusions(nextPairs);
+      if (validationMessage) {
+        showErrorToast(validationMessage);
+      }
     }
     setExclusionGiverId('');
     setExclusionReceiverId('');
@@ -605,6 +667,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <p>Pairing rules are optional. Use them to avoid boring pairs, like partners drawing each other.</p>
             </div>
 
+            {drawValidationMessage && (
+              <div className="draw-validation-warning" role="alert">
+                {drawValidationMessage}
+              </div>
+            )}
+
             <section className="draw-exclusions-section">
               <h3>Pairing rules</h3>
               {drawExclusions.length === 0 ? (
@@ -651,7 +719,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               >
                 Cancel
               </button>
-              <button className="primary-button" type="button" onClick={handleConfirmAssign} disabled={drawing}>
+              <button className="primary-button" type="button" onClick={handleConfirmAssign} disabled={drawing || Boolean(drawValidationMessage)}>
                 {drawing ? 'Drawing...' : 'Draw Names'}
               </button>
             </div>

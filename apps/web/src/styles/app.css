@@ -1784,6 +1784,17 @@ select:focus {
   color: var(--muted);
 }
 
+.draw-validation-warning {
+  border: 1px solid rgba(183, 121, 31, 0.28);
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #7a4a09;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .draw-exclusions-section {
   display: grid;
   gap: 12px;
