@@ -2400,15 +2400,6 @@ select:focus {
 
 .member-native-text {
   min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.member-native-text > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
 }
 
 .member-native-text strong {
@@ -2421,12 +2412,8 @@ select:focus {
   line-height: 1.1;
 }
 
-.member-native-text small {
-  color: var(--color-text-muted);
-  font-size: 15px;
-}
-
 .owner-badge {
+  justify-self: end;
   flex: 0 0 auto;
   border-radius: 5px;
   background: var(--color-evergreen);

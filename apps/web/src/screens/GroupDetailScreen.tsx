@@ -820,16 +820,16 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <article className="native-card member-native-card" key={member.id}>
                     <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
                     <div className="member-native-text">
-                      <div>
-                        <strong>@{member.username}</strong>
-                        {member.id === group.created_by && <span className="owner-badge">Owner</span>}
-                      </div>
-                      <small>@{member.username}</small>
+                      <strong>@{member.username}</strong>
                     </div>
-                    {isOwner && !assignmentsLocked && member.id !== userId && (
+                    {member.id === group.created_by ? (
+                      <span className="owner-badge">Owner</span>
+                    ) : isOwner && !assignmentsLocked && member.id !== userId ? (
                       <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
                         Remove
                       </button>
+                    ) : (
+                      <span aria-hidden="true" />
                     )}
                   </article>
                 ))}
