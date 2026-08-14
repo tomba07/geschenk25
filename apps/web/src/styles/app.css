@@ -93,12 +93,17 @@
   box-sizing: border-box;
 }
 
+html {
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   color: var(--color-text);
   background: var(--color-bg);
+  overscroll-behavior-x: none;
 }
 
 button,

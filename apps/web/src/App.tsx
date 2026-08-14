@@ -169,6 +169,39 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    let edgeSwipeStart: { x: number; y: number } | null = null;
+    const edgeWidth = 24;
+    const horizontalIntentThreshold = 16;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      edgeSwipeStart = touch && touch.clientX <= edgeWidth
+        ? { x: touch.clientX, y: touch.clientY }
+        : null;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!edgeSwipeStart || !event.cancelable) return;
+
+      const touch = event.touches[0];
+      if (!touch) return;
+
+      const deltaX = touch.clientX - edgeSwipeStart.x;
+      const deltaY = touch.clientY - edgeSwipeStart.y;
+      if (deltaX > horizontalIntentThreshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleConfirm = (event: Event) => {
       event.preventDefault();
       const customEvent = event as CustomEvent<ConfirmDialogRequest>;
