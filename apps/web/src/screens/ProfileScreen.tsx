@@ -16,7 +16,8 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ onBack }: ProfileScreenProps) {
-  const { email, username, imageUrl, updateProfileImage, deleteAccount } = useAuth();
+  const { email, username, imageUrl, updateProfile, deleteAccount } = useAuth();
+  const [usernameInput, setUsernameInput] = useState(username || '');
   const [editingImage, setEditingImage] = useState<string | null>(imageUrl || null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -28,6 +29,15 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [pushTestBusy, setPushTestBusy] = useState(false);
   const [pushAvailability, setPushAvailability] = useState(() => getPushNotificationAvailability());
   const devPushTestVisible = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true';
+  const normalizedUsernameInput = usernameInput.trim().toLowerCase();
+  const currentUsername = username || '';
+  const usernameError = normalizedUsernameInput.length === 0
+    ? 'Username is required'
+    : normalizedUsernameInput.length < 3
+      ? 'Username must be at least 3 characters'
+      : /^[a-zA-Z0-9_]+$/.test(usernameInput.trim())
+        ? null
+        : 'Username can only contain letters, numbers, and underscores';
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +58,10 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     };
   }, []);
 
+  useEffect(() => {
+    setUsernameInput(username || '');
+  }, [username]);
+
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -60,9 +74,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     setLoading(true);
     const errors: string[] = [];
 
-    if (editingImage !== (imageUrl || null)) {
-      const { error } = await updateProfileImage(editingImage || undefined);
-      if (error) errors.push(`Image: ${error.message || 'Failed to update'}`);
+    if (usernameError) {
+      errors.push(usernameError);
+    } else if (hasChanges) {
+      const { error } = await updateProfile(normalizedUsernameInput, editingImage || null);
+      if (error) errors.push(error.message || 'Failed to update profile');
     }
 
     setLoading(false);
@@ -155,8 +171,8 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     showSuccessToast('Password reset email sent');
   };
 
-  const hasChanges = editingImage !== (imageUrl || null);
-  const initial = (username || 'U').charAt(0).toUpperCase();
+  const hasChanges = editingImage !== (imageUrl || null) || normalizedUsernameInput !== currentUsername;
+  const initial = (normalizedUsernameInput || username || 'U').charAt(0).toUpperCase();
   const pushControlsVisible = pushAvailability.canPrompt || pushEnabled;
 
   return (
@@ -179,7 +195,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             </div>
           </div>
           <div className="profile-summary-copy">
-            <h2>@{username || 'user'}</h2>
+            <h2>@{normalizedUsernameInput || username || 'user'}</h2>
             <p>{email || 'No email set'}</p>
           </div>
         </section>
@@ -190,11 +206,18 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <p>Your username is how other group members find you.</p>
           </div>
 
-          <div className="readonly-field">
+          <label className="profile-edit-field">
             <span>Username</span>
-            <strong>@{username}</strong>
-            <small>Your username cannot be changed.</small>
-          </div>
+            <input
+              value={usernameInput}
+              onChange={(event) => setUsernameInput(event.target.value)}
+              autoCapitalize="none"
+              autoComplete="username"
+              disabled={loading}
+              required
+            />
+            <small>{usernameError || 'Letters, numbers, and underscores only.'}</small>
+          </label>
 
           <div className="readonly-field">
             <span>Email</span>
@@ -203,7 +226,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           </div>
 
           <div className="profile-save-row">
-            <button className="primary-button" type="submit" disabled={loading || !hasChanges}>
+            <button className="primary-button" type="submit" disabled={loading || !hasChanges || Boolean(usernameError)}>
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

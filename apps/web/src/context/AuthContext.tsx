@@ -16,6 +16,7 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   completeProfile: (username: string, password?: string, image_url?: string | null) => Promise<{ error: any }>;
+  updateProfile: (username: string, image_url?: string | null) => Promise<{ error: any }>;
   updateProfileImage: (image_url?: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
 }
@@ -173,6 +174,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (username: string, image_url?: string | null) => {
+    try {
+      const response = await apiClient.completeProfile(username, undefined, image_url);
+      if (response.error) {
+        return { error: { message: response.appError?.userMessage || response.error } };
+      }
+      if (response.data) {
+        const { user } = response.data;
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        setUserState(user);
+      }
+      return { error: null };
+    } catch (error) {
+      return { error: { message: getErrorMessage(error) } };
+    }
+  };
+
   const updateProfileImage = async (image_url?: string) => {
     try {
       const response = await apiClient.updateProfileImage(image_url);
@@ -223,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithPassword,
         signOut,
         completeProfile,
+        updateProfile,
         updateProfileImage,
         deleteAccount,
       }}
