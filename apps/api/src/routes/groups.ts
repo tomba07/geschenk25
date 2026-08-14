@@ -707,7 +707,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
 
     // Check if user is owner
     const groupCheck = await pool.query(
-      'SELECT created_by FROM groups WHERE id = $1',
+      'SELECT created_by, name FROM groups WHERE id = $1',
       [groupId]
     );
 
