@@ -3455,8 +3455,8 @@ hr {
   }
 
   .overview-fab {
-    right: 16px;
-    bottom: 16px;
+    right: max(24px, calc(env(safe-area-inset-right) + 20px));
+    bottom: max(28px, calc(env(safe-area-inset-bottom) + 24px));
     width: 52px;
     height: 52px;
     justify-content: center;
