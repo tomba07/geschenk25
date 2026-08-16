@@ -353,6 +353,41 @@ export async function runMigrations() {
       )
     `);
 
+  // Queue email notifications that should be batched before sending
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS pending_email_notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+        type VARCHAR(64) NOT NULL,
+        count INTEGER NOT NULL DEFAULT 1,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        url TEXT,
+        email_subject TEXT NOT NULL,
+        email_text TEXT NOT NULL,
+        email_action_label TEXT,
+        first_event_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_event_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        send_after TIMESTAMPTZ NOT NULL,
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+  await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_email_notifications_batch
+      ON pending_email_notifications (
+        user_id,
+        type,
+        group_id,
+        assignment_id
+      )
+      WHERE sent_at IS NULL
+    `);
+
   await pool.query('DROP TABLE IF EXISTS exclusions');
 
   // Add link column if it doesn't exist (for existing databases)
@@ -492,6 +527,15 @@ export async function runMigrations() {
 
   await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_assignment_chat_reads_user_id ON assignment_chat_reads(user_id)
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_pending_email_notifications_due ON pending_email_notifications(send_after)
+      WHERE sent_at IS NULL
+    `);
+
+  await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_pending_email_notifications_user_id ON pending_email_notifications(user_id)
     `);
 
 }

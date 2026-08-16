@@ -8,6 +8,7 @@ import notificationsRoutes from './routes/notifications';
 import devRoutes from './routes/dev';
 import { runMigrations } from './migrate';
 import { devToolsEnabled, ensureDevTestAccounts, localDatabaseConfigured } from './utils/devTestAccounts';
+import { startPendingEmailNotificationProcessor } from './utils/notifications';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ const MIGRATION_MAX_ATTEMPTS = 12;
 const DEV_SEED_RETRY_DELAY_MS = 1000;
 const DEV_SEED_MAX_ATTEMPTS = 5;
 let migrationsReady = process.env.RUN_MIGRATIONS_ON_START !== 'true';
+let backgroundWorkersStarted = false;
 
 // Middleware
 app.set('trust proxy', 1);
@@ -63,6 +65,7 @@ async function runStartupMigrationsWithRetry() {
       await runMigrations();
       migrationsReady = true;
       console.log('Startup migrations completed successfully');
+      startBackgroundWorkers();
       seedDevTestAccountsWithRetry();
       return;
     } catch (error) {
@@ -103,6 +106,12 @@ async function seedDevTestAccountsWithRetry() {
   }
 }
 
+function startBackgroundWorkers() {
+  if (backgroundWorkersStarted) return;
+  backgroundWorkersStarted = true;
+  startPendingEmailNotificationProcessor();
+}
+
 function startServer() {
   app.listen(Number(PORT), HOST, () => {
     console.log(`Server running on ${HOST}:${PORT}`);
@@ -110,6 +119,7 @@ function startServer() {
     if (process.env.RUN_MIGRATIONS_ON_START === 'true') {
       runStartupMigrationsWithRetry();
     } else {
+      startBackgroundWorkers();
       seedDevTestAccountsWithRetry();
     }
   }).on('error', (err: any) => {

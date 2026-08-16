@@ -3,7 +3,12 @@ import crypto from 'crypto';
 import pool from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { SecretSantaMatcher } from '../utils/secretSantaMatcher';
-import { sendNotificationToUser } from '../utils/notifications';
+import {
+  cancelPendingAssignmentChatEmail,
+  queueEmailNotification,
+  sendNotificationToUser,
+  sendPushNotificationToUser,
+} from '../utils/notifications';
 
 const router = express.Router();
 
@@ -943,6 +948,7 @@ router.get('/:id/assignment-chats/:assignmentId/messages', async (req: AuthReque
        DO UPDATE SET last_read_at = EXCLUDED.last_read_at`,
       [assignmentId, userId]
     );
+    await cancelPendingAssignmentChatEmail(userId, assignmentId);
 
     res.json({
       messages: messagesResult.rows.map((row: any) => mapAssignmentChatMessage(row, chat, userId)),
@@ -991,14 +997,26 @@ router.post('/:id/assignment-chats/:assignmentId/messages', async (req: AuthRequ
       ? `Your Secret Santa sent you a message in "${chat.group_name}".`
       : `@${chat.receiver_username} replied in "${chat.group_name}".`;
 
-    sendNotificationToUser(recipientId, {
+    sendPushNotificationToUser(recipientId, {
       title: 'New Secret Santa message',
       body: notificationBody,
       url: appUrl(`/groups/${groupId}`),
-      emailSubject: 'New Secret Santa message',
-      emailText: notificationBody,
-      emailActionLabel: 'Open chat',
-    }).catch((error) => console.error('Failed to send assignment chat notification:', error));
+    }).catch((error) => console.error('Failed to send assignment chat push notification:', error));
+
+    queueEmailNotification({
+      userId: recipientId,
+      groupId,
+      assignmentId,
+      type: 'assignment_chat_message',
+      payload: {
+        title: 'New Secret Santa message',
+        body: notificationBody,
+        url: appUrl(`/groups/${groupId}`),
+        emailSubject: 'New Secret Santa message',
+        emailText: notificationBody,
+        emailActionLabel: 'Open chat',
+      },
+    }).catch((error) => console.error('Failed to queue assignment chat email notification:', error));
 
     res.status(201).json({
       message: mapAssignmentChatMessage(messageResult.rows[0], chat, userId),
