@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { Bell, Camera, Mail, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fileToDataUrl } from '../utils/file';
 import { confirmDestructive } from '../utils/confirm';
@@ -179,32 +180,35 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     <section className="screen profile-screen">
       <form className="profile-layout" onSubmit={handleSave}>
         <div className="profile-page-heading">
-          <h1>Edit Profile</h1>
+          <h1>Settings</h1>
           <p>Update your photo and account details.</p>
         </div>
 
-        <section className="profile-card profile-summary-card">
+        <section className="profile-hero">
           <div className="profile-photo-block">
             {editingImage ? <img className="profile-preview" src={editingImage} alt="" /> : <div className="profile-placeholder">{initial}</div>}
+            <div className="profile-summary-copy">
+              <h2>@{normalizedUsernameInput || username || 'user'}</h2>
+              <p>{email || 'No email set'}</p>
+            </div>
             <div className="button-row profile-image-actions">
               <label className="secondary-button file-button">
-                Change Photo
+                <Camera className="button-inline-icon" aria-hidden="true" />
+                Change photo
                 <input type="file" accept="image/*" onChange={handleImageChange} />
               </label>
-              <button className="secondary-button danger-outline-button" type="button" onClick={() => setEditingImage(null)}>Remove Photo</button>
+              <button className="link-button danger-text profile-remove-photo-button" type="button" onClick={() => setEditingImage(null)}>
+                <Trash2 className="button-inline-icon" aria-hidden="true" />
+                Remove photo
+              </button>
             </div>
-          </div>
-          <div className="profile-summary-copy">
-            <h2>@{normalizedUsernameInput || username || 'user'}</h2>
-            <p>{email || 'No email set'}</p>
           </div>
         </section>
 
-        <section className="profile-card profile-fields-card">
-          <div className="profile-card-heading">
+        <section className="profile-card profile-section-card">
+          <header className="profile-section-title">
             <h2>Account</h2>
-            <p>Your username is how other group members find you.</p>
-          </div>
+          </header>
 
           <label className="profile-edit-field">
             <span>Username</span>
@@ -219,94 +223,101 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <small>{usernameError || 'Letters, numbers, and underscores only.'}</small>
           </label>
 
-          <div className="readonly-field">
+          <div className="readonly-field profile-readonly-block">
             <span>Email</span>
             <strong>{email || 'Not set'}</strong>
             <small>Your email is used to sign in.</small>
           </div>
 
-          <div className="profile-save-row">
+          <div className="profile-save-row profile-card-footer">
             <button className="primary-button" type="submit" disabled={loading || !hasChanges || Boolean(usernameError)}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-
-          <div className="readonly-field">
-            <span>Password</span>
-            <strong>Email reset link</strong>
-            <small>For security, password changes require a reset link sent to your email.</small>
-          </div>
-
-          <div className="profile-save-row">
-            <button className="secondary-button" type="button" onClick={handleRequestPasswordReset} disabled={passwordResetBusy || !email}>
-              {passwordResetBusy ? 'Sending...' : 'Send Password Reset Email'}
+              {loading ? 'Saving...' : 'Save changes'}
             </button>
           </div>
         </section>
 
-        <section className="profile-card profile-fields-card">
-          <div className="profile-card-heading">
-            <h2>Notifications</h2>
-            <p>Email notifications are sent for friend requests, group additions, and drawn names.</p>
-          </div>
-
-          <div className="readonly-field">
-            <span>Email</span>
-            <strong>{emailNotificationsEnabled ? 'Enabled' : 'Off'}</strong>
-            <small>
-              {emailNotificationsEnabled
-                ? `Important updates go to ${email || 'your sign-in email'}.`
-                : 'You will still receive sign-in and account emails.'}
-            </small>
-          </div>
-
-          <div className="profile-save-row">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={handleToggleEmailNotifications}
-              disabled={emailNotificationsBusy}
-            >
-              {emailNotificationsBusy ? 'Updating...' : emailNotificationsEnabled ? 'Disable Email' : 'Enable Email'}
+        <section className="profile-card profile-section-card">
+          <header className="profile-section-title">
+            <h2>Security</h2>
+          </header>
+          <div className="profile-setting-row">
+            <div>
+              <strong>Password</strong>
+              <small>For security, password changes require a reset link sent to your email.</small>
+            </div>
+            <button className="secondary-button" type="button" onClick={handleRequestPasswordReset} disabled={passwordResetBusy || !email}>
+              <Mail className="button-inline-icon" aria-hidden="true" />
+              {passwordResetBusy ? 'Sending...' : 'Send reset email'}
             </button>
           </div>
+        </section>
 
-          <div className="readonly-field">
-            <span>Push</span>
-            <strong>
-              {pushEnabled
-                ? 'Enabled on this device'
-                : pushAvailability.status === 'denied'
-                  ? 'Blocked on this device'
-                  : pushAvailability.status === 'unsupported'
-                    ? 'Unavailable on this browser'
-                    : 'Off on this device'}
-            </strong>
-            <small>{pushAvailability.message}</small>
-          </div>
+        <section className="profile-card profile-section-card">
+          <header className="profile-section-title">
+            <h2>Notifications</h2>
+          </header>
 
-          {pushControlsVisible && (
-            <div className="profile-save-row">
+          <div className="profile-notification-list">
+            <div className="profile-notification-row">
+              <span className="profile-notification-icon">
+                <Mail aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Email notifications</strong>
+                <small>Friend requests, group additions, and draw results.</small>
+              </div>
               <button
-                className="secondary-button"
+                className={`toggle-switch ${emailNotificationsEnabled ? 'on' : ''}`}
                 type="button"
-                onClick={handleTogglePushNotifications}
-                disabled={pushBusy}
+                role="switch"
+                aria-checked={emailNotificationsEnabled}
+                onClick={handleToggleEmailNotifications}
+                disabled={emailNotificationsBusy}
               >
-                {pushBusy ? 'Updating...' : pushEnabled ? 'Disable Push' : 'Enable Push'}
+                <span />
               </button>
-              {devPushTestVisible && (
+            </div>
+
+            <div className="profile-notification-row">
+              <span className="profile-notification-icon">
+                <Bell aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Push notifications</strong>
+                <small>Notifications on this device.</small>
+              </div>
+              {pushControlsVisible ? (
+                <button
+                  className={`toggle-switch ${pushEnabled ? 'on' : ''}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={pushEnabled}
+                  onClick={handleTogglePushNotifications}
+                  disabled={pushBusy}
+                >
+                  <span />
+                </button>
+              ) : (
+                <span className="profile-unavailable-status">
+                  {pushAvailability.status === 'denied' ? 'Blocked' : 'Unavailable'}
+                </span>
+              )}
+            </div>
+
+            {devPushTestVisible && (
+              <div className="profile-save-row profile-card-footer">
                 <button
                   className="secondary-button"
                   type="button"
                   onClick={handleSendTestPush}
                   disabled={pushTestBusy || !pushEnabled}
                 >
-                  {pushTestBusy ? 'Sending...' : 'Send Test Push'}
+                  <Send className="button-inline-icon" aria-hidden="true" />
+                  {pushTestBusy ? 'Sending...' : 'Send test push'}
                 </button>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="profile-card profile-danger-card">
@@ -315,7 +326,8 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             <p>Deleting your account will permanently remove your data, groups, memberships, and gift ideas.</p>
           </div>
           <button className="danger-button" type="button" onClick={handleDeleteAccount} disabled={deleting}>
-            {deleting ? 'Deleting...' : 'Delete Account'}
+            <Trash2 className="button-inline-icon" aria-hidden="true" />
+            {deleting ? 'Deleting...' : 'Delete account'}
           </button>
         </section>
       </form>

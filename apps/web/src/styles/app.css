@@ -2245,9 +2245,9 @@ select:focus {
 .profile-layout {
   width: min(100% - 40px, var(--layout-narrow-max));
   margin: 0 auto;
-  padding: 20px 0 42px;
+  padding: 32px 0 42px;
   display: grid;
-  gap: 18px;
+  gap: 24px;
 }
 
 .profile-page-heading {
@@ -2262,23 +2262,26 @@ select:focus {
 
 .profile-page-heading h1 {
   color: #08245a;
-  font-size: 30px;
+  font-size: 36px;
   line-height: 1.05;
   font-weight: 800;
 }
 
 .profile-page-heading p {
+  margin-top: 8px;
   color: #3f5578;
+  font-size: 16px;
 }
 
 .profile-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 18px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
 }
 
-.profile-summary-card {
+.profile-hero {
   display: grid;
   justify-items: center;
   gap: 18px;
@@ -2288,25 +2291,37 @@ select:focus {
 .profile-photo-block {
   display: grid;
   justify-items: center;
-  gap: 12px;
+  gap: 16px;
+}
+
+.profile-photo-block .profile-preview,
+.profile-photo-block .profile-placeholder {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  font-size: 52px;
+}
+
+.profile-photo-block .profile-placeholder {
+  background: var(--primary);
+  color: #fff;
 }
 
 .profile-summary-copy h2,
 .profile-summary-copy p,
-.profile-card-heading h2,
-.profile-card-heading p,
+.profile-section-title h2,
 .profile-danger-card h2,
 .profile-danger-card p {
   margin: 0;
 }
 
 .profile-summary-copy h2 {
-  font-size: 24px;
+  color: #08245a;
+  font-size: 26px;
   line-height: 1.15;
 }
 
 .profile-summary-copy p,
-.profile-card-heading p,
 .profile-danger-card p {
   margin-top: 6px;
   color: var(--muted);
@@ -2315,33 +2330,44 @@ select:focus {
 .profile-image-actions {
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 14px;
 }
 
 .profile-image-actions .secondary-button {
-  min-height: 38px;
-  padding-inline: 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-inline: 18px;
+  color: var(--primary);
+  font-weight: 800;
 }
 
-.danger-outline-button {
-  color: var(--danger);
-  border-color: #f1c5c0;
+.profile-remove-photo-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 8px;
+  font-weight: 800;
 }
 
-.danger-outline-button:not(:disabled):hover,
-.danger-outline-button:not(:disabled):focus-visible {
-  border-color: var(--danger);
-  background: #fff1ef;
-}
-
-.profile-fields-card {
+.profile-section-card {
   display: grid;
-  gap: 18px;
+  gap: 22px;
 }
 
-.profile-card-heading h2,
+.profile-section-title {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.profile-section-title h2,
 .profile-danger-card h2 {
-  font-size: 20px;
+  color: #08245a;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 800;
 }
 
 .readonly-field {
@@ -2355,23 +2381,21 @@ select:focus {
 
 .profile-edit-field {
   display: grid;
-  gap: 7px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  padding: 14px;
+  gap: 9px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
 }
 
 .profile-edit-field input {
   min-width: 0;
-  min-height: 42px;
+  min-height: 48px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 8px 10px;
+  padding: 10px 14px;
   color: var(--color-text);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .profile-edit-field input:focus {
@@ -2390,8 +2414,21 @@ select:focus {
   font-size: 16px;
 }
 
-.profile-edit-field small {
+.profile-edit-field small,
+.profile-setting-row small,
+.profile-notification-row small,
+.profile-readonly-block small {
   color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.profile-readonly-block {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 20px;
 }
 
 .profile-save-row {
@@ -2401,14 +2438,134 @@ select:focus {
   justify-content: flex-end;
 }
 
-.profile-danger-card {
+.profile-card-footer {
+  margin-top: -2px;
+}
+
+.profile-setting-row,
+.profile-notification-row {
   display: grid;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.profile-setting-row > div,
+.profile-notification-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.profile-setting-row strong,
+.profile-notification-row strong {
+  color: #08245a;
+  font-size: 16px;
+}
+
+.profile-setting-row .secondary-button,
+.profile-card-footer .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.profile-notification-list {
+  display: grid;
+}
+
+.profile-notification-row {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-notification-row:first-child {
+  padding-top: 0;
+}
+
+.profile-notification-row:last-of-type {
+  border-bottom: 0;
+}
+
+.profile-notification-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf3ff;
+  color: var(--primary);
+}
+
+.profile-notification-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+.toggle-switch {
+  width: 58px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #9da3a9;
+  padding: 3px;
+  transition:
+    background-color 140ms ease,
+    opacity 140ms ease;
+}
+
+.toggle-switch span {
+  width: 28px;
+  height: 28px;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(8, 36, 90, 0.2);
+  transition: transform 140ms ease;
+}
+
+.toggle-switch.on {
+  background: var(--primary);
+}
+
+.toggle-switch.on span {
+  transform: translateX(24px);
+}
+
+.profile-unavailable-status {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-danger-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   border-color: #f1c5c0;
 }
 
 .profile-danger-card .danger-button {
-  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #f1c5c0;
+}
+
+.profile-danger-card .danger-button:not(:disabled):hover,
+.profile-danger-card .danger-button:not(:disabled):focus-visible {
+  border-color: var(--danger);
+  background: #fff1ef;
 }
 
 .native-section-header {
@@ -4411,6 +4568,30 @@ hr {
 
   .profile-layout {
     padding-top: 16px;
+  }
+
+  .profile-setting-row,
+  .profile-danger-card {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+  }
+
+  .profile-setting-row .secondary-button,
+  .profile-card-footer .secondary-button,
+  .profile-danger-card .danger-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-notification-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .profile-notification-icon {
+    width: 40px;
+    height: 40px;
   }
 }
 

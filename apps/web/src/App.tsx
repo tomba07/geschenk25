@@ -50,7 +50,7 @@ function parseRoute(): Route {
   if (path === '/auth/callback') return { name: 'auth-callback', token: new URLSearchParams(window.location.search).get('token') };
   if (path === '/reset-password') return { name: 'reset-password', token: new URLSearchParams(window.location.search).get('token') };
   if (path === '/friends') return { name: 'friends' };
-  if (path === '/profile') return { name: 'profile' };
+  if (path === '/settings' || path === '/profile') return { name: 'profile' };
   if (path === '/dev') return { name: 'dev' };
   return { name: 'home' };
 }
@@ -63,7 +63,7 @@ function routePath(route: Route): string {
   if (route.name === 'auth-callback') return route.token ? `/auth/callback?token=${encodeURIComponent(route.token)}` : '/auth/callback';
   if (route.name === 'reset-password') return route.token ? `/reset-password?token=${encodeURIComponent(route.token)}` : '/reset-password';
   if (route.name === 'friends') return '/friends';
-  if (route.name === 'profile') return '/profile';
+  if (route.name === 'profile') return '/settings';
   if (route.name === 'dev') return '/dev';
   return '/';
 }

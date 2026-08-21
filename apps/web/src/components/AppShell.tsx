@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
-import { House, LogOut, User, Users, Wrench } from 'lucide-react';
+import { House, LogOut, Settings, Users, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
@@ -17,15 +17,14 @@ interface AppShellProps {
 }
 
 function SidebarIcon({ name }: { name: SidebarIconName }) {
-  const Icon = name === 'groups'
-    ? House
-    : name === 'friends'
-      ? Users
-      : name === 'profile'
-        ? User
-        : name === 'dev'
-          ? Wrench
-          : LogOut;
+  const icons = {
+    groups: House,
+    friends: Users,
+    profile: Settings,
+    dev: Wrench,
+    signout: LogOut,
+  };
+  const Icon = icons[name];
 
   return <Icon className="sidebar-icon" aria-hidden="true" />;
 }
@@ -34,7 +33,7 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
   const { isAuthenticated, isLoading, signOut } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
-  const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Edit Profile' : active === 'dev' ? 'Dev Admin' : 'Groups';
+  const mobileTitle = active === 'friends' ? 'Friends' : active === 'profile' ? 'Settings' : active === 'dev' ? 'Dev Admin' : 'Groups';
   const devNavVisible = import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true'
     || (import.meta.env.DEV && apiClient.getBaseUrl().includes('localhost'));
 
@@ -89,7 +88,7 @@ export default function AppShell({ active, children, onNavigateGroups, onNavigat
             )}
           </button>
           <button className={`sidebar-nav-item ${active === 'profile' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateProfile(); }}>
-            <SidebarIcon name="profile" /> <span className="sidebar-nav-label">Profile</span>
+            <SidebarIcon name="profile" /> <span className="sidebar-nav-label">Settings</span>
           </button>
           {devNavVisible && onNavigateDev && (
             <button className={`sidebar-nav-item ${active === 'dev' ? 'active' : ''}`} type="button" onClick={() => { closeSidebar(); onNavigateDev(); }}>
