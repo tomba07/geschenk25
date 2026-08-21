@@ -11,6 +11,61 @@ import { Assignment, AssignmentChat, AssignmentChatMessage, GiftIdea, Group, Gro
 
 type DrawExclusion = { firstUserId: number; secondUserId: number };
 type GiftIdeaActionIconName = 'edit' | 'delete';
+type DetailIconName = 'calendar' | 'chevron' | 'gift' | 'mail' | 'mask' | 'present' | 'bulb';
+
+function DetailIcon({ name }: { name: DetailIconName }) {
+  return (
+    <svg className="detail-inline-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      {name === 'calendar' && (
+        <>
+          <path d="M7 4.75v3" />
+          <path d="M17 4.75v3" />
+          <path d="M5.25 8.25h13.5" />
+          <path d="M6.75 6.25h10.5c1.1 0 2 .9 2 2v9.25c0 1.1-.9 2-2 2H6.75c-1.1 0-2-.9-2-2V8.25c0-1.1.9-2 2-2Z" />
+        </>
+      )}
+      {name === 'chevron' && <path d="m9 18 6-6-6-6" />}
+      {name === 'gift' && (
+        <>
+          <path d="M4.75 10.25h14.5v9H4.75v-9Z" />
+          <path d="M3.75 7.25h16.5v3H3.75v-3Z" />
+          <path d="M12 7.25v12" />
+          <path d="M12 7.25c-2.4 0-4-.85-4-2.1 0-.95.75-1.65 1.75-1.65 1.2 0 2.25 1.3 2.25 3.75Z" />
+          <path d="M12 7.25c2.4 0 4-.85 4-2.1 0-.95-.75-1.65-1.75-1.65-1.2 0-2.25 1.3-2.25 3.75Z" />
+        </>
+      )}
+      {name === 'mail' && (
+        <>
+          <path d="M4.75 6.75h14.5v10.5H4.75V6.75Z" />
+          <path d="m5.5 7.5 6.5 5 6.5-5" />
+        </>
+      )}
+      {name === 'mask' && (
+        <>
+          <path d="M4.75 10.25c2.8-2 5.2-2 7.25 0 2.05-2 4.45-2 7.25 0-.3 4.25-2.1 6-4.35 6-1.25 0-2.2-.55-2.9-1.6-.7 1.05-1.65 1.6-2.9 1.6-2.25 0-4.05-1.75-4.35-6Z" />
+          <path d="M8.25 11.75h2.25" />
+          <path d="M13.5 11.75h2.25" />
+        </>
+      )}
+      {name === 'present' && (
+        <>
+          <path d="M5 10h14v9H5v-9Z" />
+          <path d="M4 7h16v3H4V7Z" />
+          <path d="M12 7v12" />
+          <path d="M12 7c-2.4 0-4-.8-4-2 0-1 .8-1.75 1.85-1.75C11.05 3.25 12 4.65 12 7Z" />
+          <path d="M12 7c2.4 0 4-.8 4-2 0-1-.8-1.75-1.85-1.75C12.95 3.25 12 4.65 12 7Z" />
+        </>
+      )}
+      {name === 'bulb' && (
+        <>
+          <path d="M8.25 10.5a3.75 3.75 0 1 1 6.2 2.85c-.75.65-1.2 1.45-1.2 2.4h-2.5c0-.95-.45-1.75-1.2-2.4a3.7 3.7 0 0 1-1.3-2.85Z" />
+          <path d="M10.75 18.25h2.5" />
+          <path d="M10.5 15.75h3" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function GiftIdeaActionIcon({ name }: { name: GiftIdeaActionIconName }) {
   return (
@@ -596,9 +651,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     <div className="assignment-person-copy">
                       <span>You are buying for</span>
                       <strong>@{assignment.receiver_username}</strong>
-                      {assignmentCreatedDate && <small>Names drawn on {assignmentCreatedDate}</small>}
+                      {assignmentCreatedDate && (
+                        <small>
+                          <DetailIcon name="calendar" />
+                          Names drawn on {assignmentCreatedDate}
+                        </small>
+                      )}
                     </div>
                   </div>
+                  <span className="assignment-result-gift" aria-hidden="true">
+                    <DetailIcon name="present" />
+                  </span>
                 </article>
                 {assignmentChats.length > 0 && (
                   <div className="assignment-chat-panel">
@@ -618,7 +681,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                           key={`${chat.role}-${chat.assignment_id}`}
                           onClick={() => openAssignmentChat(chat)}
                         >
-                          <span>
+                          <span className={`assignment-chat-icon ${chat.role}`}>
+                            <DetailIcon name={chat.role === 'giver' ? 'mail' : 'mask'} />
+                          </span>
+                          <span className="assignment-chat-card-copy">
                             <strong>{chat.role === 'giver' ? `Message ${chat.title}` : chat.title}</strong>
                             <small>{chat.subtitle}</small>
                           </span>
@@ -628,7 +694,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                                 {chat.unread_count > 9 ? '9+' : chat.unread_count}
                               </span>
                             )}
-                            <span className="assignment-chat-card-action">Open</span>
+                            <span className="assignment-chat-card-action">
+                              <DetailIcon name="chevron" />
+                            </span>
                           </span>
                         </button>
                       ))}
@@ -642,12 +710,18 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   ) : (
                     <div className="native-list">
                       {assignedPersonGiftIdeas.map((idea) => (
-                        <article className="native-card idea-native-card" key={idea.id}>
+                        <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
+                          <span className="idea-card-icon bulb">
+                            <DetailIcon name="bulb" />
+                          </span>
                           <div className="idea-card-content">
                             <strong>{idea.idea}</strong>
                             {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
                             <small>from @{idea.created_by.username}</small>
                           </div>
+                          <span className="idea-card-chevron">
+                            <DetailIcon name="chevron" />
+                          </span>
                         </article>
                       ))}
                     </div>
@@ -704,6 +778,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               <div className="native-list">
                 {giftIdeas.map((idea) => (
                   <article className="native-card idea-native-card" key={idea.id}>
+                    <span className="idea-card-icon gift">
+                      <DetailIcon name="gift" />
+                    </span>
                     <div className="idea-card-content">
                       <strong>{idea.idea}</strong>
                       {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}

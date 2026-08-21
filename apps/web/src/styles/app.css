@@ -2454,7 +2454,16 @@ select:focus {
 }
 
 .assignment-result-card {
-  padding: 18px 20px;
+  position: relative;
+  min-height: 138px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border-color: #b9d4f6;
+  background:
+    radial-gradient(circle at 92% 30%, rgba(21, 89, 183, 0.1), rgba(21, 89, 183, 0) 28%),
+    linear-gradient(135deg, #ffffff 0%, #f1f7ff 100%);
+  padding: 22px 24px;
 }
 
 .assignment-empty-card {
@@ -2490,18 +2499,21 @@ select:focus {
 }
 
 .assignment-person-row {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 18px;
   max-width: 420px;
 }
 
 .assignment-person-row .small-avatar {
-  width: 46px;
-  height: 46px;
+  width: 64px;
+  height: 64px;
   background: var(--color-evergreen-soft);
   color: var(--color-evergreen);
+  font-size: 24px;
 }
 
 .assignment-person-copy {
@@ -2510,32 +2522,64 @@ select:focus {
 
 .assignment-person-copy span {
   display: block;
-  color: var(--color-text-muted);
+  color: var(--primary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .assignment-person-copy strong {
   display: block;
   overflow: hidden;
   color: var(--color-text);
-  font-size: 18px;
+  font-size: 24px;
+  line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .assignment-person-copy small {
-  display: block;
-  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.detail-inline-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.assignment-result-gift {
+  position: absolute;
+  right: 26px;
+  bottom: -24px;
+  width: 136px;
+  height: 136px;
+  color: #1559b7;
+  opacity: 0.11;
+  transform: rotate(-8deg);
+}
+
+.assignment-result-gift .detail-inline-icon {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.25;
 }
 
 .assignment-chat-panel {
   display: grid;
-  gap: 12px;
-  border-top: 1px solid var(--color-border);
-  padding-top: 16px;
+  gap: 16px;
+  padding-top: 22px;
 }
 
 .assignment-chat-panel-header {
@@ -2547,24 +2591,25 @@ select:focus {
 .assignment-chat-panel h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: 17px;
+  font-size: 22px;
+  line-height: 1.15;
 }
 
 .assignment-chat-card-list {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .assignment-chat-card {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  padding: 13px 14px;
+  padding: 18px 20px;
   color: var(--color-text);
   text-align: left;
   box-shadow: var(--shadow-sm);
@@ -2574,9 +2619,37 @@ select:focus {
 .assignment-chat-card:not(:disabled):focus-visible {
   border-color: #b8cfec;
   background: #f7fbff;
+  box-shadow: 0 8px 18px rgba(21, 89, 183, 0.08);
 }
 
-.assignment-chat-card span:first-child {
+.assignment-chat-icon,
+.idea-card-icon {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.assignment-chat-icon {
+  width: 56px;
+  height: 56px;
+}
+
+.assignment-chat-icon .detail-inline-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.assignment-chat-icon.giver {
+  background: #efe9ff;
+  color: #5d48bf;
+}
+
+.assignment-chat-icon.receiver {
+  background: #def8ed;
+  color: #11825b;
+}
+
+.assignment-chat-card-copy {
   min-width: 0;
   display: grid;
   gap: 4px;
@@ -2602,9 +2675,25 @@ select:focus {
 }
 
 .assignment-chat-card-action {
+  display: inline-grid;
+  place-items: center;
   color: var(--color-evergreen);
-  font-size: 15px;
-  font-weight: 800;
+  transition:
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.assignment-chat-card-action .detail-inline-icon,
+.idea-card-chevron .detail-inline-icon {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.3;
+}
+
+.assignment-chat-card:not(:disabled):hover .assignment-chat-card-action,
+.assignment-chat-card:not(:disabled):focus-visible .assignment-chat-card-action {
+  color: var(--primary);
+  transform: translateX(2px);
 }
 
 .assignment-chat-card-trailing {
@@ -2629,15 +2718,15 @@ select:focus {
 
 .assigned-ideas-panel {
   display: grid;
-  gap: 12px;
-  border-top: 1px solid var(--color-border);
-  padding-top: 16px;
+  gap: 14px;
+  padding-top: 24px;
 }
 
 .assigned-ideas-panel h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: 17px;
+  font-size: 22px;
+  line-height: 1.15;
 }
 
 .assignment-chat-modal {
@@ -2792,27 +2881,59 @@ select:focus {
   font-weight: 700;
 }
 
-.idea-native-card,
+.idea-native-card {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
 .exclusion-native-card {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 14px 16px;
 }
 
-.idea-native-card {
-  align-items: flex-start;
+.idea-card-icon {
+  width: 52px;
+  height: 52px;
+  background: #e9f2ff;
+  color: var(--primary);
 }
 
-.exclusion-native-card {
-  align-items: center;
+.idea-card-icon .detail-inline-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.idea-card-icon.bulb {
+  background: #fff4d8;
+  color: #785b09;
+}
+
+.idea-card-icon.gift {
+  background: #e9f2ff;
+  color: var(--primary);
+}
+
+.ideas-section .native-list .idea-native-card:nth-child(3n + 2) .idea-card-icon.gift {
+  background: #def8ed;
+  color: #11825b;
+}
+
+.ideas-section .native-list .idea-native-card:nth-child(3n) .idea-card-icon.gift {
+  background: #efe9ff;
+  color: #5d48bf;
 }
 
 .idea-card-content {
   min-width: 0;
-  flex: 1 1 auto;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   line-height: 1.25;
 }
 
@@ -2820,8 +2941,16 @@ select:focus {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 8px;
+  gap: 6px;
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
   white-space: nowrap;
+}
+
+.idea-card-chevron {
+  display: inline-grid;
+  place-items: center;
+  color: #08245a;
 }
 
 .gift-idea-action-button {
@@ -3693,14 +3822,16 @@ hr {
   }
 
   .assignment-chat-card {
-    align-items: start;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    align-items: center;
+    grid-template-columns: 60px minmax(0, 1fr) auto;
+    gap: 18px;
+    min-height: 118px;
+    padding: 20px;
   }
 
   .assignment-chat-card-trailing {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-end;
   }
 
   .overview-header-action {
@@ -3794,17 +3925,43 @@ hr {
   }
 
   .assignments-section,
-  .ideas-section,
-  .pending-section {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-    padding: 18px;
+  .ideas-section {
+    border: 0;
+    background: transparent;
+    padding: 0;
   }
 
   .assignments-section .native-card,
   .ideas-section .native-card {
-    box-shadow: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .assignment-result-card {
+    min-height: 154px;
+    padding: 28px 32px;
+  }
+
+  .assignment-person-row {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 540px;
+  }
+
+  .assignment-person-row .small-avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 30px;
+  }
+
+  .assignment-person-copy strong {
+    font-size: 28px;
+  }
+
+  .assignment-result-gift {
+    right: 42px;
+    bottom: -30px;
+    width: 166px;
+    height: 166px;
   }
 
   .empty-card,
@@ -3813,7 +3970,7 @@ hr {
   }
 
   .detail-section h2 {
-    font-size: 20px;
+    font-size: 24px;
   }
 
   .pill-action {
@@ -4072,6 +4229,68 @@ hr {
 
   .overview-page-header h1 {
     font-size: 26px;
+  }
+
+  .assignment-result-card {
+    padding: 18px;
+  }
+
+  .assignment-result-gift {
+    display: none;
+  }
+
+  .assignment-person-row {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .assignment-person-row .small-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+
+  .assignment-person-copy strong {
+    font-size: 21px;
+  }
+
+  .assignment-chat-card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .assignment-chat-icon,
+  .idea-card-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .assignment-chat-icon .detail-inline-icon,
+  .idea-card-icon .detail-inline-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .idea-native-card {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 13px 12px;
+  }
+
+  .idea-card-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .idea-card-actions {
+    gap: 2px;
+    padding-left: 8px;
+  }
+
+  .gift-idea-action-button {
+    width: 36px;
+    height: 36px;
   }
 
   .overview-group-card {
