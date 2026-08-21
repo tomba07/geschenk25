@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Clock, Copy, Lock, MoreVertical, Plus, Share2, Users } from 'lucide-react';
 import { Friend, FriendRequest, FriendSearchResult, apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
 import { useAuth } from '../context/AuthContext';
@@ -171,7 +172,7 @@ export default function FriendsScreen() {
   };
 
   const renderPersonAvatar = (person: { username: string; image_url?: string | null }) => (
-    <div className="group-image">
+    <div className="group-image friend-avatar">
       {person.image_url ? <img src={person.image_url} alt="" /> : <span>{person.username.charAt(0).toUpperCase()}</span>}
     </div>
   );
@@ -195,20 +196,21 @@ export default function FriendsScreen() {
             <h1>Friends</h1>
             <p>People you can add directly to your gift exchange groups.</p>
           </div>
-          <button className="primary-button" type="button" onClick={() => setAddFriendOpen(true)}>
-            + Add Friend
+          <button className="primary-button friends-header-action" type="button" onClick={() => setAddFriendOpen(true)}>
+            <Plus className="button-inline-icon" aria-hidden="true" />
+            Add Friend
           </button>
         </header>
 
         <div className="overview-content friends-content">
           {(incomingRequests.length > 0 || outgoingRequests.length > 0) && (
-            <section className="friends-invite-card">
-              <div>
+            <section className="friends-section">
+              <header className="friends-section-header">
                 <h2>Friend requests</h2>
                 <p>Accept requests from people you know, or wait for sent requests to be accepted.</p>
-              </div>
+              </header>
               {incomingRequests.length > 0 && (
-                <div className="friends-list">
+                <div className="friends-list friends-request-list">
                   {incomingRequests.map((request) => (
                     <article className="overview-group-card friend-card" key={request.id}>
                       {renderPersonAvatar(request)}
@@ -227,7 +229,7 @@ export default function FriendsScreen() {
                 </div>
               )}
               {outgoingRequests.length > 0 && (
-                <div className="friends-list">
+                <div className="friends-list friends-request-list">
                   {outgoingRequests.map((request) => (
                     <article className="overview-group-card friend-card" key={request.id}>
                       {renderPersonAvatar(request)}
@@ -238,35 +240,16 @@ export default function FriendsScreen() {
                           <span>{new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         </div>
                       </div>
-                      <span className="friend-status-label">Pending</span>
+                      <span className="friend-status-label friend-pending-label">
+                        <Clock className="friend-status-icon" aria-hidden="true" />
+                        Pending
+                      </span>
                     </article>
                   ))}
                 </div>
               )}
             </section>
           )}
-
-          <section className="friends-invite-card">
-            <div>
-              <h2>Friend link</h2>
-              <p>Share this link with someone once. After that, you can add each other to groups directly.</p>
-            </div>
-            {inviteLink ? (
-              <div className="friends-link-actions">
-                <div className="copy-field">
-                  <input value={inviteLink} readOnly />
-                  <button className="primary-button compact" type="button" onClick={handleCopyInviteLink}>
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-                <button className="secondary-button" type="button" onClick={handleShareInviteLink}>
-                  Share Link
-                </button>
-              </div>
-            ) : (
-              <p className="form-error">Finish your profile before sharing a friend link.</p>
-            )}
-          </section>
 
           {error && <p className="form-error">{error}</p>}
 
@@ -289,20 +272,59 @@ export default function FriendsScreen() {
               <p>Share your friend link with someone you want to invite to groups.</p>
             </div>
           ) : (
-            <section className="friends-list">
-              {friends.map((friend) => (
-                <article className="overview-group-card friend-card" key={friend.id}>
-                  {renderPersonAvatar(friend)}
-                  <div className="overview-group-card-body">
-                    <h3>@{friend.username}</h3>
-                  </div>
-                  <button className="link-button danger-text friend-remove-button" type="button" onClick={() => handleUnfriend(friend)}>
-                    Unfriend
-                  </button>
-                </article>
-              ))}
+            <section className="friends-section">
+              <header className="friends-section-header">
+                <h2>Your friends</h2>
+              </header>
+              <div className="friends-list friends-grouped-list">
+                {friends.map((friend) => (
+                  <article className="overview-group-card friend-card" key={friend.id}>
+                    {renderPersonAvatar(friend)}
+                    <div className="overview-group-card-body">
+                      <h3>@{friend.username}</h3>
+                    </div>
+                    <button className="icon-button friend-menu-button" type="button" onClick={() => handleUnfriend(friend)} aria-label={`Remove @${friend.username}`}>
+                      <MoreVertical aria-hidden="true" />
+                    </button>
+                  </article>
+                ))}
+              </div>
+              <p className="friends-count">
+                <Users className="friend-count-icon" aria-hidden="true" />
+                {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+              </p>
             </section>
           )}
+
+          <section className="friends-section">
+            <header className="friends-section-header">
+              <h2>Invite a friend</h2>
+              <p>Share a one-time link to connect with someone.</p>
+            </header>
+            <div className="friends-invite-card">
+              {inviteLink ? (
+                <div className="friends-link-actions">
+                  <div className="copy-field friends-copy-field">
+                    <input value={inviteLink} readOnly />
+                    <button className="secondary-button" type="button" onClick={handleCopyInviteLink}>
+                      <Copy className="button-inline-icon" aria-hidden="true" />
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <button className="secondary-button friends-share-button" type="button" onClick={handleShareInviteLink}>
+                    <Share2 className="button-inline-icon" aria-hidden="true" />
+                    Share Link
+                  </button>
+                  <p className="friend-link-note">
+                    <Lock className="friend-note-icon" aria-hidden="true" />
+                    Anyone with this link can add you as a friend.
+                  </p>
+                </div>
+              ) : (
+                <p className="form-error">Finish your profile before sharing a friend link.</p>
+              )}
+            </div>
+          </section>
         </div>
       </div>
 
