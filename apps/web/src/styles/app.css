@@ -2468,12 +2468,26 @@ select:focus {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
   color: var(--primary);
+  font-size: 16px;
   font-weight: 800;
+}
+
+.profile-card-footer .secondary-button:disabled {
+  border-color: var(--border);
+  background: #fff;
+  color: #6f819e;
+  opacity: 1;
 }
 
 .profile-notification-list {
   display: grid;
+}
+
+.profile-notification-list .profile-card-footer {
+  padding-top: 16px;
 }
 
 .profile-notification-row {
