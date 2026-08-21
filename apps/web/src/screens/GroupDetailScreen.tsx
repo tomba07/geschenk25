@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronRight, Gift, Lightbulb, Mail, Pencil, Trash2, VenetianMask } from 'lucide-react';
+import { Calendar, ChevronRight, Gift, Lightbulb, Mail, Pencil, Plus, Trash2, Users, VenetianMask } from 'lucide-react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -554,7 +554,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>{getInitials(group.name)}</span>}</span>
           <span className="detail-title-copy">
             <strong>{group.name}</strong>
-            <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
+            <small>
+              <Users className="detail-title-meta-icon" aria-hidden="true" />
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </small>
           </span>
         </button>
         <span className="detail-action-spacer" />
@@ -563,7 +566,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       <div className="detail-layout">
         <div className="detail-main">
           <section className="detail-section assignments-section">
-            <h2>Assignment</h2>
+            <h2>Name Draw</h2>
             {assignment ? (
               <>
                 <article className="native-card assignment-result-card">
@@ -654,7 +657,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </>
             ) : (
               <article className="native-card empty-card assignment-empty-card">
-                <div className="empty-card-icon">🎁</div>
+                <span className="empty-card-icon svg-icon gift-empty-icon">
+                  <Gift className="detail-inline-icon" aria-hidden="true" />
+                </span>
                 <div className="assignment-state-copy">
                   <h3>
                     {members.length < 3
@@ -686,12 +691,23 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <section className="detail-section ideas-section">
             <div className="native-section-header">
               <h2>My Gift Ideas</h2>
-              <button className="primary-button compact pill-action" type="button" onClick={openGiftIdeaModal}>+ Add Idea</button>
+              {giftIdeas.length > 0 && (
+                <button className="primary-button compact pill-action" type="button" onClick={openGiftIdeaModal}>+ Add Idea</button>
+              )}
             </div>
             {giftIdeas.length === 0 ? (
-              <article className="native-card empty-card">
-                <div className="empty-card-icon">💡</div>
-                <p>You haven't created any gift ideas yet. Add some ideas for group members!</p>
+              <article className="native-card empty-card gift-ideas-empty-card">
+                <span className="empty-card-icon svg-icon idea-empty-icon">
+                  <Lightbulb className="detail-inline-icon" aria-hidden="true" />
+                </span>
+                <div className="assignment-state-copy">
+                  <h3>No gift ideas yet</h3>
+                  <p>Add ideas for your group members.</p>
+                </div>
+                <button className="secondary-button empty-card-action" type="button" onClick={openGiftIdeaModal}>
+                  <Plus className="button-inline-icon" aria-hidden="true" />
+                  Add Idea
+                </button>
               </article>
             ) : (
               <div className="native-list idea-list">
