@@ -2483,7 +2483,11 @@ select:focus {
   min-height: 176px;
 }
 
-.assignment-empty-card,
+.assignment-empty-card {
+  border-color: #b9d4f6;
+  background: #f1f7ff;
+}
+
 .gift-ideas-empty-card {
   background: #fff;
 }
