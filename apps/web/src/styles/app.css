@@ -2681,8 +2681,7 @@ select:focus {
     transform 140ms ease;
 }
 
-.assignment-chat-card-action .detail-inline-icon,
-.idea-card-chevron .detail-inline-icon {
+.assignment-chat-card-action .detail-inline-icon {
   width: 26px;
   height: 26px;
   stroke-width: 2.3;
@@ -2943,12 +2942,6 @@ select:focus {
   border-left: 1px solid var(--border);
   padding-left: 12px;
   white-space: nowrap;
-}
-
-.idea-card-chevron {
-  display: inline-grid;
-  place-items: center;
-  color: #08245a;
 }
 
 .gift-idea-action-button {

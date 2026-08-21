@@ -646,9 +646,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                             {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
                             <small>from @{idea.created_by.username}</small>
                           </div>
-                          <span className="idea-card-chevron">
-                            <ChevronRight className="detail-inline-icon" aria-hidden="true" />
-                          </span>
                         </article>
                       ))}
                     </div>
