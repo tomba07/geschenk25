@@ -2136,7 +2136,9 @@ select:focus {
   margin: 0;
 }
 
-.detail-section h2 {
+.detail-section h2,
+.assignment-chat-panel h3,
+.assigned-ideas-panel h3 {
   margin: 0;
   color: #050505;
   font-size: 22px;
@@ -2586,13 +2588,6 @@ select:focus {
   gap: 8px;
 }
 
-.assignment-chat-panel h3 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 22px;
-  line-height: 1.15;
-}
-
 .assignment-chat-card-list {
   display: grid;
   gap: 14px;
@@ -2717,13 +2712,6 @@ select:focus {
   display: grid;
   gap: 14px;
   padding-top: 24px;
-}
-
-.assigned-ideas-panel h3 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 22px;
-  line-height: 1.15;
 }
 
 .assignment-chat-modal {
@@ -3985,7 +3973,9 @@ hr {
     border-style: dashed;
   }
 
-  .detail-section h2 {
+  .detail-section h2,
+  .assignment-chat-panel h3,
+  .assigned-ideas-panel h3 {
     font-size: 24px;
   }
 
