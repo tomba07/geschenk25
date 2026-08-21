@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronRight, Gift, Lightbulb, Mail, Pencil, Plus, Trash2, Users, VenetianMask } from 'lucide-react';
+import { Calendar, ChevronRight, Gift, Lightbulb, Mail, Pencil, Plus, Trash2, VenetianMask } from 'lucide-react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -554,10 +554,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <span className="group-image detail-title-image">{group.image_url ? <img src={group.image_url} alt="" /> : <span>{getInitials(group.name)}</span>}</span>
           <span className="detail-title-copy">
             <strong>{group.name}</strong>
-            <small>
-              <Users className="detail-title-meta-icon" aria-hidden="true" />
-              {members.length} {members.length === 1 ? 'member' : 'members'}
-            </small>
+            <small>{members.length} {members.length === 1 ? 'member' : 'members'}</small>
           </span>
         </button>
         <span className="detail-action-spacer" />

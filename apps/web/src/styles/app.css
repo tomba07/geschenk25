@@ -2048,19 +2048,6 @@ select:focus {
   line-height: 1.2;
 }
 
-.detail-title-copy small {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.detail-title-meta-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  stroke-width: 2;
-}
-
 .detail-title-loading {
   pointer-events: none;
 }
@@ -3915,53 +3902,36 @@ hr {
   }
 
   .detail-topbar {
-    position: static;
     width: min(100% - 40px, var(--layout-detail-max));
-    min-height: 172px;
+    min-height: 68px;
     margin: 0 auto;
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-    align-items: start;
-    gap: 28px;
-    padding: 28px 0 10px;
+    grid-template-columns: minmax(88px, 1fr) minmax(0, auto) minmax(88px, 1fr);
+    gap: 12px;
+    padding: max(10px, env(safe-area-inset-top)) 0 10px;
     background: #f4f7fa;
     border-bottom: 0;
   }
 
   .detail-title-button {
-    justify-self: start;
-    max-width: 100%;
-    grid-template-columns: 92px minmax(0, 1fr);
-    gap: 24px;
-    padding: 0;
+    max-width: 460px;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    padding: 5px 8px;
   }
 
   .detail-title-image,
   .detail-title-skeleton-avatar {
-    width: 92px;
-    height: 92px;
-    border-radius: 12px;
+    width: 42px;
+    height: 42px;
   }
 
   .detail-title-skeleton-line {
-    width: 260px;
-    height: 28px;
+    width: 220px;
+    height: 18px;
   }
 
   .detail-title-copy strong {
-    font-size: 36px;
-    line-height: 1.05;
-  }
-
-  .detail-title-copy small {
-    margin-top: 8px;
-    font-size: 20px;
-    line-height: 1.2;
-  }
-
-  .detail-title-meta-icon {
-    width: 22px;
-    height: 22px;
+    font-size: 18px;
   }
 
   .detail-back-button {
@@ -3980,15 +3950,15 @@ hr {
   }
 
   .detail-action-spacer {
-    display: none;
+    width: 88px;
   }
 
   .detail-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "main";
     align-items: start;
-    gap: 34px;
-    padding-top: 0;
+    gap: 24px;
+    padding-top: 16px;
   }
 
   .detail-main {
