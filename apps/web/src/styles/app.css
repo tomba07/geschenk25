@@ -1308,6 +1308,23 @@ select:focus {
   line-height: 1.45;
 }
 
+.confirm-dialog .secondary-button:not(:disabled):hover,
+.confirm-dialog .secondary-button:not(:disabled):focus-visible {
+  border-color: #a9c5e8;
+  background: #eef5ff;
+}
+
+.confirm-dialog .danger-button:not(:disabled):hover,
+.confirm-dialog .danger-button:not(:disabled):focus-visible {
+  background: #a92d25;
+  box-shadow: 0 8px 18px rgb(201 54 44 / 0.22);
+}
+
+.confirm-dialog .primary-button:not(:disabled):hover,
+.confirm-dialog .primary-button:not(:disabled):focus-visible {
+  box-shadow: 0 8px 18px rgb(21 89 183 / 0.2);
+}
+
 .toast-message {
   position: fixed;
   left: 50%;
@@ -2073,10 +2090,13 @@ select:focus {
   justify-self: start;
   min-width: 38px;
   min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   color: #1559b7;
-  padding: 0;
+  padding: 0 8px;
   font-size: 24px;
   line-height: 1;
   font-weight: 700;
@@ -3696,6 +3716,7 @@ hr {
   .detail-back-button {
     min-width: 0;
     min-height: 36px;
+    padding: 0 10px;
     font-size: inherit;
   }
 
