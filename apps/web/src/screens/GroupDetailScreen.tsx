@@ -563,7 +563,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       <div className="detail-layout">
         <div className="detail-main">
           <section className="detail-section assignments-section">
-            <h2>Assignments</h2>
+            <h2>Assignment</h2>
             {assignment ? (
               <>
                 <article className="native-card assignment-result-card">
