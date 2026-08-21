@@ -2460,7 +2460,7 @@ select:focus {
   display: flex;
   align-items: center;
   border-color: #b9d4f6;
-  background: #fff;
+  background: #f1f7ff;
   padding: 22px 24px;
 }
 
