@@ -684,11 +684,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 )}
               </article>
             )}
-            {isOwner && assignment && (
-              <button className="secondary-button compact standalone-action" type="button" onClick={handleDeleteAssignments} disabled={busy}>
-                Reset Draw
-              </button>
-            )}
           </section>
 
           <section className="detail-section ideas-section">
@@ -1121,6 +1116,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </section>
 
             <div className="button-row">
+              {isOwner && assignment && (
+                <button className="secondary-button" type="button" onClick={handleDeleteAssignments} disabled={busy}>
+                  Reset Draw
+                </button>
+              )}
               <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
                 {isOwner ? 'Delete Group' : 'Leave Group'}
               </button>
