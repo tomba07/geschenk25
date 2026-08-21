@@ -131,6 +131,7 @@ button {
 button:disabled {
   cursor: default;
   opacity: 0.65;
+  pointer-events: none;
 }
 
 .primary-button:disabled,
@@ -225,7 +226,17 @@ a {
   display: none;
   border: 0;
   background: transparent;
+  border-radius: var(--radius-sm);
   padding: 8px 4px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.landing-login-button:hover,
+.landing-login-button:focus-visible {
+  background: rgb(255 255 255 / 0.72);
+  color: var(--color-brand-hover);
 }
 
 .landing-mobile-login-button {
@@ -436,7 +447,8 @@ a {
     box-shadow: 0 10px 22px rgb(8 36 90 / 0.06);
   }
 
-  .landing-mobile-login-button:hover {
+  .landing-mobile-login-button:hover,
+  .landing-mobile-login-button:focus-visible {
     background: var(--color-surface);
   }
 
@@ -626,7 +638,8 @@ small {
   font-weight: 700;
 }
 
-.oauth-button:hover {
+.oauth-button:not(:disabled):hover,
+.oauth-button:not(:disabled):focus-visible {
   border-color: #b7ceee;
   background: #fbfdff;
 }
@@ -970,8 +983,8 @@ select:focus {
     color 140ms ease;
 }
 
-.link-button:hover,
-.link-button:focus-visible {
+.link-button:not(:disabled):hover,
+.link-button:not(:disabled):focus-visible {
   background: #eef5ff;
   color: var(--color-evergreen-hover);
 }
@@ -980,8 +993,8 @@ select:focus {
   color: var(--danger) !important;
 }
 
-.danger-text:hover,
-.danger-text:focus-visible {
+.danger-text:not(:disabled):hover,
+.danger-text:not(:disabled):focus-visible {
   background: #fff1ef;
   color: var(--danger) !important;
 }
@@ -1052,8 +1065,8 @@ select:focus {
     color 140ms ease;
 }
 
-.icon-button:hover,
-.icon-button:focus-visible {
+.icon-button:not(:disabled):hover,
+.icon-button:not(:disabled):focus-visible {
   background: #eef5ff;
   color: #08245a;
 }
@@ -1067,6 +1080,14 @@ select:focus {
   background: var(--primary);
   color: #fff;
   font-weight: 800;
+  transition:
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.avatar-button:not(:disabled):hover,
+.avatar-button:not(:disabled):focus-visible {
+  box-shadow: 0 0 0 4px #dcebff;
 }
 
 .avatar-button img,
@@ -1347,8 +1368,8 @@ select:focus {
   line-height: 1;
 }
 
-.toast-close:hover,
-.toast-close:focus-visible {
+.toast-close:not(:disabled):hover,
+.toast-close:not(:disabled):focus-visible {
   background: rgba(255, 255, 255, 0.14);
 }
 
@@ -1576,8 +1597,8 @@ select:focus {
     box-shadow 140ms ease;
 }
 
-.create-friend-option:hover,
-.create-friend-option:focus-visible {
+.create-friend-option:not(:disabled):hover,
+.create-friend-option:not(:disabled):focus-visible {
   border-color: #b8cfec;
   background: #f7fbff;
   box-shadow: var(--shadow-sm);
@@ -1645,8 +1666,8 @@ select:focus {
     color 140ms ease;
 }
 
-.menu-popover > button:hover,
-.menu-popover > button:focus-visible {
+.menu-popover > button:not(:disabled):hover,
+.menu-popover > button:not(:disabled):focus-visible {
   background: #eef5ff;
   color: #08245a;
 }
@@ -1967,7 +1988,8 @@ select:focus {
   cursor: pointer;
 }
 
-.detail-title-button:hover {
+.detail-title-button:not(:disabled):hover,
+.detail-title-button:not(:disabled):focus-visible {
   background: #eaf3ff;
 }
 
@@ -2037,8 +2059,8 @@ select:focus {
     color 140ms ease;
 }
 
-.detail-nav-button:hover,
-.detail-nav-button:focus-visible {
+.detail-nav-button:not(:disabled):hover,
+.detail-nav-button:not(:disabled):focus-visible {
   background: #eef5ff;
   color: var(--color-evergreen-hover);
 }
@@ -2064,8 +2086,8 @@ select:focus {
     color 140ms ease;
 }
 
-.detail-back-button:hover,
-.detail-back-button:focus-visible {
+.detail-back-button:not(:disabled):hover,
+.detail-back-button:not(:disabled):focus-visible {
   background: #eaf3ff;
   color: #08245a;
 }
@@ -2279,8 +2301,10 @@ select:focus {
   border-color: #f1c5c0;
 }
 
-.danger-outline-button:hover {
+.danger-outline-button:not(:disabled):hover,
+.danger-outline-button:not(:disabled):focus-visible {
   border-color: var(--danger);
+  background: #fff1ef;
 }
 
 .profile-fields-card {
@@ -2521,8 +2545,8 @@ select:focus {
   box-shadow: var(--shadow-sm);
 }
 
-.assignment-chat-card:hover,
-.assignment-chat-card:focus-visible {
+.assignment-chat-card:not(:disabled):hover,
+.assignment-chat-card:not(:disabled):focus-visible {
   border-color: #b8cfec;
   background: #f7fbff;
 }
@@ -2789,15 +2813,15 @@ select:focus {
   padding: 0;
 }
 
-.gift-idea-action-button:hover,
-.gift-idea-action-button:focus-visible {
+.gift-idea-action-button:not(:disabled):hover,
+.gift-idea-action-button:not(:disabled):focus-visible {
   border-color: #cfe0f6;
   background: #eef5ff;
   color: #08245a;
 }
 
-.gift-idea-action-button.danger:hover,
-.gift-idea-action-button.danger:focus-visible {
+.gift-idea-action-button.danger:not(:disabled):hover,
+.gift-idea-action-button.danger:not(:disabled):focus-visible {
   border-color: #f2c6c0;
   background: #fff1ef;
   color: var(--danger);
@@ -2925,11 +2949,13 @@ select:focus {
   font-family: inherit;
 }
 
-.sidebar-brand-button:hover {
+.sidebar-brand-button:not(:disabled):hover,
+.sidebar-brand-button:not(:disabled):focus-visible {
+  background: #eef5ff;
   color: #1559b7;
 }
 
-.sidebar-brand-button:focus-visible {
+.sidebar-brand-button:not(:disabled):focus-visible {
   outline: 2px solid #1559b7;
   outline-offset: 4px;
   border-radius: 8px;
@@ -2971,10 +2997,10 @@ select:focus {
   color: #1559b7;
 }
 
-.sidebar-nav-item:hover,
-.sidebar-nav-item:focus-visible,
-.sidebar-signout:hover,
-.sidebar-signout:focus-visible {
+.sidebar-nav-item:not(:disabled):hover,
+.sidebar-nav-item:not(:disabled):focus-visible,
+.sidebar-signout:not(:disabled):hover,
+.sidebar-signout:not(:disabled):focus-visible {
   background: #eef5ff;
   color: #1559b7;
 }
@@ -3053,8 +3079,8 @@ select:focus {
     box-shadow 140ms ease;
 }
 
-.mobile-menu-button:hover,
-.mobile-menu-button:focus-visible {
+.mobile-menu-button:not(:disabled):hover,
+.mobile-menu-button:not(:disabled):focus-visible {
   border-color: #b8cfec;
   background: #eef5ff;
   color: #1559b7;
@@ -3206,7 +3232,8 @@ select:focus {
   box-shadow: 0 6px 16px rgba(211, 51, 43, 0.24);
 }
 
-.overview-group-card:hover {
+.overview-group-card:not(:disabled):hover,
+.overview-group-card:not(:disabled):focus-visible {
   border-color: #b7ceee;
   box-shadow: 0 6px 16px rgba(21, 89, 183, 0.08);
 }
@@ -3387,7 +3414,8 @@ select:focus {
   box-shadow: 0 8px 20px rgba(11, 107, 203, 0.22);
 }
 
-.overview-fab:hover {
+.overview-fab:not(:disabled):hover,
+.overview-fab:not(:disabled):focus-visible {
   background: var(--primary-hover);
 }
 
