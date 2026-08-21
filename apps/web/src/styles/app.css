@@ -3347,10 +3347,11 @@ select:focus {
   white-space: nowrap;
 }
 
-.overview-header-action span {
-  font-size: 24px;
-  line-height: 1;
-  transform: translateY(-1px);
+.button-inline-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  stroke-width: 2.4;
 }
 
 .overview-content {

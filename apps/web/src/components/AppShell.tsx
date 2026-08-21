@@ -1,4 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import { House, LogOut, User, Users, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../lib/api';
 import { confirmDestructive } from '../utils/confirm';
@@ -16,48 +17,17 @@ interface AppShellProps {
 }
 
 function SidebarIcon({ name }: { name: SidebarIconName }) {
-  return (
-    <svg className="sidebar-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      {name === 'groups' && (
-        <>
-          <path d="M3.75 11.25 12 4.5l8.25 6.75" />
-          <path d="M5.75 10.25V20h12.5v-9.75" />
-          <path d="M9.25 20v-6.25h5.5V20" />
-        </>
-      )}
-      {name === 'profile' && (
-        <>
-          <path d="M12 12.25a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-          <path d="M4.75 20.25a7.25 7.25 0 0 1 14.5 0" />
-        </>
-      )}
-      {name === 'friends' && (
-        <>
-          <path d="M8.75 11.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" />
-          <path d="M15.75 11.25a2.75 2.75 0 1 0 0-5.5" />
-          <path d="M3.75 20.25a5 5 0 0 1 10 0" />
-          <path d="M14.75 15.25a4.25 4.25 0 0 1 5.5 4" />
-        </>
-      )}
-      {name === 'dev' && (
-        <>
-          <path d="M4.75 6.75h14.5" />
-          <path d="M4.75 12h14.5" />
-          <path d="M4.75 17.25h14.5" />
-          <path d="M8.25 4.75v4" />
-          <path d="M15.75 10v4" />
-          <path d="M10.75 15.25v4" />
-        </>
-      )}
-      {name === 'signout' && (
-        <>
-          <path d="M14.25 5.25h-7.5v13.5h7.5" />
-          <path d="M10.75 12h9" />
-          <path d="m16.75 8 4 4-4 4" />
-        </>
-      )}
-    </svg>
-  );
+  const Icon = name === 'groups'
+    ? House
+    : name === 'friends'
+      ? Users
+      : name === 'profile'
+        ? User
+        : name === 'dev'
+          ? Wrench
+          : LogOut;
+
+  return <Icon className="sidebar-icon" aria-hidden="true" />;
 }
 
 export default function AppShell({ active, children, onNavigateGroups, onNavigateFriends, onNavigateProfile, onNavigateDev }: AppShellProps) {
