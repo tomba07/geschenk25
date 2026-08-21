@@ -635,7 +635,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   {assignedPersonGiftIdeas.length === 0 ? (
                     <p className="empty-inline">No gift ideas shared for this person yet.</p>
                   ) : (
-                    <div className="native-list">
+                    <div className="native-list idea-list">
                       {assignedPersonGiftIdeas.map((idea) => (
                         <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
                           <span className="idea-card-icon bulb">
@@ -694,7 +694,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 <p>You haven't created any gift ideas yet. Add some ideas for group members!</p>
               </article>
             ) : (
-              <div className="native-list">
+              <div className="native-list idea-list">
                 {giftIdeas.map((idea) => (
                   <article className="native-card idea-native-card" key={idea.id}>
                     <span className="idea-card-icon gift">

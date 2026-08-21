@@ -2838,6 +2838,15 @@ select:focus {
   gap: 12px;
 }
 
+.idea-list {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
 .member-native-card {
   min-height: 76px;
   display: grid;
@@ -2879,12 +2888,22 @@ select:focus {
 }
 
 .idea-native-card {
-  min-height: 76px;
+  min-height: 84px;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
+}
+
+.idea-list .idea-native-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.idea-list .idea-native-card + .idea-native-card {
+  border-top: 1px solid var(--color-border);
 }
 
 .exclusion-native-card {
@@ -3926,6 +3945,11 @@ hr {
   .assignments-section .native-card,
   .ideas-section .native-card {
     box-shadow: var(--shadow-sm);
+  }
+
+  .ideas-section .idea-list .idea-native-card,
+  .assigned-ideas-panel .idea-list .idea-native-card {
+    box-shadow: none;
   }
 
   .assignment-result-card {
