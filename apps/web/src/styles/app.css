@@ -133,6 +133,12 @@ button:disabled {
   opacity: 0.65;
 }
 
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
+  box-shadow: none;
+}
+
 a {
   color: var(--color-evergreen);
 }
@@ -903,6 +909,12 @@ select:focus {
   border-radius: var(--radius-md);
   padding: 0 16px;
   font-weight: var(--font-semibold);
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
 }
 
 .primary-button {
@@ -910,8 +922,10 @@ select:focus {
   color: var(--color-text-inverse);
 }
 
-.primary-button:hover {
+.primary-button:not(:disabled):hover,
+.primary-button:not(:disabled):focus-visible {
   background: var(--primary-hover);
+  box-shadow: 0 6px 16px rgb(21 89 183 / 0.16);
 }
 
 .secondary-button {
@@ -920,9 +934,23 @@ select:focus {
   border: 1px solid var(--border);
 }
 
+.secondary-button:not(:disabled):hover,
+.secondary-button:not(:disabled):focus-visible {
+  border-color: #b8cfec;
+  background: #f7fbff;
+  color: #08245a;
+  box-shadow: var(--shadow-sm);
+}
+
 .danger-button {
   background: var(--danger);
   color: var(--color-text-inverse);
+}
+
+.danger-button:not(:disabled):hover,
+.danger-button:not(:disabled):focus-visible {
+  background: #a92d25;
+  box-shadow: 0 6px 16px rgb(201 54 44 / 0.18);
 }
 
 .compact {
@@ -936,9 +964,25 @@ select:focus {
   color: var(--color-evergreen);
   padding: 8px;
   font-weight: var(--font-semibold);
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.link-button:hover,
+.link-button:focus-visible {
+  background: #eef5ff;
+  color: var(--color-evergreen-hover);
 }
 
 .danger-text {
+  color: var(--danger) !important;
+}
+
+.danger-text:hover,
+.danger-text:focus-visible {
+  background: #fff1ef;
   color: var(--danger) !important;
 }
 
@@ -1003,9 +1047,13 @@ select:focus {
   line-height: 1;
   padding: 0;
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
-.icon-button:hover {
+.icon-button:hover,
+.icon-button:focus-visible {
   background: #eef5ff;
   color: #08245a;
 }
@@ -1420,6 +1468,17 @@ select:focus {
   padding: 9px 12px;
   color: #08245a;
   font-weight: 600;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.friend-picker-option:not(.disabled):hover,
+.friend-picker-option:not(.disabled):focus-within {
+  border-color: #b8cfec;
+  background: #f7fbff;
+  box-shadow: var(--shadow-sm);
 }
 
 .friend-picker-option.selected {
@@ -1511,6 +1570,17 @@ select:focus {
   padding: 9px 12px;
   color: #08245a;
   text-align: left;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.create-friend-option:hover,
+.create-friend-option:focus-visible {
+  border-color: #b8cfec;
+  background: #f7fbff;
+  box-shadow: var(--shadow-sm);
 }
 
 .create-friend-option.selected {
@@ -1567,8 +1637,18 @@ select:focus {
   border: 0;
   background: #fff;
   border-top: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   text-align: left;
   font-weight: 700;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.menu-popover > button:hover,
+.menu-popover > button:focus-visible {
+  background: #eef5ff;
+  color: #08245a;
 }
 
 .profile-summary {
@@ -1946,11 +2026,21 @@ select:focus {
 }
 
 .detail-nav-button {
+  border-radius: var(--radius-sm);
   padding: 6px 0;
   color: var(--color-evergreen);
   font-size: 17px;
   font-weight: 700;
   text-align: left;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.detail-nav-button:hover,
+.detail-nav-button:focus-visible {
+  background: #eef5ff;
+  color: var(--color-evergreen-hover);
 }
 
 .detail-nav-button.right {
@@ -1968,6 +2058,16 @@ select:focus {
   font-size: 24px;
   line-height: 1;
   font-weight: 700;
+  border-radius: var(--radius-md);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.detail-back-button:hover,
+.detail-back-button:focus-visible {
+  background: #eaf3ff;
+  color: #08245a;
 }
 
 .detail-back-full {
@@ -2861,10 +2961,21 @@ select:focus {
   text-align: left;
   font-weight: 600;
   font-size: 16px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .sidebar-nav-item.active {
   background: #d3e5fb;
+  color: #1559b7;
+}
+
+.sidebar-nav-item:hover,
+.sidebar-nav-item:focus-visible,
+.sidebar-signout:hover,
+.sidebar-signout:focus-visible {
+  background: #eef5ff;
   color: #1559b7;
 }
 
@@ -2935,6 +3046,19 @@ select:focus {
   background: #fff;
   color: #08245a;
   font-size: 20px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.mobile-menu-button:hover,
+.mobile-menu-button:focus-visible {
+  border-color: #b8cfec;
+  background: #eef5ff;
+  color: #1559b7;
+  box-shadow: var(--shadow-sm);
 }
 
 .mobile-overview-bar .sidebar-brand {
