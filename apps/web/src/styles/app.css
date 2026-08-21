@@ -3210,6 +3210,20 @@ select:focus {
   color: #3f5578;
 }
 
+.overview-header-action {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px;
+  white-space: nowrap;
+}
+
+.overview-header-action span {
+  font-size: 24px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
 .overview-content {
   width: min(100% - 40px, var(--layout-overview-max));
   margin: 0 auto;
@@ -3261,6 +3275,28 @@ select:focus {
 .overview-group-card:not(:disabled):focus-visible {
   border-color: #b7ceee;
   box-shadow: 0 6px 16px rgba(21, 89, 183, 0.08);
+}
+
+.overview-card-chevron {
+  display: none;
+  width: 24px;
+  height: 24px;
+  justify-self: end;
+  color: #3f5578;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  transition:
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.overview-group-card:not(:disabled):hover .overview-card-chevron,
+.overview-group-card:not(:disabled):focus-visible .overview-card-chevron {
+  color: var(--primary);
+  transform: translateX(2px);
 }
 
 .overview-group-card .group-image {
@@ -3667,6 +3703,14 @@ hr {
     justify-content: space-between;
   }
 
+  .overview-header-action {
+    display: inline-flex;
+  }
+
+  .overview-fab {
+    display: none;
+  }
+
   .app-shell:has(.group-detail-screen) {
     width: 100%;
     margin: 0;
@@ -3910,6 +3954,22 @@ hr {
 
   .overview-group-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-groups-section .overview-group-card {
+    grid-template-columns: 56px minmax(0, 1fr) 24px;
+    gap: 18px;
+    min-height: 104px;
+    padding: 16px;
+  }
+
+  .overview-groups-section .overview-group-card .group-image {
+    width: 56px;
+    height: 56px;
+  }
+
+  .overview-card-chevron {
+    display: block;
   }
 
   .dev-admin-content {

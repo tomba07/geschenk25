@@ -95,6 +95,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
             <h1>Groups</h1>
             <p>Create, manage, and join your gift exchange groups.</p>
           </div>
+          <button className="primary-button overview-header-action" type="button" onClick={openCreateModal}>
+            <span aria-hidden="true">+</span>
+            New Group
+          </button>
         </header>
 
         <div className="overview-content">
@@ -144,6 +148,9 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                         <span>{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     </div>
+                    <svg className="overview-card-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
                   </button>
                 );
               })}
