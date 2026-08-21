@@ -3590,12 +3590,18 @@ select:focus {
   position: relative;
   display: inline-grid;
   place-items: center;
+  cursor: pointer;
 }
 
 .file-button input {
   position: absolute;
   inset: 0;
   opacity: 0;
+  cursor: inherit;
+}
+
+.file-button:has(input:disabled) {
+  cursor: default;
 }
 
 hr {
