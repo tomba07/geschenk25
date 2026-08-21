@@ -2460,9 +2460,7 @@ select:focus {
   display: flex;
   align-items: center;
   border-color: #b9d4f6;
-  background:
-    radial-gradient(circle at 92% 30%, rgba(21, 89, 183, 0.1), rgba(21, 89, 183, 0) 28%),
-    linear-gradient(135deg, #ffffff 0%, #f1f7ff 100%);
+  background: #fff;
   padding: 22px 24px;
 }
 
