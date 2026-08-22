@@ -1853,10 +1853,96 @@ select:focus {
   min-width: 0;
 }
 
+.group-details-dialog {
+  width: min(100%, 960px);
+  padding: 36px 40px 0;
+}
+
+.group-details-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.group-details-dialog-header h2 {
+  margin: 0;
+  color: #08245a;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.group-details-dialog-header .icon-button {
+  color: #3f5578;
+}
+
 .details-image-section {
   display: grid;
   justify-items: center;
-  gap: 12px;
+  gap: 20px;
+  padding-top: 24px;
+}
+
+.details-image-section .group-image.large {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  font-size: 42px;
+}
+
+.details-image-actions {
+  justify-content: center;
+  gap: 22px;
+}
+
+.details-image-actions .secondary-button,
+.details-remove-photo-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+}
+
+.details-image-actions .secondary-button {
+  color: var(--primary);
+  padding-inline: 18px;
+}
+
+.details-remove-photo-button {
+  padding: 0 8px;
+}
+
+.details-name-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 28px;
+}
+
+.details-name-field {
+  display: grid;
+  gap: 10px;
+}
+
+.details-name-field > label {
+  gap: 10px;
+  color: #3f5578;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.details-name-section strong {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 18px;
+  color: #08245a;
+  font-size: 20px;
 }
 
 .details-list {
@@ -1884,19 +1970,18 @@ select:focus {
 }
 
 .details-name-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  display: block;
 }
 
 .details-name-form input {
   min-width: 0;
-  min-height: 36px;
+  min-height: 58px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 6px 10px;
+  padding: 0 20px;
   color: var(--color-text);
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -1905,20 +1990,172 @@ select:focus {
   border-color: var(--primary);
 }
 
+.details-summary-section {
+  display: grid;
+  gap: 16px;
+  padding-top: 28px;
+}
+
+.details-summary-section h3 {
+  margin: 0;
+  color: #08245a;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.details-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.details-summary-card {
+  min-width: 0;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px 18px;
+}
+
+.details-summary-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f8fbff;
+  color: #3f5578;
+}
+
+.details-summary-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.details-summary-card div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.details-summary-card span {
+  color: #3f5578;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.details-summary-card strong {
+  overflow: hidden;
+  color: #08245a;
+  font-size: 18px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .details-members-section {
   display: grid;
-  gap: 14px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
+  gap: 18px;
+  border-top: 0;
+  padding-top: 32px;
 }
 
 .details-members-section h3 {
   margin: 0;
   color: #08245a;
-  font-size: 18px;
+  font-size: 22px;
+  line-height: 1.15;
 }
 
-.modal-panel:has(.details-members-section),
+.details-add-member-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.details-member-list {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.details-member-list .member-native-card {
+  min-height: 82px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 24px;
+}
+
+.details-member-list .member-native-card + .member-native-card {
+  border-top: 1px solid var(--border);
+}
+
+.member-menu-button,
+.member-menu-spacer {
+  justify-self: end;
+  width: 38px;
+  height: 38px;
+}
+
+.member-menu-button svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.4;
+}
+
+.group-details-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 34px -40px 0;
+  border-top: 1px solid var(--border);
+  padding: 24px 40px 28px;
+}
+
+.group-details-danger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.group-details-footer .secondary-button,
+.group-details-footer .primary-button,
+.group-details-footer .danger-button {
+  min-height: 52px;
+  padding-inline: 24px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.group-details-footer .danger-button {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #f1c5c0;
+}
+
+.group-details-footer .danger-button:not(:disabled):hover,
+.group-details-footer .danger-button:not(:disabled):focus-visible {
+  border-color: var(--danger);
+  background: #fff1ef;
+}
+
+.modal-panel:has(.details-members-section) {
+  width: min(100%, 960px);
+}
+
 .draw-modal-panel {
   width: min(100%, 620px);
 }
@@ -4606,6 +4843,61 @@ hr {
   .profile-notification-icon {
     width: 40px;
     height: 40px;
+  }
+
+  .group-details-dialog {
+    padding: 24px 20px 0;
+  }
+
+  .group-details-dialog-header h2 {
+    font-size: 26px;
+  }
+
+  .details-image-section .group-image.large {
+    width: 112px;
+    height: 112px;
+    font-size: 36px;
+  }
+
+  .details-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .details-summary-card {
+    min-height: 74px;
+  }
+
+  .details-member-list .member-native-card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    min-height: 76px;
+    padding: 12px 14px;
+  }
+
+  .group-details-footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    margin: 28px -20px 0;
+    padding: 18px 20px 22px;
+  }
+
+  .group-details-footer .button-row.end,
+  .group-details-danger-actions {
+    width: 100%;
+  }
+
+  .group-details-footer .button-row.end {
+    justify-content: stretch;
+  }
+
+  .group-details-footer .secondary-button,
+  .group-details-footer .primary-button,
+  .group-details-footer .danger-button {
+    flex: 1;
+    justify-content: center;
+    min-height: 48px;
+    padding-inline: 14px;
+    font-size: 16px;
   }
 }
 

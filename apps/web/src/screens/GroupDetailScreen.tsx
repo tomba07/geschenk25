@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronRight, Gift, Lightbulb, Mail, Pencil, Plus, Trash2, VenetianMask } from 'lucide-react';
+import { Calendar, Camera, ChevronRight, Gift, Lightbulb, Mail, MoreVertical, Pencil, Plus, Trash2, User, Users, VenetianMask } from 'lucide-react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -229,6 +229,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setEditingImage(group?.image_url || null);
     setGroupNameInput(group?.name || '');
     setDetailsOpen(true);
+  };
+
+  const closeDetails = () => {
+    setEditingImage(group?.image_url || null);
+    setGroupNameInput(group?.name || '');
+    setDetailsOpen(false);
   };
 
   const openAssignmentChat = (chat: AssignmentChat) => {
@@ -1013,10 +1019,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
 
       {detailsOpen && (
         <div className="modal-backdrop">
-          <div className="modal-panel">
-            <header>
+          <div className="modal-panel group-details-dialog">
+            <header className="group-details-dialog-header">
               <h2>Group Details</h2>
-              <button type="button" className="icon-button" onClick={() => setDetailsOpen(false)} aria-label="Close">×</button>
+              <button type="button" className="icon-button" onClick={closeDetails} aria-label="Close">×</button>
             </header>
 
             <section className="details-image-section">
@@ -1024,87 +1030,97 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 {editingImage ? <img src={editingImage} alt="" /> : <span>{getInitials(group.name)}</span>}
               </div>
               {isOwner && (
-                <div className="button-row">
+                <div className="button-row details-image-actions">
                   <label className="secondary-button file-button">
-                    Change
+                    <Camera className="button-inline-icon" aria-hidden="true" />
+                    Change photo
                     <input type="file" accept="image/*" onChange={handleImageChange} />
                   </label>
                   <button
-                    className="secondary-button"
+                    className="link-button danger-text details-remove-photo-button"
                     type="button"
                     onClick={() => saveGroupImage(undefined)}
                     disabled={busy}
                   >
-                    Remove
+                    <Trash2 className="button-inline-icon" aria-hidden="true" />
+                    Remove photo
                   </button>
                 </div>
               )}
             </section>
 
-            <dl className="details-list">
-              <div>
-                <dt>Name</dt>
-                <dd>
-                  {isOwner ? (
-                    <form className="details-name-form" onSubmit={handleSaveGroupName}>
-                      <input
-                        value={groupNameInput}
-                        onChange={(event) => setGroupNameInput(event.target.value)}
-                        disabled={busy}
-                        required
-                      />
-                      <button
-                        className="secondary-button compact"
-                        type="submit"
-                        disabled={busy || !groupNameInput.trim() || groupNameInput.trim() === group.name}
-                      >
-                        Save
-                      </button>
-                    </form>
-                  ) : (
-                    group.name
-                  )}
-                </dd>
+            <section className="details-name-section">
+              <div className="details-name-field">
+                <label htmlFor="details-group-name">Group name</label>
+                {isOwner ? (
+                  <form className="details-name-form" id="details-name-form" onSubmit={handleSaveGroupName}>
+                    <input
+                      id="details-group-name"
+                      value={groupNameInput}
+                      onChange={(event) => setGroupNameInput(event.target.value)}
+                      disabled={busy}
+                      required
+                    />
+                  </form>
+                ) : (
+                  <strong>{group.name}</strong>
+                )}
               </div>
-              {group.description && (
-                <div>
-                  <dt>Description</dt>
-                  <dd>{group.description}</dd>
-                </div>
-              )}
-              <div>
-                <dt>Created</dt>
-                <dd>{new Date(group.created_at).toLocaleDateString()}</dd>
+            </section>
+
+            <section className="details-summary-section">
+              <h3>Details</h3>
+              <div className="details-summary-grid">
+                <article className="details-summary-card">
+                  <span className="details-summary-icon">
+                    <Calendar aria-hidden="true" />
+                  </span>
+                  <div>
+                    <span>Created</span>
+                    <strong>{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                  </div>
+                </article>
+                <article className="details-summary-card">
+                  <span className="details-summary-icon">
+                    <Users aria-hidden="true" />
+                  </span>
+                  <div>
+                    <span>Members</span>
+                    <strong>{members.length}</strong>
+                  </div>
+                </article>
+                {group.owner && (
+                  <article className="details-summary-card">
+                    <span className="details-summary-icon">
+                      <User aria-hidden="true" />
+                    </span>
+                    <div>
+                      <span>Owner</span>
+                      <strong>@{group.owner.username}</strong>
+                    </div>
+                  </article>
+                )}
               </div>
-              <div>
-                <dt>Members</dt>
-                <dd>{members.length}</dd>
-              </div>
-              {group.owner && (
-                <div>
-                  <dt>Owner</dt>
-                  <dd>@{group.owner.username}</dd>
-                </div>
-              )}
-            </dl>
+            </section>
 
             <section className="details-members-section">
               <div className="native-section-header">
                 <h3>Members</h3>
                 {isOwner && !assignmentsLocked && (
                   <button
-                    className="primary-button compact pill-action"
+                    className="secondary-button details-add-member-button"
                     type="button"
                     onClick={() => {
                       setDetailsOpen(false);
                       setInviteOpen(true);
                     }}
                   >
-                    + Add
+                    <Plus className="button-inline-icon" aria-hidden="true" />
+                    Add member
                   </button>
                 )}
               </div>
-              <div className="native-list">
+              <div className="native-list details-member-list">
                 {members.map((member) => (
                   <article className="native-card member-native-card" key={member.id}>
                     <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
@@ -1114,26 +1130,43 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     {member.id === group.created_by ? (
                       <span className="owner-badge">Owner</span>
                     ) : isOwner && !assignmentsLocked && member.id !== userId ? (
-                      <button className="link-button danger-text" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
-                        Remove
+                      <button className="icon-button member-menu-button" type="button" onClick={() => handleRemoveMember(member.id, member.username)} aria-label={`Remove @${member.username}`}>
+                        <MoreVertical aria-hidden="true" />
                       </button>
                     ) : (
-                      <span aria-hidden="true" />
+                      <span className="member-menu-spacer" aria-hidden="true" />
                     )}
                   </article>
                 ))}
               </div>
             </section>
 
-            <div className="button-row">
-              {isOwner && assignment && (
-                <button className="secondary-button" type="button" onClick={handleDeleteAssignments} disabled={busy}>
-                  Reset Draw
+            <div className="group-details-footer">
+              <div className="group-details-danger-actions">
+                {isOwner && assignment && (
+                  <button className="secondary-button" type="button" onClick={handleDeleteAssignments} disabled={busy}>
+                    Reset Draw
+                  </button>
+                )}
+                <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
+                  {isOwner ? 'Delete Group' : 'Leave Group'}
                 </button>
-              )}
-              <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
-                {isOwner ? 'Delete Group' : 'Leave Group'}
-              </button>
+              </div>
+              <div className="button-row end">
+                <button className="secondary-button" type="button" onClick={closeDetails}>
+                  Cancel
+                </button>
+                {isOwner && (
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    form="details-name-form"
+                    disabled={busy || !groupNameInput.trim() || groupNameInput.trim() === group.name}
+                  >
+                    Save changes
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
