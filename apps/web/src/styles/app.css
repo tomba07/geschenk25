@@ -4396,6 +4396,7 @@ select:focus {
   inset: 0;
   opacity: 0;
   cursor: inherit;
+  pointer-events: none;
 }
 
 .file-button:has(input:disabled) {
