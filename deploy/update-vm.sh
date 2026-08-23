@@ -4,10 +4,14 @@ set -euo pipefail
 VM_HOST="${VM_HOST:-root@165.227.2.163}"
 APP_DIR="${APP_DIR:-/opt/apps/geschenk25}"
 KNOWN_HOSTS_FILE="${KNOWN_HOSTS_FILE:-}"
+DEPLOY_LOCK_WAIT_SECONDS="${DEPLOY_LOCK_WAIT_SECONDS:-300}"
+DEPLOY_LOCK_POLL_SECONDS=5
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_CMD=(ssh)
 RSYNC_SSH=(ssh)
+LOCK_DIR="$APP_DIR/.deploy.lock"
+LOCK_ACQUIRED=false
 
 if [[ -n "$KNOWN_HOSTS_FILE" ]]; then
   SSH_CMD+=(-o "UserKnownHostsFile=$KNOWN_HOSTS_FILE")
@@ -17,6 +21,28 @@ fi
 echo "Deploying Geschenk to $VM_HOST"
 
 "${SSH_CMD[@]}" "$VM_HOST" "mkdir -p '$APP_DIR'"
+
+cleanup_lock() {
+  if [[ "$LOCK_ACQUIRED" == true ]]; then
+    "${SSH_CMD[@]}" "$VM_HOST" "rmdir '$LOCK_DIR' >/dev/null 2>&1 || true"
+  fi
+}
+trap cleanup_lock EXIT
+
+for elapsed in $(seq 0 "$DEPLOY_LOCK_POLL_SECONDS" "$DEPLOY_LOCK_WAIT_SECONDS"); do
+  if "${SSH_CMD[@]}" "$VM_HOST" "mkdir '$LOCK_DIR' 2>/dev/null"; then
+    LOCK_ACQUIRED=true
+    break
+  fi
+
+  if [[ "$elapsed" -ge "$DEPLOY_LOCK_WAIT_SECONDS" ]]; then
+    echo "Timed out waiting for another Geschenk deploy to finish." >&2
+    exit 1
+  fi
+
+  echo "Another Geschenk deploy is running; waiting..."
+  sleep "$DEPLOY_LOCK_POLL_SECONDS"
+done
 
 rsync -az --delete \
   --exclude .git \
