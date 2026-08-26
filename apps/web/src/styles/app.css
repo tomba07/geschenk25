@@ -2102,17 +2102,15 @@ select:focus {
   border-top: 1px solid var(--border);
 }
 
-.member-menu-button,
-.member-menu-spacer {
+.member-remove-button,
+.member-remove-spacer {
   justify-self: end;
-  width: 38px;
-  height: 38px;
+  min-width: 70px;
+  text-align: right;
 }
 
-.member-menu-button svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 2.4;
+.member-remove-button {
+  font-weight: 800;
 }
 
 .group-details-footer {

@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, Camera, ChevronRight, Gift, Lightbulb, Mail, MoreVertical, Pencil, Plus, Trash2, User, Users, VenetianMask } from 'lucide-react';
+import { Calendar, Camera, ChevronRight, Gift, Lightbulb, Mail, Pencil, Plus, Trash2, User, Users, VenetianMask } from 'lucide-react';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { Friend, apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -1130,11 +1130,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     {member.id === group.created_by ? (
                       <span className="owner-badge">Owner</span>
                     ) : isOwner && !assignmentsLocked && member.id !== userId ? (
-                      <button className="icon-button member-menu-button" type="button" onClick={() => handleRemoveMember(member.id, member.username)} aria-label={`Remove @${member.username}`}>
-                        <MoreVertical aria-hidden="true" />
+                      <button className="link-button danger-text member-remove-button" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
+                        Remove
                       </button>
                     ) : (
-                      <span className="member-menu-spacer" aria-hidden="true" />
+                      <span className="member-remove-spacer" aria-hidden="true" />
                     )}
                   </article>
                 ))}
