@@ -69,3 +69,16 @@ From the repository root:
 ```
 
 The live API is available behind Caddy at `https://geschenk.mteschke.com/api/*`.
+
+### Notification Email Batching
+
+Secret Santa chat emails are batched by default so quick message bursts do not send one email per message.
+
+Useful production knobs:
+
+```env
+EMAIL_BATCH_DELAY_MINUTES=10
+EMAIL_BATCH_MAX_WAIT_MINUTES=30
+EMAIL_BATCH_PROCESS_INTERVAL_MS=60000
+DISABLE_EMAIL_BATCHING=false
+```

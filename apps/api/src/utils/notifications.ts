@@ -26,7 +26,12 @@ const resendApiKey = process.env.RESEND_API_KEY;
 const emailFrom = process.env.EMAIL_FROM;
 const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
 const emailBatchingDisabled = process.env.DISABLE_EMAIL_BATCHING === 'true';
-const defaultEmailBatchDelayMinutes = Number(process.env.EMAIL_BATCH_DELAY_MINUTES || '10');
+const defaultEmailBatchDelayMinutes = parsePositiveNumber(process.env.EMAIL_BATCH_DELAY_MINUTES, 10);
+const maxEmailBatchWaitMinutes = Math.max(
+  defaultEmailBatchDelayMinutes,
+  parsePositiveNumber(process.env.EMAIL_BATCH_MAX_WAIT_MINUTES, 30)
+);
+const pendingEmailProcessorLockKey = 25001987;
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || (emailFrom ? `mailto:${emailFrom}` : undefined);
@@ -52,10 +57,17 @@ export function getPushNotificationConfig() {
 }
 
 export async function sendNotificationToUser(userId: number, payload: NotificationPayload) {
-  await Promise.allSettled([
+  const results = await Promise.allSettled([
     sendEmailNotification(userId, payload),
     sendPushNotificationToUser(userId, payload),
   ]);
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const channel = index === 0 ? 'email' : 'push';
+      console.error(`Failed to send ${channel} notification to user ${userId}:`, result.reason);
+    }
+  });
 }
 
 export async function queueEmailNotification(input: QueuedEmailNotificationInput) {
@@ -67,6 +79,7 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
   const delayMinutes = Number.isFinite(input.delayMinutes)
     ? input.delayMinutes!
     : defaultEmailBatchDelayMinutes;
+  const clampedDelayMinutes = Math.max(0, delayMinutes);
 
   await pool.query(
     `INSERT INTO pending_email_notifications (
@@ -100,7 +113,10 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
        email_text = EXCLUDED.email_text,
        email_action_label = EXCLUDED.email_action_label,
        last_event_at = CURRENT_TIMESTAMP,
-       send_after = EXCLUDED.send_after,
+       send_after = LEAST(
+         pending_email_notifications.first_event_at + ($12 || ' minutes')::interval,
+         EXCLUDED.send_after
+       ),
        updated_at = CURRENT_TIMESTAMP`,
     [
       input.userId,
@@ -113,7 +129,8 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
       input.payload.emailSubject || input.payload.title,
       input.payload.emailText || input.payload.body,
       input.payload.emailActionLabel || null,
-      Math.max(0, delayMinutes),
+      clampedDelayMinutes,
+      maxEmailBatchWaitMinutes,
     ]
   );
 }
@@ -132,41 +149,60 @@ export async function cancelPendingAssignmentChatEmail(userId: number, assignmen
 export async function processPendingEmailNotifications(limit = 25) {
   if (emailBatchingDisabled) return;
 
-  const dueResult = await pool.query(
-    `SELECT id, user_id, count, title, body, url, email_subject, email_text, email_action_label
-     FROM pending_email_notifications
-     WHERE sent_at IS NULL AND send_after <= CURRENT_TIMESTAMP
-     ORDER BY send_after ASC
-     LIMIT $1`,
-    [limit]
-  );
+  const client = await pool.connect();
+  let lockAcquired = false;
 
-  for (const row of dueResult.rows) {
-    const count = Number(row.count) || 1;
-    const payload: NotificationPayload = {
-      title: row.title,
-      body: count > 1 ? `${row.body} (${count} new messages)` : row.body,
-      url: row.url,
-      emailSubject: row.email_subject,
-      emailText: row.email_text,
-      emailActionLabel: row.email_action_label,
-    };
+  try {
+    const lockResult = await client.query(
+      'SELECT pg_try_advisory_lock($1) as acquired',
+      [pendingEmailProcessorLockKey]
+    );
+    lockAcquired = Boolean(lockResult.rows[0]?.acquired);
+    if (!lockAcquired) return;
 
-    if (count > 1) {
-      payload.emailSubject = `${row.email_subject} (${count})`;
-      payload.emailText = `${row.email_text}\n\n${count} new messages were sent before this email.`;
+    const dueResult = await client.query(
+      `SELECT pen.id,
+              pen.user_id,
+              pen.count,
+              pen.type,
+              pen.title,
+              pen.body,
+              pen.url,
+              pen.email_subject,
+              pen.email_text,
+              pen.email_action_label,
+              g.name as group_name
+       FROM pending_email_notifications pen
+       JOIN groups g ON g.id = pen.group_id
+       WHERE pen.sent_at IS NULL AND pen.send_after <= CURRENT_TIMESTAMP
+       ORDER BY pen.send_after ASC
+       LIMIT $1`,
+      [limit]
+    );
+
+    for (const row of dueResult.rows) {
+      const count = Number(row.count) || 1;
+      const payload = buildQueuedEmailPayload(row, count);
+
+      try {
+        await sendEmailNotification(row.user_id, payload);
+        await client.query(
+          `UPDATE pending_email_notifications
+           SET sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND sent_at IS NULL`,
+          [row.id]
+        );
+      } catch (error) {
+        console.error(`Failed to process pending email notification ${row.id}:`, error);
+      }
     }
-
+  } finally {
     try {
-      await sendEmailNotification(row.user_id, payload);
-      await pool.query(
-        `UPDATE pending_email_notifications
-         SET sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1 AND sent_at IS NULL`,
-        [row.id]
-      );
-    } catch (error) {
-      console.error(`Failed to process pending email notification ${row.id}:`, error);
+      if (lockAcquired) {
+        await client.query('SELECT pg_advisory_unlock($1)', [pendingEmailProcessorLockKey]);
+      }
+    } finally {
+      client.release();
     }
   }
 }
@@ -234,8 +270,55 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
 
   if (!response.ok) {
     const body = await response.text();
-    console.error(`Failed to send notification email to user ${userId}: ${body}`);
+    throw new Error(`Failed to send notification email to user ${userId}: ${body}`);
   }
+}
+
+function buildQueuedEmailPayload(row: any, count: number): NotificationPayload {
+  if (row.type === 'assignment_chat_message') {
+    return buildAssignmentChatEmailPayload(row, count);
+  }
+
+  return {
+    title: row.title,
+    body: row.body,
+    url: row.url,
+    emailSubject: row.email_subject,
+    emailText: row.email_text,
+    emailActionLabel: row.email_action_label,
+  };
+}
+
+function buildAssignmentChatEmailPayload(row: any, count: number): NotificationPayload {
+  if (count <= 1) {
+    return {
+      title: row.title,
+      body: row.body,
+      url: row.url,
+      emailSubject: row.email_subject,
+      emailText: row.email_text,
+      emailActionLabel: row.email_action_label,
+    };
+  }
+
+  const messageWord = count === 1 ? 'message' : 'messages';
+  const groupLabel = row.group_name ? `"${row.group_name}"` : 'your gift exchange';
+  const summary = `You have ${count} new Secret Santa ${messageWord} in ${groupLabel}.`;
+
+  return {
+    title: `${count} new Secret Santa ${messageWord}`,
+    body: summary,
+    url: row.url,
+    emailSubject: `${count} new Secret Santa ${messageWord}`,
+    emailText: `${summary}\n\nOpen Geschenk to read the conversation.`,
+    emailActionLabel: row.email_action_label || 'Open chat',
+  };
+}
+
+function parsePositiveNumber(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 function isDeliverableNotificationEmail(email: string) {
