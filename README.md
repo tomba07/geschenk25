@@ -125,6 +125,14 @@ Build both:
 npm run build:all
 ```
 
+Run the Playwright smoke tests:
+
+```bash
+npm run e2e
+```
+
+The smoke tests start the local API/web stack, run migrations, seed dev accounts, and use `dev.alex@geschenk.test` with the local default password. To test against an already-running app, set `PLAYWRIGHT_SKIP_WEBSERVER=true` and optionally override `PLAYWRIGHT_BASE_URL` / `PLAYWRIGHT_API_URL`.
+
 ## Deployment
 
 The live app runs on the shared VM at `https://geschenk.mteschke.com`.

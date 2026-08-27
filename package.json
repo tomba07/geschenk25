@@ -26,6 +26,13 @@
     "cleanup:api": "npm run cleanup --workspace @geschenk/api",
     "reset-profile:api": "npm run reset-profile --workspace @geschenk/api --",
     "seed-dev-accounts:api": "npm run seed-dev-accounts --workspace @geschenk/api",
-    "link-dev-accounts:api": "npm run link-dev-accounts --workspace @geschenk/api --"
+    "link-dev-accounts:api": "npm run link-dev-accounts --workspace @geschenk/api --",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
+    "e2e:server": "npm run build:api && npm run migrate:api && npm run seed-dev-accounts:api && sh -c '(curl -fsS http://127.0.0.1:3000/health >/dev/null 2>&1 || npm run dev:api) & npm run dev:local-api --workspace @geschenk/web -- --host 127.0.0.1 --port ${PLAYWRIGHT_WEB_PORT:-5178} --strictPort'"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }
