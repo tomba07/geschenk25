@@ -35,6 +35,7 @@ test.describe('Geschenk smoke tests', () => {
     await expect(sampleGroupCard(page)).toBeVisible();
     await expect(page.getByRole('button', { name: /New Group/ }).first()).toBeVisible();
     await expect(page.locator('.overview-featured-group')).toContainText(newestGroup.name);
+    await expect(page.locator('.overview-featured-group')).toHaveCSS('background-image', /linear-gradient/);
     await expect(page.locator('.overview-group-status')).toHaveCount(groups.length);
     expect(groups.every((group) => typeof group.assignments_created === 'boolean')).toBeTruthy();
 
@@ -51,6 +52,7 @@ test.describe('Geschenk smoke tests', () => {
     await expect(page.getByRole('button', { name: 'Back to groups' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Open group details/ })).toContainText('Dev Gift Exchange');
     await expect(page.getByRole('heading', { name: 'Assignment' })).toBeVisible();
+    await expect(page.locator('.assignments-section')).toHaveCSS('background-image', /linear-gradient/);
     await expect(page.getByRole('heading', { name: 'My Gift Ideas' })).toBeVisible();
     await expect(page.locator('.members-section').getByRole('heading', { name: /Members \(/ })).toBeVisible();
     await expect(page.locator('.members-section .pending-member-row').first()).toBeVisible();
@@ -90,6 +92,7 @@ test.describe('Geschenk smoke tests', () => {
       await expect(page.getByRole('heading', { name: 'Members (3)' })).toBeVisible();
       await expect(page.getByText('Organizer / You')).toBeVisible();
       await expect(page.locator('.pending-member-row')).toHaveCount(3);
+      await expect(page.locator('.pending-info-panel')).toHaveCSS('background-image', /linear-gradient/);
       const assignmentPanelBox = await page.locator('.assignments-section').boundingBox();
       const membersPanelBox = await page.locator('.members-section').boundingBox();
       const ideasPanelBox = await page.locator('.ideas-section').boundingBox();

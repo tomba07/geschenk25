@@ -100,6 +100,9 @@
   --card-bg-muted: var(--color-surface-subtle);
   --card-border: var(--color-border);
   --card-radius: var(--radius-md);
+  --highlight-gradient: linear-gradient(115deg, #eaf3ff 0%, #f5f9ff 66%, #fffaf0 100%);
+  --highlight-gradient-hover: linear-gradient(115deg, #e2efff 0%, #f0f6ff 66%, #fff7e8 100%);
+  --highlight-gradient-active: linear-gradient(115deg, #dceaff 0%, #ebf3ff 66%, #fff3de 100%);
 
   /* Layout */
   --layout-overview-max: 960px;
@@ -2468,7 +2471,7 @@ select:focus {
 
 .assignments-section {
   border-color: #b9d4f6;
-  background: #f1f7ff;
+  background: var(--highlight-gradient);
 }
 
 .detail-section h2,
@@ -3187,7 +3190,7 @@ select:focus {
   align-content: start;
   gap: 14px;
   border-color: #c9dbf2;
-  background: #f7faff;
+  background: var(--highlight-gradient);
 }
 
 .pending-info-panel h2,
@@ -4395,7 +4398,7 @@ select:focus {
   overflow: hidden;
   border: 1px solid #aacdf9;
   border-radius: 8px;
-  background: #edf5ff;
+  background: var(--highlight-gradient);
   padding: 22px;
   color: #08245a;
   text-align: left;
@@ -4410,12 +4413,12 @@ select:focus {
 .overview-featured-group:not(:disabled):hover,
 .overview-featured-group:not(:disabled):focus-visible {
   border-color: var(--color-interaction-border);
-  background: #e7f1ff;
+  background: var(--highlight-gradient-hover);
   box-shadow: var(--shadow-md);
 }
 
 .overview-featured-group:not(:disabled):active {
-  background: #dfedff;
+  background: var(--highlight-gradient-active);
   box-shadow: var(--shadow-sm);
   transform: translateY(1px);
 }
@@ -5341,7 +5344,7 @@ hr {
 
   .assignments-section {
     border-color: #b9d4f6;
-    background: #f1f7ff;
+    background: var(--highlight-gradient);
   }
 
   .ideas-section {
