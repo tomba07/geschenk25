@@ -146,7 +146,12 @@ test.describe('Geschenk smoke tests', () => {
       const dialogAddButton = dialog.locator('header').getByRole('button', { name: 'Add Idea' });
       await expect(dialogAddButton).toBeVisible();
       await expect(dialogAddButton).toHaveCSS('display', 'flex');
+      await expect(dialog.locator('.idea-native-card .lucide-lightbulb').first()).toBeVisible();
       await expect(dialog.locator('.idea-native-card')).toHaveCount(Math.max(existingOwnedIdeaCount, 5));
+      const firstTwoIconColors = await dialog.locator('.idea-card-icon').evaluateAll((icons) => (
+        icons.slice(0, 2).map((icon) => getComputedStyle(icon).backgroundColor)
+      ));
+      expect(firstTwoIconColors[0]).not.toBe(firstTwoIconColors[1]);
 
       await page.setViewportSize({ width: 390, height: 844 });
       await expect(dialog).toBeVisible();

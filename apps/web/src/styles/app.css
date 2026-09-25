@@ -3792,16 +3792,6 @@ select:focus {
   overscroll-behavior: contain;
 }
 
-.gift-ideas-dialog-list.own-gift-ideas-list .idea-native-card:nth-child(3n + 2) .idea-card-icon.gift {
-  background: #def8ed;
-  color: #11825b;
-}
-
-.gift-ideas-dialog-list.own-gift-ideas-list .idea-native-card:nth-child(3n) .idea-card-icon.gift {
-  background: #efe9ff;
-  color: #5d48bf;
-}
-
 .member-native-card {
   min-height: 76px;
   display: grid;
@@ -3891,12 +3881,17 @@ select:focus {
   color: var(--primary);
 }
 
-.ideas-section .native-list .idea-native-card:nth-child(3n + 2) .idea-card-icon.gift {
+.idea-list .idea-native-card:nth-child(3n + 1) .idea-card-icon {
+  background: #e9f2ff;
+  color: var(--primary);
+}
+
+.idea-list .idea-native-card:nth-child(3n + 2) .idea-card-icon {
   background: #def8ed;
   color: #11825b;
 }
 
-.ideas-section .native-list .idea-native-card:nth-child(3n) .idea-card-icon.gift {
+.idea-list .idea-native-card:nth-child(3n) .idea-card-icon {
   background: #efe9ff;
   color: #5d48bf;
 }

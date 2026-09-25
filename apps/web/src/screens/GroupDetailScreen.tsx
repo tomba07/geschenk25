@@ -650,8 +650,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <div className="native-list idea-list assignment-idea-list">
                     {assignedPersonIdeaPreview.map((idea) => (
                       <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
-                        <span className="idea-card-icon bulb">
-                          <Lightbulb className="detail-inline-icon" aria-hidden="true" />
+                        <span className="idea-card-icon gift">
+                          <Gift className="detail-inline-icon" aria-hidden="true" />
                         </span>
                         <div className="idea-card-content">
                           <strong>{idea.idea}</strong>
@@ -809,8 +809,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <div className="native-list idea-list">
               {ownIdeaPreview.map((idea) => (
                 <article className="native-card idea-native-card" key={idea.id}>
-                  <span className="idea-card-icon gift">
-                    <Gift className="detail-inline-icon" aria-hidden="true" />
+                  <span className="idea-card-icon bulb">
+                    <Lightbulb className="detail-inline-icon" aria-hidden="true" />
                   </span>
                   <div className="idea-card-content">
                     <strong>{idea.idea}</strong>
@@ -895,11 +895,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <div className={`native-list idea-list gift-ideas-dialog-list ${giftIdeasDialog === 'mine' ? 'own-gift-ideas-list' : ''}`}>
               {(giftIdeasDialog === 'assigned' ? assignedPersonGiftIdeas : giftIdeas).map((idea) => (
                 <article className="native-card idea-native-card" key={idea.id}>
-                  <span className={`idea-card-icon ${giftIdeasDialog === 'assigned' ? 'bulb' : 'gift'}`}>
+                  <span className={`idea-card-icon ${giftIdeasDialog === 'assigned' ? 'gift' : 'bulb'}`}>
                     {giftIdeasDialog === 'assigned' ? (
-                      <Lightbulb className="detail-inline-icon" aria-hidden="true" />
-                    ) : (
                       <Gift className="detail-inline-icon" aria-hidden="true" />
+                    ) : (
+                      <Lightbulb className="detail-inline-icon" aria-hidden="true" />
                     )}
                   </span>
                   <div className="idea-card-content">
