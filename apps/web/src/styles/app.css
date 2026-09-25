@@ -8,8 +8,11 @@
   /* Base */
   --color-bg: #eef5ff;
   --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
   --color-surface-muted: #f2f6fc;
+  --color-surface-subtle: #f8fbff;
   --color-border: #d8e4f5;
+  --color-border-strong: #b8cfec;
 
   /* Text */
   --color-text: #08245a;
@@ -37,6 +40,7 @@
   --color-danger: #c9362c;
   --color-info: #376b8c;
   --color-focus: #1559b7;
+  --color-focus-ring: rgb(21 89 183 / 0.18);
 
   /* Typography */
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -77,8 +81,14 @@
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgb(8 36 90 / 0.06);
-  --shadow-md: 0 6px 18px rgb(8 36 90 / 0.10);
-  --shadow-lg: 0 18px 40px rgb(8 36 90 / 0.16);
+  --shadow-md: 0 8px 24px rgb(8 36 90 / 0.10);
+  --shadow-lg: 0 24px 60px rgb(8 36 90 / 0.16);
+
+  /* Surfaces */
+  --card-bg: var(--color-surface-raised);
+  --card-bg-muted: var(--color-surface-subtle);
+  --card-border: var(--color-border);
+  --card-radius: var(--radius-md);
 
   /* Layout */
   --layout-overview-max: 960px;
@@ -900,7 +910,7 @@ select {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   color: var(--color-text);
   font-size: 16px;
   line-height: 1.35;
@@ -916,14 +926,14 @@ input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--color-focus);
-  box-shadow: 0 0 0 3px rgb(194 138 44 / 0.18);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .primary-button,
 .secondary-button,
 .danger-button {
   min-height: 44px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: 0 16px;
   font-weight: var(--font-semibold);
@@ -943,7 +953,7 @@ select:focus {
 .primary-button:not(:disabled):hover,
 .primary-button:not(:disabled):focus-visible {
   background: var(--primary-hover);
-  box-shadow: 0 6px 16px rgb(21 89 183 / 0.16);
+  box-shadow: var(--shadow-sm);
 }
 
 .secondary-button {
@@ -954,9 +964,9 @@ select:focus {
 
 .secondary-button:not(:disabled):hover,
 .secondary-button:not(:disabled):focus-visible {
-  border-color: #b8cfec;
-  background: #f7fbff;
-  color: #08245a;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
   box-shadow: var(--shadow-sm);
 }
 
@@ -990,7 +1000,7 @@ select:focus {
 
 .link-button:not(:disabled):hover,
 .link-button:not(:disabled):focus-visible {
-  background: #eef5ff;
+  background: var(--color-surface-muted);
   color: var(--color-evergreen-hover);
 }
 
@@ -1242,7 +1252,7 @@ select:focus {
 
 .app-frame-main > .app-loading-screen {
   min-height: 100%;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .app-loading-card {
@@ -1250,9 +1260,9 @@ select:focus {
   height: 96px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1275,10 +1285,11 @@ select:focus {
   width: min(100%, 420px);
   max-height: min(760px, 92vh);
   overflow: auto;
-  background: #fff;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  background: var(--color-surface-raised);
   padding: 20px;
-  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirm-backdrop {
@@ -1290,10 +1301,10 @@ select:focus {
   display: grid;
   gap: 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: #fff;
+  border-radius: var(--card-radius);
+  background: var(--color-surface-raised);
   padding: 22px;
-  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirm-dialog h2,
@@ -1302,21 +1313,21 @@ select:focus {
 }
 
 .confirm-dialog h2 {
-  color: #08245a;
+  color: var(--color-text);
   font-size: 22px;
   line-height: 1.15;
 }
 
 .confirm-dialog p {
-  color: #3f5578;
+  color: var(--color-text-muted);
   font-size: 16px;
   line-height: 1.45;
 }
 
 .confirm-dialog .secondary-button:not(:disabled):hover,
 .confirm-dialog .secondary-button:not(:disabled):focus-visible {
-  border-color: #a9c5e8;
-  background: #eef5ff;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-muted);
 }
 
 .confirm-dialog .danger-button:not(:disabled):hover,
@@ -1437,14 +1448,14 @@ select:focus {
   display: grid;
   gap: 12px;
   padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg-muted);
 }
 
 .invite-link-panel summary {
   cursor: pointer;
-  color: #08245a;
+  color: var(--color-text);
   font-weight: 800;
 }
 
@@ -1468,7 +1479,7 @@ select:focus {
 }
 
 .friend-picker-panel h3 {
-  color: #08245a;
+  color: var(--color-text);
   font-size: 18px;
 }
 
@@ -1487,7 +1498,7 @@ select:focus {
 
 .friend-picker-search input {
   min-height: 42px;
-  background: #fbfdff;
+  background: var(--color-surface-subtle);
   padding: 0 12px;
 }
 
@@ -1505,11 +1516,11 @@ select:focus {
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 9px 12px;
-  color: #08245a;
+  color: var(--color-text);
   font-weight: 600;
   transition:
     background-color 140ms ease,
@@ -1519,19 +1530,19 @@ select:focus {
 
 .friend-picker-option:not(.disabled):hover,
 .friend-picker-option:not(.disabled):focus-within {
-  border-color: #b8cfec;
-  background: #f7fbff;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
   box-shadow: var(--shadow-sm);
 }
 
 .friend-picker-option.selected {
-  border-color: #1559b7;
-  background: #eef6ff;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 
 .friend-picker-option.disabled {
   color: var(--muted);
-  background: #f8fbff;
+  background: var(--card-bg-muted);
 }
 
 .friend-picker-option > div:not(.small-avatar) {
@@ -1586,14 +1597,14 @@ select:focus {
 }
 
 .create-step-copy span {
-  color: #1559b7;
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 800;
 }
 
 .create-step-copy p {
   margin: 0;
-  color: #3f5578;
+  color: var(--color-text-muted);
 }
 
 .create-friend-list {
@@ -1607,11 +1618,11 @@ select:focus {
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 9px 12px;
-  color: #08245a;
+  color: var(--color-text);
   text-align: left;
   transition:
     background-color 140ms ease,
@@ -1621,14 +1632,14 @@ select:focus {
 
 .create-friend-option:not(:disabled):hover,
 .create-friend-option:not(:disabled):focus-visible {
-  border-color: #b8cfec;
-  background: #f7fbff;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
   box-shadow: var(--shadow-sm);
 }
 
 .create-friend-option.selected {
-  border-color: #1559b7;
-  background: #eef6ff;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 
 .create-friend-option strong {
@@ -1647,9 +1658,9 @@ select:focus {
 
 .create-empty-friends {
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   padding: 16px;
-  background: #f8fbff;
+  background: var(--card-bg-muted);
 }
 
 .modal-panel {
@@ -1678,7 +1689,7 @@ select:focus {
 .menu-popover > button {
   min-height: 44px;
   border: 0;
-  background: #fff;
+  background: var(--color-surface-raised);
   border-top: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-align: left;
@@ -1690,8 +1701,8 @@ select:focus {
 
 .menu-popover > button:not(:disabled):hover,
 .menu-popover > button:not(:disabled):focus-visible {
-  background: #eef5ff;
-  color: #08245a;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 .profile-summary {
@@ -1839,7 +1850,7 @@ select:focus {
 .selectable {
   width: 100%;
   border: 0;
-  background: #fff;
+  background: var(--color-surface-raised);
   text-align: left;
 }
 
@@ -1938,10 +1949,10 @@ select:focus {
   display: flex;
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--card-radius);
+  background: var(--color-surface-raised);
   padding: 0 18px;
-  color: #08245a;
+  color: var(--color-text);
   font-size: 20px;
 }
 
@@ -1977,8 +1988,8 @@ select:focus {
   min-width: 0;
   min-height: 58px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--card-radius);
+  background: var(--color-surface-raised);
   padding: 0 20px;
   color: var(--color-text);
   font-size: 22px;
@@ -1986,7 +1997,7 @@ select:focus {
 }
 
 .details-name-form input:focus {
-  outline: 2px solid rgba(11, 107, 203, 0.18);
+  outline: 2px solid var(--color-focus-ring);
   border-color: var(--primary);
 }
 
@@ -2016,9 +2027,9 @@ select:focus {
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 16px 18px;
 }
 
@@ -2028,7 +2039,7 @@ select:focus {
   display: inline-grid;
   place-items: center;
   border-radius: 50%;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
   color: #3f5578;
 }
 
@@ -2085,9 +2096,9 @@ select:focus {
 .details-member-list {
   gap: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
 }
 
 .details-member-list .member-native-card {
@@ -2139,7 +2150,7 @@ select:focus {
 }
 
 .group-details-footer .danger-button {
-  background: #fff;
+  background: var(--color-surface-raised);
   color: var(--danger);
   border: 1px solid #f1c5c0;
 }
@@ -2161,9 +2172,9 @@ select:focus {
 .draw-dialog-intro {
   display: grid;
   gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg-muted);
   padding: 14px;
 }
 
@@ -2474,7 +2485,7 @@ select:focus {
 }
 
 .profile-screen {
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .profile-layout {
@@ -2496,7 +2507,7 @@ select:focus {
 }
 
 .profile-page-heading h1 {
-  color: #08245a;
+  color: var(--color-text);
   font-size: 36px;
   line-height: 1.05;
   font-weight: 800;
@@ -2504,14 +2515,14 @@ select:focus {
 
 .profile-page-heading p {
   margin-top: 8px;
-  color: #3f5578;
+  color: var(--color-text-muted);
   font-size: 16px;
 }
 
 .profile-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 24px;
   box-shadow: var(--shadow-sm);
 }
@@ -2551,7 +2562,7 @@ select:focus {
 }
 
 .profile-summary-copy h2 {
-  color: #08245a;
+  color: var(--color-text);
   font-size: 26px;
   line-height: 1.15;
 }
@@ -2599,7 +2610,7 @@ select:focus {
 
 .profile-section-title h2,
 .profile-danger-card h2 {
-  color: #08245a;
+  color: var(--color-text);
   font-size: 22px;
   line-height: 1.15;
   font-weight: 800;
@@ -2609,7 +2620,7 @@ select:focus {
   display: grid;
   gap: 5px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   background: var(--surface);
   padding: 14px;
 }
@@ -2625,8 +2636,8 @@ select:focus {
   min-width: 0;
   min-height: 48px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--card-radius);
+  background: var(--color-surface-raised);
   padding: 10px 14px;
   color: var(--color-text);
   font-size: 16px;
@@ -2634,7 +2645,7 @@ select:focus {
 }
 
 .profile-edit-field input:focus {
-  outline: 2px solid rgba(11, 107, 203, 0.18);
+  outline: 2px solid var(--color-focus-ring);
   border-color: var(--primary);
 }
 
@@ -2806,7 +2817,7 @@ select:focus {
   align-items: center;
   gap: 10px;
   flex: 0 0 auto;
-  background: #fff;
+  background: var(--color-surface-raised);
   color: var(--danger);
   border: 1px solid #f1c5c0;
 }
@@ -2833,9 +2844,9 @@ select:focus {
 }
 
 .native-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -2846,7 +2857,7 @@ select:focus {
   justify-items: center;
   gap: 16px;
   padding: 28px;
-  background: var(--color-surface-muted);
+  background: var(--card-bg-muted);
   text-align: center;
 }
 
@@ -2857,7 +2868,7 @@ select:focus {
   justify-items: center;
   gap: 14px;
   padding: 24px;
-  background: var(--color-surface-muted);
+  background: var(--card-bg-muted);
   text-align: center;
 }
 
@@ -2882,7 +2893,7 @@ select:focus {
 }
 
 .gift-ideas-empty-card {
-  background: #fff;
+  background: var(--card-bg);
 }
 
 .assignment-state-copy {
@@ -3168,9 +3179,9 @@ select:focus {
   flex-direction: column;
   gap: 10px;
   overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: #f8fbff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg-muted);
   padding: 12px;
 }
 
@@ -3179,9 +3190,9 @@ select:focus {
   max-width: min(82%, 340px);
   display: grid;
   gap: 4px;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 9px 11px;
   box-shadow: var(--shadow-sm);
 }
@@ -3277,9 +3288,9 @@ select:focus {
 .idea-list {
   gap: 0;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -3494,13 +3505,13 @@ select:focus {
   min-width: 0;
   overscroll-behavior: none;
   overflow: auto;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
   -webkit-overflow-scrolling: touch;
 }
 
 .overview-screen {
   min-height: 100%;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .app-sidebar {
@@ -3651,7 +3662,7 @@ select:focus {
 
 .overview-main {
   min-width: 0;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .mobile-overview-bar {
@@ -3660,17 +3671,17 @@ select:focus {
   align-items: center;
   gap: 12px;
   padding: max(8px, env(safe-area-inset-top)) 16px 8px;
-  border-bottom: 1px solid #d8e4f5;
-  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
 }
 
 .mobile-menu-button {
   width: 38px;
   height: 38px;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  background: #fff;
-  color: #08245a;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
   font-size: 20px;
   transition:
     background-color 140ms ease,
@@ -3765,7 +3776,7 @@ select:focus {
   justify-content: space-between;
   gap: 24px;
   padding: 24px 0 14px;
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .overview-page-header h1,
@@ -3819,13 +3830,13 @@ select:focus {
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 12px 14px;
   color: inherit;
   text-align: left;
-  box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .overview-unread-badge {
@@ -3849,8 +3860,8 @@ select:focus {
 
 .overview-group-card:not(:disabled):hover,
 .overview-group-card:not(:disabled):focus-visible {
-  border-color: #b7ceee;
-  box-shadow: 0 6px 16px rgba(21, 89, 183, 0.08);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .overview-card-chevron {
@@ -3964,11 +3975,11 @@ select:focus {
 .friends-invite-card {
   display: grid;
   gap: 16px;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 18px;
-  box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .friends-invite-card h2,
@@ -4062,10 +4073,10 @@ select:focus {
 .friends-grouped-list {
   gap: 0;
   overflow: hidden;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .friends-grouped-list .friend-card {
@@ -4075,7 +4086,7 @@ select:focus {
 }
 
 .friends-grouped-list .friend-card + .friend-card {
-  border-top: 1px solid #d8e4f5;
+  border-top: 1px solid var(--card-border);
 }
 
 .friend-card {
@@ -4166,9 +4177,9 @@ select:focus {
   align-content: center;
   justify-items: center;
   gap: 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 32px;
   text-align: center;
 }
@@ -4222,7 +4233,7 @@ select:focus {
 }
 
 .dev-admin-screen {
-  background: #f8fbff;
+  background: var(--color-surface-subtle);
 }
 
 .dev-admin-content {
@@ -4233,11 +4244,11 @@ select:focus {
 .dev-admin-panel {
   display: grid;
   gap: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   padding: 18px;
-  box-shadow: 0 1px 2px rgba(18, 33, 48, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .dev-panel-heading,
@@ -4275,8 +4286,8 @@ select:focus {
   gap: 8px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--card-radius);
+  background: var(--card-bg-muted);
   padding: 10px;
 }
 
