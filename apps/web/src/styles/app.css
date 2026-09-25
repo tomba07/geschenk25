@@ -2480,6 +2480,14 @@ select:focus {
   grid-area: ideas;
 }
 
+.members-section {
+  grid-area: members;
+}
+
+.pending-info-panel {
+  grid-area: info;
+}
+
 .detail-section h2,
 .assignment-panel-heading h3 {
   margin: 0;
@@ -2500,6 +2508,14 @@ select:focus {
     "messages"
     "ideas";
   gap: 22px;
+}
+
+.detail-layout.pending {
+  grid-template-areas:
+    "assignment"
+    "members"
+    "ideas"
+    "info";
 }
 
 .detail-main {
@@ -3035,53 +3051,170 @@ select:focus {
   padding: 4px 0 14px;
 }
 
-.assignment-empty-card {
-  min-height: 176px;
-}
-
-.assignment-empty-card {
-  border-color: #b9d4f6;
-  background: #f1f7ff;
-}
-
-.assignments-section .assignment-empty-card {
-  min-height: 0;
+.assignment-pending-card {
+  position: relative;
+  min-height: 230px;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
   justify-items: start;
-  align-content: start;
-  gap: 18px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 6px 0 0;
-  text-align: left;
+  gap: 20px;
+  padding: 20px 18px;
 }
 
-.assignments-section .assignment-empty-card .empty-card-icon {
-  width: 72px;
-  height: 72px;
-  margin: 12px 0 2px;
-  border-radius: 50%;
-  background: var(--color-gold-soft);
-  color: #d98b17;
-}
-
-.assignments-section .assignment-empty-card .empty-card-icon .detail-inline-icon {
-  width: 42px;
-  height: 42px;
-}
-
-.assignments-section .assignment-empty-card .assignment-state-copy {
-  justify-items: start;
+.assignment-pending-copy {
+  position: relative;
+  z-index: 1;
   max-width: 520px;
-  border-top: 1px solid #cfe0f6;
-  padding-top: 18px;
-  text-align: left;
+  display: grid;
+  gap: 10px;
 }
 
-.assignments-section .assignment-empty-card .primary-button {
+.assignment-pending-copy h2,
+.assignment-pending-copy p {
+  margin: 0;
+}
+
+.assignment-pending-copy h2 {
+  color: var(--color-text);
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.assignment-pending-copy p {
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.assignment-pending-eyebrow,
+.pending-info-panel h2 {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.assignment-pending-gift {
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  width: 130px;
+  height: 130px;
+  color: var(--primary);
+  opacity: 0.08;
+  transform: translateY(-50%) rotate(-8deg);
+}
+
+.assignment-pending-gift .detail-inline-icon {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.25;
+}
+
+.assignment-pending-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+}
+
+.assignment-pending-actions .primary-button {
   min-height: 42px;
-  margin-top: 0;
   padding-inline: 18px;
+}
+
+.pending-members-heading {
+  display: grid;
+  gap: 7px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+}
+
+.pending-members-heading h2,
+.pending-members-heading p {
+  margin: 0;
+}
+
+.pending-members-heading h2 span {
+  color: var(--color-text-soft);
+  font-weight: 600;
+}
+
+.pending-members-heading p,
+.pending-info-panel p {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.pending-members-list {
+  display: grid;
+}
+
+.pending-member-row {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.pending-member-row + .pending-member-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.pending-member-row .small-avatar {
+  width: 48px;
+  height: 48px;
+  background: var(--color-brand-soft);
+  color: var(--primary);
+  font-size: 18px;
+}
+
+.pending-member-row:nth-child(3n + 2) .small-avatar {
+  background: #e5f4e3;
+  color: #2f7d55;
+}
+
+.pending-member-row:nth-child(3n) .small-avatar {
+  background: #eee8ff;
+  color: #5d48bf;
+}
+
+.pending-member-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pending-member-copy strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 17px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-member-copy small {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.pending-info-panel {
+  align-content: start;
+  gap: 14px;
+  border-color: #c9dbf2;
+  background: #f7faff;
+}
+
+.pending-info-panel h2,
+.pending-info-panel p {
+  margin: 0;
 }
 
 .gift-ideas-empty-card {
@@ -3117,10 +3250,6 @@ select:focus {
   color: var(--color-text-muted);
   font-size: 15px;
   line-height: 1.4;
-}
-
-.assignment-empty-card .primary-button {
-  margin-top: 2px;
 }
 
 .assignment-person-row {
@@ -5000,7 +5129,6 @@ hr {
     padding: 8px 0 18px;
   }
 
-  .assignment-empty-card,
   .gift-ideas-empty-card {
     min-height: 320px;
     padding: 42px;
@@ -5224,6 +5352,12 @@ hr {
     gap: 28px;
   }
 
+  .detail-layout.pending {
+    grid-template-areas:
+      "assignment ideas"
+      "members info";
+  }
+
   .assignments-section {
     align-self: start;
   }
@@ -5233,7 +5367,9 @@ hr {
   }
 
   .assignment-chat-panel,
-  .ideas-section {
+  .ideas-section,
+  .members-section,
+  .pending-info-panel {
     align-self: start;
   }
 
@@ -5411,8 +5547,26 @@ hr {
     padding-left: 0;
   }
 
-  .assignment-empty-card .primary-button {
+  .assignment-pending-actions,
+  .assignment-pending-actions .primary-button {
     width: 100%;
+  }
+
+  .assignment-pending-gift {
+    display: none;
+  }
+
+  .assignment-pending-card {
+    min-height: 0;
+    padding: 4px 0;
+  }
+
+  .assignment-pending-copy h2 {
+    font-size: 24px;
+  }
+
+  .assignment-pending-copy p {
+    font-size: 15px;
   }
 
   .overview-page-header,

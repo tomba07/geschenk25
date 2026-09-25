@@ -38,6 +38,57 @@ test.describe('Geschenk smoke tests', () => {
     await expect(page.getByRole('heading', { name: 'My Gift Ideas' })).toBeVisible();
   });
 
+  test('shows the pending draw dashboard to owners and members', async ({ page, request, browser }) => {
+    const ownerSession = await signInAsDevUser(page, request);
+    const ownerHeaders = { Authorization: `Bearer ${ownerSession.token}` };
+    const groupsResponse = await request.get(`${API_URL}/api/groups`, { headers: ownerHeaders });
+    const { groups } = await groupsResponse.json() as { groups: Array<{ id: number; name: string }> };
+    const sampleGroup = groups.find((group) => group.name === 'Dev Gift Exchange');
+    expect(sampleGroup).toBeTruthy();
+
+    const sampleGroupResponse = await request.get(`${API_URL}/api/groups/${sampleGroup!.id}`, { headers: ownerHeaders });
+    const { group: sampleGroupDetails } = await sampleGroupResponse.json() as {
+      group: { members: Array<{ id: number; username: string }> };
+    };
+    const invitedMembers = sampleGroupDetails.members.filter((member) => member.username !== DEV_ACCOUNT.username).slice(0, 2);
+    expect(invitedMembers).toHaveLength(2);
+
+    const groupName = `Pending Draw ${Date.now()}`;
+    const createResponse = await request.post(`${API_URL}/api/groups`, {
+      headers: ownerHeaders,
+      data: {
+        name: groupName,
+        member_ids: invitedMembers.map((member) => member.id),
+      },
+    });
+    expect(createResponse.ok()).toBeTruthy();
+    const { group: pendingGroup } = await createResponse.json() as { group: { id: number } };
+    let memberPage: Page | null = null;
+
+    try {
+      await page.goto('/');
+      await page.getByRole('button', { name: new RegExp(groupName) }).click();
+      await expect(page.getByRole('heading', { name: 'Ready to draw names' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Members (3)' })).toBeVisible();
+      await expect(page.getByText('Organizer / You')).toBeVisible();
+      await expect(page.locator('.pending-member-row')).toHaveCount(3);
+
+      const memberSession = await waitForDevSession(request, 'dev.bailey@geschenk.test');
+      memberPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      await installSession(memberPage, memberSession);
+      await memberPage.goto('/');
+      await memberPage.getByRole('button', { name: new RegExp(groupName) }).click();
+      await expect(memberPage.getByRole('heading', { name: 'Waiting for the name draw' })).toBeVisible();
+      await expect(memberPage.getByRole('heading', { name: 'Members (3)' })).toBeVisible();
+      await expect(memberPage.getByText('Member / You')).toBeVisible();
+      await expect(memberPage.getByRole('heading', { name: 'How it works' })).toBeVisible();
+      expect(await memberPage.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    } finally {
+      await memberPage?.close();
+      await request.delete(`${API_URL}/api/groups/${pendingGroup.id}`, { headers: ownerHeaders });
+    }
+  });
+
   test('keeps long gift idea lists compact and opens the full list in a dialog', async ({ page, request }) => {
     const session = await signInAsDevUser(page, request);
     const headers = { Authorization: `Bearer ${session.token}` };
@@ -115,19 +166,23 @@ function sampleGroupCard(page: Page) {
 async function signInAsDevUser(page: Page, request: APIRequestContext) {
   const session = await waitForDevSession(request);
 
-  await page.addInitScript(({ token, user }) => {
-    window.localStorage.setItem('geschenk.auth_token', token);
-    window.localStorage.setItem('geschenk.auth_user', JSON.stringify(user));
-    window.localStorage.setItem('geschenk.install_hint_dismissed', 'true');
-    window.localStorage.setItem('geschenk.push_hint_dismissed', 'true');
-  }, session);
+  await installSession(page, session);
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Groups' })).toBeVisible();
   return session;
 }
 
-async function waitForDevSession(request: APIRequestContext) {
+async function installSession(page: Page, session: Awaited<ReturnType<typeof waitForDevSession>>) {
+  await page.addInitScript(({ token, user }) => {
+    window.localStorage.setItem('geschenk.auth_token', token);
+    window.localStorage.setItem('geschenk.auth_user', JSON.stringify(user));
+    window.localStorage.setItem('geschenk.install_hint_dismissed', 'true');
+    window.localStorage.setItem('geschenk.push_hint_dismissed', 'true');
+  }, session);
+}
+
+async function waitForDevSession(request: APIRequestContext, email = DEV_ACCOUNT.email) {
   const deadline = Date.now() + 30_000;
   let lastError = '';
 
@@ -135,7 +190,7 @@ async function waitForDevSession(request: APIRequestContext) {
     try {
       const response = await request.post(`${API_URL}/api/auth/login`, {
         data: {
-          email: DEV_ACCOUNT.email,
+          email,
           password: DEV_ACCOUNT.password,
         },
       });
@@ -161,5 +216,5 @@ async function waitForDevSession(request: APIRequestContext) {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
 
-  throw new Error(`Could not log in as ${DEV_ACCOUNT.email}. Is the local API running and seeded? ${lastError}`);
+  throw new Error(`Could not log in as ${email}. Is the local API running and seeded? ${lastError}`);
 }

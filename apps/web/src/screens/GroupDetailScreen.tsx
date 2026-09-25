@@ -594,11 +594,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <span className="detail-action-spacer" />
       </header>
 
-      <div className="detail-layout">
+      <div className={`detail-layout ${assignment ? 'assigned' : 'pending'}`}>
         <section className="detail-section assignments-section detail-panel">
-          <h2>Assignment</h2>
           {assignment ? (
             <>
+              <h2>Assignment</h2>
               <article className="native-card assignment-result-card">
                 <div className="assignment-person-row">
                   <div className="small-avatar">
@@ -666,37 +666,71 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </div>
             </>
           ) : (
-            <article className="native-card empty-card assignment-empty-card">
-              <span className="empty-card-icon svg-icon gift-empty-icon">
-                <Gift className="detail-inline-icon" aria-hidden="true" />
-              </span>
-              <div className="assignment-state-copy">
-                <h3>
+            <article className="assignment-pending-card">
+              <div className="assignment-pending-copy">
+                <span className="assignment-pending-eyebrow">Name draw pending</span>
+                <h2>
                   {members.length < 3
                     ? 'Add more members'
                     : isOwner
                       ? 'Ready to draw names'
-                      : 'Waiting for names'}
-                </h3>
+                      : 'Waiting for the name draw'}
+                </h2>
                 <p>
                   {members.length < 3
-                    ? 'Secret Santa needs at least three members.'
+                    ? isOwner
+                      ? 'Add at least three members before drawing names.'
+                      : 'This group needs at least three members before the organizer can draw names.'
                     : isOwner
-                      ? 'Draw names when the member list looks right.'
-                      : 'The group owner can draw names when everything is ready.'}
+                      ? 'Draw names when everyone has joined and the member list looks right.'
+                      : 'The organizer will draw names when everyone has joined. You can add gift ideas while you wait.'}
                 </p>
               </div>
-              {isOwner && members.length < 3 && !assignmentsLocked && (
-                <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
-                  + Add
-                </button>
-              )}
-              {canDrawAssignments && (
-                <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
+              <span className="assignment-pending-gift" aria-hidden="true">
+                <Gift className="detail-inline-icon" />
+              </span>
+              {isOwner && !assignmentsLocked && (
+                <div className="assignment-pending-actions">
+                  {members.length < 3 ? (
+                    <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
+                      <Plus className="button-inline-icon" aria-hidden="true" />
+                      Add Members
+                    </button>
+                  ) : (
+                    <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
+                  )}
+                </div>
               )}
             </article>
           )}
         </section>
+
+        {!assignment && (
+          <section className="detail-section members-section detail-panel">
+            <div className="pending-members-heading">
+              <h2>Members <span>({members.length})</span></h2>
+              <p>These are the people currently in this group.</p>
+            </div>
+            <div className="pending-members-list">
+              {members.map((member) => {
+                const memberLabels = [member.id === group.created_by ? 'Organizer' : 'Member'];
+                if (member.id === userId) memberLabels.push('You');
+
+                return (
+                  <article className="pending-member-row" key={member.id}>
+                    <div className="small-avatar">
+                      {member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <div className="pending-member-copy">
+                      <strong>@{member.username}</strong>
+                      <small>{memberLabels.join(' / ')}</small>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {assignmentChats.length > 0 && (
           <section className="detail-section assignment-chat-panel detail-panel">
@@ -757,7 +791,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </span>
               <div className="assignment-state-copy">
                 <h3>No gift ideas yet</h3>
-                <p>Add ideas for your group members.</p>
+                <p>Add ideas for yourself or other group members.</p>
               </div>
               <button className="secondary-button empty-card-action" type="button" onClick={openGiftIdeaModal}>
                 <Plus className="button-inline-icon" aria-hidden="true" />
@@ -807,6 +841,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </div>
           )}
         </section>
+
+        {!assignment && (
+          <section className="detail-section pending-info-panel detail-panel">
+            <h2>How it works</h2>
+            <p>
+              {isOwner
+                ? "When everyone has joined, draw names to reveal each member's recipient. Pairing rules can be added before the draw."
+                : 'After the draw, your recipient and their gift ideas will appear here. Until then, add ideas to help the person who draws your name.'}
+            </p>
+          </section>
+        )}
       </div>
 
       {giftIdeasDialog && (
