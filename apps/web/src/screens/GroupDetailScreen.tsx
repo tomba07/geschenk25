@@ -875,17 +875,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     : `${giftIdeas.length} ${giftIdeas.length === 1 ? 'idea' : 'ideas'} you've shared with this group.`}
                 </p>
               </div>
-              <button type="button" className="icon-button" onClick={() => setGiftIdeasDialog(null)} aria-label="Close">×</button>
-            </header>
-
-            {giftIdeasDialog === 'mine' && (
-              <div className="gift-ideas-dialog-actions">
-                <button className="primary-button compact" type="button" onClick={openGiftIdeaModal}>
+              {giftIdeasDialog === 'mine' && (
+                <button className="primary-button compact gift-ideas-dialog-add" type="button" onClick={openGiftIdeaModal}>
                   <Plus className="button-inline-icon" aria-hidden="true" />
                   Add Idea
                 </button>
-              </div>
-            )}
+              )}
+              <button type="button" className="icon-button" onClick={() => setGiftIdeasDialog(null)} aria-label="Close">×</button>
+            </header>
 
             <div className={`native-list idea-list gift-ideas-dialog-list ${giftIdeasDialog === 'mine' ? 'own-gift-ideas-list' : ''}`}>
               {(giftIdeasDialog === 'assigned' ? assignedPersonGiftIdeas : giftIdeas).map((idea) => (

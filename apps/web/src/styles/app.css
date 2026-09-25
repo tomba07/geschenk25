@@ -3755,23 +3755,24 @@ select:focus {
   width: min(100%, 680px);
   max-height: min(760px, 92vh);
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   overflow: hidden;
 }
 
-.gift-ideas-dialog-assigned {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.gift-ideas-dialog-mine {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
 .gift-ideas-dialog > header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 16px;
+}
+
+.gift-ideas-dialog-mine > header {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.gift-ideas-dialog-add {
+  align-self: center;
 }
 
 .gift-ideas-dialog h2,
@@ -3790,11 +3791,6 @@ select:focus {
   color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.35;
-}
-
-.gift-ideas-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .gift-ideas-dialog-list {
@@ -5403,6 +5399,21 @@ hr {
     height: calc(100dvh - 24px);
     max-height: none;
     padding: 18px;
+  }
+
+  .gift-ideas-dialog-mine > header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .gift-ideas-dialog-add {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .gift-ideas-dialog-mine > header > .icon-button {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .overview-screen:not(.friends-screen) .overview-page-header,
