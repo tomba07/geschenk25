@@ -2457,8 +2457,19 @@ select:focus {
   margin: 0;
 }
 
+.detail-panel {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
 .assignments-section {
   grid-area: assignment;
+  border-color: #b9d4f6;
+  background: #f1f7ff;
 }
 
 .assignment-chat-panel {
@@ -2974,6 +2985,14 @@ select:focus {
   padding: 22px 24px;
 }
 
+.assignments-section .assignment-result-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 6px 0 18px;
+}
+
 .assignment-empty-card {
   min-height: 176px;
 }
@@ -2983,8 +3002,21 @@ select:focus {
   background: #f1f7ff;
 }
 
+.assignments-section .assignment-empty-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .gift-ideas-empty-card {
   background: var(--card-bg);
+}
+
+.ideas-section .gift-ideas-empty-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 20px 0 8px;
 }
 
 .assignment-state-copy {
@@ -3101,6 +3133,8 @@ select:focus {
 .assignment-ideas-block {
   display: grid;
   gap: 16px;
+  border-top: 1px solid #cfe0f6;
+  padding-top: 18px;
 }
 
 .assignment-panel-heading {
@@ -3148,7 +3182,9 @@ select:focus {
 
 .assignment-chat-card-list {
   display: grid;
-  gap: 14px;
+  gap: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
 }
 
 .assignment-chat-card {
@@ -3169,6 +3205,18 @@ select:focus {
     border-color 140ms ease,
     box-shadow 140ms ease,
     transform 140ms ease;
+}
+
+.detail-panel .assignment-chat-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-inline: 0;
+}
+
+.detail-panel .assignment-chat-card + .assignment-chat-card {
+  border-top: 1px solid var(--border);
 }
 
 .assignment-chat-card:not(:disabled):hover,
@@ -3435,6 +3483,17 @@ select:focus {
   border-radius: var(--card-radius);
   background: var(--card-bg);
   box-shadow: var(--shadow-sm);
+}
+
+.detail-panel .idea-list {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.detail-panel .idea-list .idea-native-card {
+  padding-inline: 0;
 }
 
 .member-native-card {
@@ -4730,18 +4789,21 @@ hr {
 
   .assignments-section,
   .ideas-section {
-    border: 0;
-    background: transparent;
-    padding: 0;
+    padding: 20px;
   }
 
-  .assignments-section .native-card,
-  .ideas-section .native-card {
-    box-shadow: var(--shadow-sm);
+  .assignments-section {
+    border-color: #b9d4f6;
+    background: #f1f7ff;
   }
 
-  .ideas-section .idea-list .idea-native-card,
-  .assigned-ideas-panel .idea-list .idea-native-card {
+  .ideas-section {
+    border-color: var(--card-border);
+    background: var(--card-bg);
+  }
+
+  .detail-panel .native-card,
+  .ideas-section .idea-list .idea-native-card {
     box-shadow: none;
   }
 
@@ -5141,6 +5203,16 @@ hr {
 }
 
 @media (max-width: 430px) {
+  .assignment-panel-heading {
+    display: grid;
+    gap: 10px;
+  }
+
+  .assignment-inline-message-button {
+    justify-self: start;
+    padding-left: 0;
+  }
+
   .assignment-empty-card .primary-button {
     width: 100%;
   }
