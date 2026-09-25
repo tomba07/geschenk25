@@ -53,6 +53,8 @@ export interface GroupDto {
   created_by: number;
   member_count?: number;
   assignments_created?: boolean;
+  assignments_created_at?: string | null;
+  assignment_receiver_username?: string | null;
   unread_message_count?: number;
   members?: GroupMemberDto[];
   owner?: GroupOwnerDto;

@@ -20,11 +20,27 @@ test.describe('Geschenk smoke tests', () => {
   });
 
   test('logs in with a seeded dev account and shows the sample group', async ({ page, request }) => {
-    await signInAsDevUser(page, request);
+    const session = await signInAsDevUser(page, request);
+    const groupsResponse = await request.get(`${API_URL}/api/groups`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+    });
+    const { groups } = await groupsResponse.json() as {
+      groups: Array<{ name: string; created_at: string; assignments_created: boolean }>;
+    };
+    const newestGroup = [...groups].sort((left, right) => (
+      new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+    ))[0];
 
-    await expect(page.getByRole('heading', { name: 'Groups' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Your gift exchanges' })).toBeVisible();
     await expect(sampleGroupCard(page)).toBeVisible();
     await expect(page.getByRole('button', { name: /New Group/ }).first()).toBeVisible();
+    await expect(page.locator('.overview-featured-group')).toContainText(newestGroup.name);
+    await expect(page.locator('.overview-group-status')).toHaveCount(groups.length);
+    expect(groups.every((group) => typeof group.assignments_created === 'boolean')).toBeTruthy();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator('.overview-featured-action')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   });
 
   test('opens the seeded group detail screen', async ({ page, request }) => {
@@ -193,7 +209,7 @@ async function signInAsDevUser(page: Page, request: APIRequestContext) {
   await installSession(page, session);
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Groups' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your gift exchanges' })).toBeVisible();
   return session;
 }
 

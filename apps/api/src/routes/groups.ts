@@ -221,6 +221,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const result = await pool.query(
       `SELECT DISTINCT g.id, g.name, g.description, g.image_url, g.created_at, g.created_by,
               (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count,
+              EXISTS(SELECT 1 FROM assignments WHERE group_id = g.id) as assignments_created,
+              (SELECT MIN(created_at) FROM assignments WHERE group_id = g.id) as assignments_created_at,
+              (SELECT receiver.username
+                 FROM assignments current_assignment
+                 JOIN users receiver ON receiver.id = current_assignment.receiver_id
+                WHERE current_assignment.group_id = g.id AND current_assignment.giver_id = $1
+                LIMIT 1) as assignment_receiver_username,
               ${unreadMessagesSql('g')} as unread_message_count
        FROM groups g
        LEFT JOIN group_members gm ON g.id = gm.group_id AND (gm.status IS NULL OR gm.status = 'active')

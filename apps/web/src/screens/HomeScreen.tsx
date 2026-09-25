@@ -1,5 +1,5 @@
-import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
-import { ChevronRight, Plus } from 'lucide-react';
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Check, ChevronRight, Clock3, Plus, Sparkles } from 'lucide-react';
 import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
@@ -39,6 +39,17 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const sortedGroups = useMemo(
+    () => [...groups].sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()),
+    [groups]
+  );
+  const featuredGroup = sortedGroups[0];
+  const remainingGroups = sortedGroups.slice(1);
+
+  const formatGroupDate = (date: string) => (
+    new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  );
 
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,8 +104,8 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
       <div className="overview-main">
         <header className="overview-page-header">
           <div>
-            <h1>Groups</h1>
-            <p>Create, manage, and join your gift exchange groups.</p>
+            <h1>Your gift exchanges</h1>
+            <p>See what&apos;s happening with your groups.</p>
           </div>
           <button className="primary-button overview-header-action" type="button" onClick={openCreateModal}>
             <Plus className="button-inline-icon" aria-hidden="true" />
@@ -105,8 +116,17 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         <div className="overview-content">
         {loading ? (
           <section className="overview-groups-section overview-loading-section">
+            <div className="overview-section-label skeleton-line short" />
+            <article className="overview-featured-group overview-featured-skeleton">
+              <span className="skeleton-avatar overview-skeleton-avatar" />
+              <span className="skeleton-stack">
+                <span className="skeleton-line wide" />
+                <span className="skeleton-line" />
+                <span className="skeleton-line short" />
+              </span>
+            </article>
             <div className="overview-group-grid">
-              {Array.from({ length: 6 }).map((_, index) => (
+              {Array.from({ length: 4 }).map((_, index) => (
                 <article className="overview-group-card overview-skeleton-card" key={index}>
                   <span className="skeleton-avatar overview-skeleton-avatar" />
                   <span className="skeleton-stack">
@@ -129,8 +149,71 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           </div>
         ) : (
           <section className="overview-groups-section">
-            <div className="overview-group-grid">
-              {groups.map((group) => {
+            <div className="overview-featured-section">
+              <span className="overview-section-label">Up next</span>
+              <button
+                className="overview-featured-group"
+                type="button"
+                onClick={() => onGroupPress(String(featuredGroup.id))}
+              >
+                {(featuredGroup.unread_message_count || 0) > 0 && (
+                  <span className="overview-unread-badge" aria-label={`${featuredGroup.unread_message_count} unread messages`}>
+                    {(featuredGroup.unread_message_count || 0) > 9 ? '9+' : featuredGroup.unread_message_count}
+                  </span>
+                )}
+                <div className="overview-featured-summary">
+                  <div className="group-image">
+                    {featuredGroup.image_url ? <img src={featuredGroup.image_url} alt="" /> : <span>{getInitials(featuredGroup.name)}</span>}
+                  </div>
+                  <div>
+                    <h2>{featuredGroup.name}</h2>
+                    <p>
+                      {featuredGroup.member_count != null
+                        ? `${featuredGroup.member_count} ${featuredGroup.member_count === 1 ? 'member' : 'members'}`
+                        : 'Members'}
+                      {' · '}
+                      {featuredGroup.assignments_created && featuredGroup.assignments_created_at
+                        ? `Names drawn ${formatGroupDate(featuredGroup.assignments_created_at)}`
+                        : `Created ${formatGroupDate(featuredGroup.created_at)}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="overview-featured-copy">
+                  <span className={`overview-group-status ${featuredGroup.assignments_created ? 'drawn' : 'pending'}`}>
+                    {featuredGroup.assignments_created ? <Check aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
+                    {featuredGroup.assignments_created ? 'Names drawn' : 'Waiting for name draw'}
+                  </span>
+                  <strong>
+                    {featuredGroup.assignment_receiver_username
+                      ? `You're buying for @${featuredGroup.assignment_receiver_username}`
+                      : featuredGroup.assignments_created
+                        ? 'Your assignment is ready'
+                        : 'This exchange is getting ready'}
+                  </strong>
+                  <p>
+                    {featuredGroup.assignments_created
+                      ? 'Take a look at their gift ideas.'
+                      : 'Open the group to check the members and add gift ideas.'}
+                  </p>
+                </div>
+                <span className="overview-featured-decoration" aria-hidden="true">
+                  <Sparkles />
+                </span>
+                <span className="primary-button overview-featured-action">
+                  {featuredGroup.assignments_created ? 'Explore group' : 'Open group'}
+                  <ArrowRight className="button-inline-icon" aria-hidden="true" />
+                </span>
+              </button>
+            </div>
+
+            {remainingGroups.length > 0 && (
+              <div className="overview-all-groups">
+                <div className="overview-all-groups-heading">
+                  <h2>All groups</h2>
+                  <span>{remainingGroups.length} more</span>
+                </div>
+                <div className="overview-group-grid">
+              {remainingGroups.map((group) => {
                 const memberCount = group.member_count ?? group.members?.length;
                 const unreadMessageCount = group.unread_message_count || 0;
                 return (
@@ -146,14 +229,20 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                       {group.description && <p>{group.description}</p>}
                       <div className="overview-group-meta">
                         <span>{memberCount != null ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'}` : 'Members'}</span>
-                        <span>{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        <span>Created {formatGroupDate(group.created_at)}</span>
                       </div>
+                      <span className={`overview-group-status ${group.assignments_created ? 'drawn' : 'pending'}`}>
+                        {group.assignments_created ? <Check aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
+                        {group.assignments_created ? 'Names drawn' : 'Waiting for name draw'}
+                      </span>
                     </div>
                     <ChevronRight className="overview-card-chevron" aria-hidden="true" />
                   </button>
                 );
               })}
             </div>
+              </div>
+            )}
           </section>
         )}
         </div>
