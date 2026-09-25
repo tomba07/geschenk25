@@ -150,7 +150,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
         ) : (
           <section className="overview-groups-section">
             <div className="overview-featured-section">
-              <span className="overview-section-label">Up next</span>
+              <span className="overview-section-label">Latest</span>
               <button
                 className="overview-featured-group"
                 type="button"
