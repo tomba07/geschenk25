@@ -3747,10 +3747,25 @@ select:focus {
 
 .gift-ideas-dialog-mine > header {
   grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
 }
 
 .gift-ideas-dialog-add {
   align-self: center;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-inline: 11px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.gift-ideas-dialog-add .button-inline-icon {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.25;
 }
 
 .gift-ideas-dialog h2,

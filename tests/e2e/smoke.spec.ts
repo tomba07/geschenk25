@@ -143,7 +143,9 @@ test.describe('Geschenk smoke tests', () => {
       await viewMoreButton.click();
       const dialog = page.getByRole('dialog', { name: 'My Gift Ideas' });
       await expect(dialog).toBeVisible();
-      await expect(dialog.locator('header').getByRole('button', { name: 'Add Idea' })).toBeVisible();
+      const dialogAddButton = dialog.locator('header').getByRole('button', { name: 'Add Idea' });
+      await expect(dialogAddButton).toBeVisible();
+      await expect(dialogAddButton).toHaveCSS('display', 'flex');
       await expect(dialog.locator('.idea-native-card')).toHaveCount(Math.max(existingOwnedIdeaCount, 5));
 
       await page.setViewportSize({ width: 390, height: 844 });
