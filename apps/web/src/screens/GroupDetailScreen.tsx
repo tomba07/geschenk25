@@ -710,8 +710,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           )}
           </section>
 
-          {!assignment && (
-            <section className="detail-section members-section detail-panel">
+          <section className="detail-section members-section detail-panel">
             <div className="pending-members-heading">
               <h2>Members <span>({members.length})</span></h2>
               <p>These are the people currently in this group.</p>
@@ -734,8 +733,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 );
               })}
             </div>
-            </section>
-          )}
+          </section>
         </div>
 
         <div className="detail-column detail-secondary-column">

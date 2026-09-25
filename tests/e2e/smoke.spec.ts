@@ -36,6 +36,8 @@ test.describe('Geschenk smoke tests', () => {
     await expect(page.getByRole('button', { name: /Open group details/ })).toContainText('Dev Gift Exchange');
     await expect(page.getByRole('heading', { name: 'Assignment' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'My Gift Ideas' })).toBeVisible();
+    await expect(page.locator('.members-section').getByRole('heading', { name: /Members \(/ })).toBeVisible();
+    await expect(page.locator('.members-section .pending-member-row').first()).toBeVisible();
   });
 
   test('shows the pending draw dashboard to owners and members', async ({ page, request, browser }) => {
