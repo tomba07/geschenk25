@@ -3571,6 +3571,97 @@ select:focus {
   padding-inline: 0;
 }
 
+.idea-list-more-button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--primary);
+  padding: 10px 4px;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.idea-list-more-button:hover,
+.idea-list-more-button:focus-visible {
+  background: var(--color-interaction-hover);
+  color: var(--primary-hover);
+}
+
+.idea-list-more-button:active {
+  background: var(--color-interaction-active);
+}
+
+.gift-ideas-dialog {
+  width: min(100%, 680px);
+  max-height: min(760px, 92vh);
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.gift-ideas-dialog-assigned {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.gift-ideas-dialog-mine {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.gift-ideas-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gift-ideas-dialog h2,
+.gift-ideas-dialog p {
+  margin: 0;
+}
+
+.gift-ideas-dialog h2 {
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.gift-ideas-dialog header p {
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.gift-ideas-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.gift-ideas-dialog-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gift-ideas-dialog-list.own-gift-ideas-list .idea-native-card:nth-child(3n + 2) .idea-card-icon.gift {
+  background: #def8ed;
+  color: #11825b;
+}
+
+.gift-ideas-dialog-list.own-gift-ideas-list .idea-native-card:nth-child(3n) .idea-card-icon.gift {
+  background: #efe9ff;
+  color: #5d48bf;
+}
+
 .member-native-card {
   min-height: 76px;
   display: grid;
@@ -5146,6 +5237,16 @@ hr {
 }
 
 @media (max-width: 719px) {
+  .gift-ideas-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .gift-ideas-dialog {
+    height: calc(100dvh - 24px);
+    max-height: none;
+    padding: 18px;
+  }
+
   .overview-screen:not(.friends-screen) .overview-page-header,
   .profile-page-heading {
     display: none;

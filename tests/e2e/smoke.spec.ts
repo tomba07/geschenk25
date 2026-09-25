@@ -38,6 +38,58 @@ test.describe('Geschenk smoke tests', () => {
     await expect(page.getByRole('heading', { name: 'My Gift Ideas' })).toBeVisible();
   });
 
+  test('keeps long gift idea lists compact and opens the full list in a dialog', async ({ page, request }) => {
+    const session = await signInAsDevUser(page, request);
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const groupsResponse = await request.get(`${API_URL}/api/groups`, { headers });
+    expect(groupsResponse.ok()).toBeTruthy();
+    const { groups } = await groupsResponse.json() as { groups: Array<{ id: number; name: string }> };
+    const sampleGroup = groups.find((group) => group.name === 'Dev Gift Exchange');
+    expect(sampleGroup).toBeTruthy();
+
+    const ideasResponse = await request.get(`${API_URL}/api/groups/${sampleGroup!.id}/gift-ideas`, { headers });
+    expect(ideasResponse.ok()).toBeTruthy();
+    const { gift_ideas: existingIdeas } = await ideasResponse.json() as {
+      gift_ideas: Array<{ id: number; created_by_id: number }>;
+    };
+    const existingOwnedIdeaCount = existingIdeas.filter((idea) => idea.created_by_id === session.user.id).length;
+    const createdIdeaIds: number[] = [];
+
+    try {
+      for (let index = existingOwnedIdeaCount; index < 5; index += 1) {
+        const createResponse = await request.post(`${API_URL}/api/groups/${sampleGroup!.id}/gift-ideas`, {
+          headers,
+          data: {
+            for_user_id: session.user.id,
+            idea: `Playwright overflow idea ${index + 1}`,
+          },
+        });
+        expect(createResponse.ok()).toBeTruthy();
+        const createdIdea = await createResponse.json() as { gift_idea: { id: number } };
+        createdIdeaIds.push(createdIdea.gift_idea.id);
+      }
+
+      await sampleGroupCard(page).click();
+      const myIdeasPanel = page.locator('.ideas-section');
+      const viewMoreButton = myIdeasPanel.getByRole('button', { name: /View \d+ more ideas?/ });
+      await expect(viewMoreButton).toBeVisible();
+      await expect(myIdeasPanel.locator('.idea-native-card')).toHaveCount(4);
+
+      await viewMoreButton.click();
+      const dialog = page.getByRole('dialog', { name: 'My Gift Ideas' });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator('.idea-native-card')).toHaveCount(Math.max(existingOwnedIdeaCount, 5));
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Add Idea' })).toBeVisible();
+    } finally {
+      await Promise.all(createdIdeaIds.map((ideaId) => (
+        request.delete(`${API_URL}/api/groups/${sampleGroup!.id}/gift-ideas/${ideaId}`, { headers })
+      )));
+    }
+  });
+
   test('navigates core authenticated screens', async ({ page, request }) => {
     await signInAsDevUser(page, request);
 
@@ -72,6 +124,7 @@ async function signInAsDevUser(page: Page, request: APIRequestContext) {
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Groups' })).toBeVisible();
+  return session;
 }
 
 async function waitForDevSession(request: APIRequestContext) {

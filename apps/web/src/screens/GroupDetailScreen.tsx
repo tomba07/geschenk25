@@ -11,6 +11,10 @@ import { showErrorToast, showSuccessToast } from '../utils/toast';
 import { Assignment, AssignmentChat, AssignmentChatMessage, GiftIdea, Group, GroupMember } from '../types/group';
 
 type DrawExclusion = { firstUserId: number; secondUserId: number };
+type GiftIdeasDialog = 'assigned' | 'mine' | null;
+
+const ASSIGNED_IDEA_PREVIEW_LIMIT = 3;
+const OWN_IDEA_PREVIEW_LIMIT = 4;
 
 function getDrawExclusionValidationMessage(members: GroupMember[], exclusions: DrawExclusion[]) {
   if (members.length < 3 || exclusions.length === 0) return null;
@@ -79,6 +83,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
+  const [giftIdeasDialog, setGiftIdeasDialog] = useState<GiftIdeasDialog>(null);
   const [drawOpen, setDrawOpen] = useState(false);
   const [pairingRulesOpen, setPairingRulesOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -203,6 +208,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const assignmentCreatedDate = assignment?.created_at
     ? new Date(assignment.created_at).toLocaleDateString()
     : null;
+  const assignedPersonIdeaPreview = assignedPersonGiftIdeas.slice(0, ASSIGNED_IDEA_PREVIEW_LIMIT);
+  const ownIdeaPreview = giftIdeas.slice(0, OWN_IDEA_PREVIEW_LIMIT);
+  const assignedPersonRemainingIdeaCount = assignedPersonGiftIdeas.length - assignedPersonIdeaPreview.length;
+  const ownRemainingIdeaCount = giftIdeas.length - ownIdeaPreview.length;
   const usernameById = new Map(members.map((member) => [member.id, member.username]));
   const memberIds = new Set(members.map((member) => member.id));
   const drawValidationMessage = useMemo(
@@ -634,7 +643,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   <p className="empty-inline">No gift ideas shared for this person yet.</p>
                 ) : (
                   <div className="native-list idea-list assignment-idea-list">
-                    {assignedPersonGiftIdeas.map((idea) => (
+                    {assignedPersonIdeaPreview.map((idea) => (
                       <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
                         <span className="idea-card-icon bulb">
                           <Lightbulb className="detail-inline-icon" aria-hidden="true" />
@@ -646,6 +655,12 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                         </div>
                       </article>
                     ))}
+                    {assignedPersonRemainingIdeaCount > 0 && (
+                      <button className="idea-list-more-button" type="button" onClick={() => setGiftIdeasDialog('assigned')}>
+                        View {assignedPersonRemainingIdeaCount} more {assignedPersonRemainingIdeaCount === 1 ? 'idea' : 'ideas'}
+                        <ChevronRight className="button-inline-icon" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -751,7 +766,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             </article>
           ) : (
             <div className="native-list idea-list">
-              {giftIdeas.map((idea) => (
+              {ownIdeaPreview.map((idea) => (
                 <article className="native-card idea-native-card" key={idea.id}>
                   <span className="idea-card-icon gift">
                     <Gift className="detail-inline-icon" aria-hidden="true" />
@@ -783,10 +798,97 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                   </div>
                 </article>
               ))}
+              {ownRemainingIdeaCount > 0 && (
+                <button className="idea-list-more-button" type="button" onClick={() => setGiftIdeasDialog('mine')}>
+                  View {ownRemainingIdeaCount} more {ownRemainingIdeaCount === 1 ? 'idea' : 'ideas'}
+                  <ChevronRight className="button-inline-icon" aria-hidden="true" />
+                </button>
+              )}
             </div>
           )}
         </section>
       </div>
+
+      {giftIdeasDialog && (
+        <div className="modal-backdrop gift-ideas-dialog-backdrop">
+          <section
+            className={`modal-panel gift-ideas-dialog gift-ideas-dialog-${giftIdeasDialog}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gift-ideas-dialog-title"
+          >
+            <header>
+              <div>
+                <h2 id="gift-ideas-dialog-title">
+                  {giftIdeasDialog === 'assigned'
+                    ? `Gift ideas for @${assignment?.receiver_username}`
+                    : 'My Gift Ideas'}
+                </h2>
+                <p>
+                  {giftIdeasDialog === 'assigned'
+                    ? `${assignedPersonGiftIdeas.length} ${assignedPersonGiftIdeas.length === 1 ? 'idea' : 'ideas'} shared by the group.`
+                    : `${giftIdeas.length} ${giftIdeas.length === 1 ? 'idea' : 'ideas'} you've shared with this group.`}
+                </p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setGiftIdeasDialog(null)} aria-label="Close">×</button>
+            </header>
+
+            {giftIdeasDialog === 'mine' && (
+              <div className="gift-ideas-dialog-actions">
+                <button className="primary-button compact" type="button" onClick={openGiftIdeaModal}>
+                  <Plus className="button-inline-icon" aria-hidden="true" />
+                  Add Idea
+                </button>
+              </div>
+            )}
+
+            <div className={`native-list idea-list gift-ideas-dialog-list ${giftIdeasDialog === 'mine' ? 'own-gift-ideas-list' : ''}`}>
+              {(giftIdeasDialog === 'assigned' ? assignedPersonGiftIdeas : giftIdeas).map((idea) => (
+                <article className="native-card idea-native-card" key={idea.id}>
+                  <span className={`idea-card-icon ${giftIdeasDialog === 'assigned' ? 'bulb' : 'gift'}`}>
+                    {giftIdeasDialog === 'assigned' ? (
+                      <Lightbulb className="detail-inline-icon" aria-hidden="true" />
+                    ) : (
+                      <Gift className="detail-inline-icon" aria-hidden="true" />
+                    )}
+                  </span>
+                  <div className="idea-card-content">
+                    <strong>{idea.idea}</strong>
+                    {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
+                    <small>
+                      {giftIdeasDialog === 'assigned'
+                        ? `from @${idea.created_by.username}`
+                        : `for @${idea.for_user.username}`}
+                    </small>
+                  </div>
+                  {giftIdeasDialog === 'mine' && (
+                    <div className="idea-card-actions">
+                      <button
+                        className="gift-idea-action-button"
+                        type="button"
+                        onClick={() => handleEditGiftIdea(idea)}
+                        aria-label="Edit gift idea"
+                        title="Edit gift idea"
+                      >
+                        <Pencil className="gift-idea-action-icon" aria-hidden="true" />
+                      </button>
+                      <button
+                        className="gift-idea-action-button danger"
+                        type="button"
+                        onClick={() => handleDeleteGiftIdea(idea.id)}
+                        aria-label="Delete gift idea"
+                        title="Delete gift idea"
+                      >
+                        <Trash2 className="gift-idea-action-icon" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {activeAssignmentChat && (
         <div className="modal-backdrop">
