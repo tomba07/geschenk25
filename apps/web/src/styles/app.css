@@ -4508,9 +4508,35 @@ select:focus {
   grid-area: action;
   width: 100%;
   min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--color-text-inverse);
+  padding: 0 16px;
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  box-shadow: 0 7px 16px rgb(21 89 183 / 0.16);
   pointer-events: none;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.overview-featured-group:not(:disabled):hover .overview-featured-action,
+.overview-featured-group:not(:disabled):focus-visible .overview-featured-action {
+  background: var(--primary-hover);
+  box-shadow: 0 9px 20px rgb(21 89 183 / 0.22);
+}
+
+.overview-featured-group:not(:disabled):active .overview-featured-action {
+  background: var(--color-brand-active);
+  box-shadow: none;
+  transform: translateY(1px);
 }
 
 .overview-all-groups-heading {

@@ -199,7 +199,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                 <span className="overview-featured-decoration" aria-hidden="true">
                   <Sparkles />
                 </span>
-                <span className="primary-button overview-featured-action">
+                <span className="overview-featured-action">
                   {featuredGroup.assignments_created ? 'Explore group' : 'Open group'}
                   <ArrowRight className="button-inline-icon" aria-hidden="true" />
                 </span>

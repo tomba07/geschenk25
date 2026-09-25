@@ -41,6 +41,8 @@ test.describe('Geschenk smoke tests', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('.overview-featured-action')).toBeVisible();
+    await expect(page.locator('.overview-featured-action')).toHaveCSS('display', 'flex');
+    await expect(page.locator('.overview-featured-action')).toHaveCSS('background-color', 'rgb(21, 89, 183)');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   });
 
