@@ -4713,6 +4713,12 @@ select:focus {
   color: #247653;
 }
 
+.overview-group-status.unknown {
+  border-color: #d5deeb;
+  background: #f5f7fa;
+  color: #60718a;
+}
+
 .overview-featured-skeleton {
   min-height: 250px;
   grid-template-columns: 64px minmax(0, 1fr);

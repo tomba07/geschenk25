@@ -25,7 +25,25 @@ export const groupService = {
       return [];
     }
 
-    return response.data?.groups || [];
+    const groups = response.data?.groups || [];
+    if (groups.every((group) => typeof group.assignments_created === 'boolean')) {
+      return groups;
+    }
+
+    return Promise.all(groups.map(async (group) => {
+      if (typeof group.assignments_created === 'boolean') return group;
+
+      const assignmentResponse = await apiClient.getAssignment(group.id);
+      if (assignmentResponse.error) return group;
+
+      const assignment = assignmentResponse.data?.assignment || null;
+      return {
+        ...group,
+        assignments_created: Boolean(assignment),
+        assignments_created_at: assignment?.created_at || null,
+        assignment_receiver_username: assignment?.receiver_username || null,
+      };
+    }));
   },
 
   // Create a new group

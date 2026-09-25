@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronRight, Clock3, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleHelp, Clock3, Plus, Sparkles } from 'lucide-react';
 import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
@@ -11,6 +11,23 @@ import { Group } from '../types/group';
 interface HomeScreenProps {
   onGroupPress: (groupId: string) => void;
   onNavigateToProfile: () => void;
+}
+
+type GroupDrawStatus = 'drawn' | 'pending' | 'unknown';
+
+function getGroupDrawStatus(group: Group): GroupDrawStatus {
+  if (group.assignments_created === true) return 'drawn';
+  if (group.assignments_created === false) return 'pending';
+  return 'unknown';
+}
+
+function GroupStatus({ status }: { status: GroupDrawStatus }) {
+  return (
+    <span className={`overview-group-status ${status}`}>
+      {status === 'drawn' ? <Check aria-hidden="true" /> : status === 'pending' ? <Clock3 aria-hidden="true" /> : <CircleHelp aria-hidden="true" />}
+      {status === 'drawn' ? 'Names drawn' : status === 'pending' ? 'Waiting for name draw' : 'Status unavailable'}
+    </span>
+  );
 }
 
 export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeScreenProps) {
@@ -46,6 +63,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   );
   const featuredGroup = sortedGroups[0];
   const remainingGroups = sortedGroups.slice(1);
+  const featuredGroupStatus = featuredGroup ? getGroupDrawStatus(featuredGroup) : 'unknown';
 
   const formatGroupDate = (date: string) => (
     new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -179,28 +197,29 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                   </div>
                 </div>
                 <div className="overview-featured-copy">
-                  <span className={`overview-group-status ${featuredGroup.assignments_created ? 'drawn' : 'pending'}`}>
-                    {featuredGroup.assignments_created ? <Check aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
-                    {featuredGroup.assignments_created ? 'Names drawn' : 'Waiting for name draw'}
-                  </span>
+                  <GroupStatus status={featuredGroupStatus} />
                   <strong>
                     {featuredGroup.assignment_receiver_username
                       ? `You're buying for @${featuredGroup.assignment_receiver_username}`
-                      : featuredGroup.assignments_created
+                      : featuredGroupStatus === 'drawn'
                         ? 'Your assignment is ready'
-                        : 'This exchange is getting ready'}
+                        : featuredGroupStatus === 'pending'
+                          ? 'This exchange is getting ready'
+                          : 'Open the group for the latest status'}
                   </strong>
                   <p>
-                    {featuredGroup.assignments_created
+                    {featuredGroupStatus === 'drawn'
                       ? 'Take a look at their gift ideas.'
-                      : 'Open the group to check the members and add gift ideas.'}
+                      : featuredGroupStatus === 'pending'
+                        ? 'Open the group to check the members and add gift ideas.'
+                        : 'The draw status could not be loaded.'}
                   </p>
                 </div>
                 <span className="overview-featured-decoration" aria-hidden="true">
                   <Sparkles />
                 </span>
                 <span className="overview-featured-action">
-                  {featuredGroup.assignments_created ? 'Explore group' : 'Open group'}
+                  {featuredGroupStatus === 'drawn' ? 'Explore group' : 'Open group'}
                   <ArrowRight className="button-inline-icon" aria-hidden="true" />
                 </span>
               </button>
@@ -216,6 +235,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
               {remainingGroups.map((group) => {
                 const memberCount = group.member_count ?? group.members?.length;
                 const unreadMessageCount = group.unread_message_count || 0;
+                const groupStatus = getGroupDrawStatus(group);
                 return (
                   <button className="overview-group-card" type="button" key={group.id} onClick={() => onGroupPress(String(group.id))}>
                     {unreadMessageCount > 0 && (
@@ -231,10 +251,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                         <span>{memberCount != null ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'}` : 'Members'}</span>
                         <span>Created {formatGroupDate(group.created_at)}</span>
                       </div>
-                      <span className={`overview-group-status ${group.assignments_created ? 'drawn' : 'pending'}`}>
-                        {group.assignments_created ? <Check aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
-                        {group.assignments_created ? 'Names drawn' : 'Waiting for name draw'}
-                      </span>
+                      <GroupStatus status={groupStatus} />
                     </div>
                     <ChevronRight className="overview-card-chevron" aria-hidden="true" />
                   </button>

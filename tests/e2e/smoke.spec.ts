@@ -37,7 +37,25 @@ test.describe('Geschenk smoke tests', () => {
     await expect(page.locator('.overview-featured-group')).toContainText(newestGroup.name);
     await expect(page.locator('.overview-featured-group')).toHaveCSS('background-image', /linear-gradient/);
     await expect(page.locator('.overview-group-status')).toHaveCount(groups.length);
+    await expect(page.locator('.overview-group-status.drawn')).toHaveCount(groups.filter((group) => group.assignments_created).length);
     expect(groups.every((group) => typeof group.assignments_created === 'boolean')).toBeTruthy();
+
+    await page.route('**/api/groups', async (route) => {
+      const response = await route.fetch();
+      const body = await response.json() as { groups: Array<Record<string, unknown>> };
+      const legacyGroups = body.groups.map((group) => {
+        const legacyGroup = { ...group };
+        delete legacyGroup.assignments_created;
+        delete legacyGroup.assignments_created_at;
+        delete legacyGroup.assignment_receiver_username;
+        return legacyGroup;
+      });
+      await route.fulfill({ response, json: { groups: legacyGroups } });
+    });
+    await page.reload();
+    await expect(page.locator('.overview-group-status')).toHaveCount(groups.length);
+    await expect(page.locator('.overview-group-status.drawn')).toHaveCount(groups.filter((group) => group.assignments_created).length);
+    await expect(page.locator('.overview-group-status.unknown')).toHaveCount(0);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('.overview-featured-action')).toBeVisible();
