@@ -3003,9 +3003,43 @@ select:focus {
 }
 
 .assignments-section .assignment-empty-card {
+  min-height: 0;
+  justify-items: start;
+  align-content: start;
+  gap: 18px;
   border: 0;
   background: transparent;
   box-shadow: none;
+  padding: 6px 0 0;
+  text-align: left;
+}
+
+.assignments-section .assignment-empty-card .empty-card-icon {
+  width: 72px;
+  height: 72px;
+  margin: 12px 0 2px;
+  border-radius: 50%;
+  background: var(--color-gold-soft);
+  color: #d98b17;
+}
+
+.assignments-section .assignment-empty-card .empty-card-icon .detail-inline-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.assignments-section .assignment-empty-card .assignment-state-copy {
+  justify-items: start;
+  max-width: 520px;
+  border-top: 1px solid #cfe0f6;
+  padding-top: 18px;
+  text-align: left;
+}
+
+.assignments-section .assignment-empty-card .primary-button {
+  min-height: 42px;
+  margin-top: 0;
+  padding-inline: 18px;
 }
 
 .gift-ideas-empty-card {
