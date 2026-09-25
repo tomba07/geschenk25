@@ -543,35 +543,39 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <span className="detail-action-spacer" />
         </header>
         <div className="detail-layout detail-loading-layout">
-          <section className="detail-section assignments-section detail-panel detail-skeleton-card">
-            <span className="skeleton-line heading" />
-            <div className="skeleton-person-row">
-              <span className="skeleton-avatar" />
-              <span className="skeleton-stack">
-                <span className="skeleton-line short" />
-                <span className="skeleton-line wide" />
+          <div className="detail-column detail-primary-column">
+            <section className="detail-section assignments-section detail-panel detail-skeleton-card">
+              <span className="skeleton-line heading" />
+              <div className="skeleton-person-row">
+                <span className="skeleton-avatar" />
+                <span className="skeleton-stack">
+                  <span className="skeleton-line short" />
+                  <span className="skeleton-line wide" />
+                  <span className="skeleton-line" />
+                </span>
+              </div>
+              <div className="skeleton-panel-subsection">
+                <span className="skeleton-line heading" />
                 <span className="skeleton-line" />
-              </span>
-            </div>
-            <div className="skeleton-panel-subsection">
+                <span className="skeleton-row" />
+              </div>
+            </section>
+          </div>
+          <div className="detail-column detail-secondary-column">
+            <section className="detail-section assignment-chat-panel detail-panel detail-skeleton-card">
               <span className="skeleton-line heading" />
-              <span className="skeleton-line" />
               <span className="skeleton-row" />
-            </div>
-          </section>
-          <section className="detail-section ideas-section detail-panel detail-skeleton-card">
-            <div className="skeleton-panel-header">
-              <span className="skeleton-line heading" />
-              <span className="skeleton-button" />
-            </div>
-            <span className="skeleton-row" />
-            <span className="skeleton-row" />
-          </section>
-          <section className="detail-section assignment-chat-panel detail-panel detail-skeleton-card">
-            <span className="skeleton-line heading" />
-            <span className="skeleton-row" />
-            <span className="skeleton-row" />
-          </section>
+              <span className="skeleton-row" />
+            </section>
+            <section className="detail-section ideas-section detail-panel detail-skeleton-card">
+              <div className="skeleton-panel-header">
+                <span className="skeleton-line heading" />
+                <span className="skeleton-button" />
+              </div>
+              <span className="skeleton-row" />
+              <span className="skeleton-row" />
+            </section>
+          </div>
         </div>
       </section>
     );
@@ -595,7 +599,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       </header>
 
       <div className={`detail-layout ${assignment ? 'assigned' : 'pending'}`}>
-        <section className="detail-section assignments-section detail-panel">
+        <div className="detail-column detail-primary-column">
+          <section className="detail-section assignments-section detail-panel">
           {assignment ? (
             <>
               <h2>Assignment</h2>
@@ -703,10 +708,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               )}
             </article>
           )}
-        </section>
+          </section>
 
-        {!assignment && (
-          <section className="detail-section members-section detail-panel">
+          {!assignment && (
+            <section className="detail-section members-section detail-panel">
             <div className="pending-members-heading">
               <h2>Members <span>({members.length})</span></h2>
               <p>These are the people currently in this group.</p>
@@ -729,11 +734,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 );
               })}
             </div>
-          </section>
-        )}
+            </section>
+          )}
+        </div>
 
-        {assignmentChats.length > 0 && (
-          <section className="detail-section assignment-chat-panel detail-panel">
+        <div className="detail-column detail-secondary-column">
+          {assignmentChats.length > 0 && (
+            <section className="detail-section assignment-chat-panel detail-panel">
             <div className="assignment-chat-panel-header">
               <h2>Messages</h2>
               {assignmentUnreadMessageCount > 0 && (
@@ -774,10 +781,10 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 </button>
               ))}
             </div>
-          </section>
-        )}
+            </section>
+          )}
 
-        <section className="detail-section ideas-section detail-panel">
+          <section className="detail-section ideas-section detail-panel">
           <div className="native-section-header">
             <h2>My Gift Ideas</h2>
             {giftIdeas.length > 0 && (
@@ -840,18 +847,19 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               )}
             </div>
           )}
-        </section>
+          </section>
 
-        {!assignment && (
-          <section className="detail-section pending-info-panel detail-panel">
+          {!assignment && (
+            <section className="detail-section pending-info-panel detail-panel">
             <h2>How it works</h2>
             <p>
               {isOwner
                 ? "When everyone has joined, draw names to reveal each member's recipient. Pairing rules can be added before the draw."
                 : 'After the draw, your recipient and their gift ideas will appear here. Until then, add ideas to help the person who draws your name.'}
             </p>
-          </section>
-        )}
+            </section>
+          )}
+        </div>
       </div>
 
       {giftIdeasDialog && (

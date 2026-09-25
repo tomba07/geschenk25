@@ -2467,25 +2467,8 @@ select:focus {
 }
 
 .assignments-section {
-  grid-area: assignment;
   border-color: #b9d4f6;
   background: #f1f7ff;
-}
-
-.assignment-chat-panel {
-  grid-area: messages;
-}
-
-.ideas-section {
-  grid-area: ideas;
-}
-
-.members-section {
-  grid-area: members;
-}
-
-.pending-info-panel {
-  grid-area: info;
 }
 
 .detail-section h2,
@@ -2503,19 +2486,14 @@ select:focus {
   padding: 14px 0 42px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    "assignment"
-    "messages"
-    "ideas";
   gap: 22px;
 }
 
-.detail-layout.pending {
-  grid-template-areas:
-    "assignment"
-    "members"
-    "ideas"
-    "info";
+.detail-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 22px;
 }
 
 .detail-main {
@@ -5342,16 +5320,11 @@ hr {
   .detail-layout {
     width: min(100% - 72px, 1280px);
     grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
-    grid-template-areas:
-      "assignment ideas"
-      "assignment messages";
     gap: 28px;
   }
 
-  .detail-layout.pending {
-    grid-template-areas:
-      "assignment ideas"
-      "members info";
+  .detail-column {
+    gap: 28px;
   }
 
   .assignments-section {
@@ -5367,6 +5340,10 @@ hr {
   .members-section,
   .pending-info-panel {
     align-self: start;
+  }
+
+  .detail-secondary-column .ideas-section {
+    order: -1;
   }
 
   .assignment-chat-card-list {

@@ -72,6 +72,20 @@ test.describe('Geschenk smoke tests', () => {
       await expect(page.getByRole('heading', { name: 'Members (3)' })).toBeVisible();
       await expect(page.getByText('Organizer / You')).toBeVisible();
       await expect(page.locator('.pending-member-row')).toHaveCount(3);
+      const assignmentPanelBox = await page.locator('.assignments-section').boundingBox();
+      const membersPanelBox = await page.locator('.members-section').boundingBox();
+      const ideasPanelBox = await page.locator('.ideas-section').boundingBox();
+      const infoPanelBox = await page.locator('.pending-info-panel').boundingBox();
+      expect(assignmentPanelBox).not.toBeNull();
+      expect(membersPanelBox).not.toBeNull();
+      expect(ideasPanelBox).not.toBeNull();
+      expect(infoPanelBox).not.toBeNull();
+      const primaryColumnGap = membersPanelBox!.y - (assignmentPanelBox!.y + assignmentPanelBox!.height);
+      const secondaryColumnGap = infoPanelBox!.y - (ideasPanelBox!.y + ideasPanelBox!.height);
+      expect(primaryColumnGap).toBeGreaterThanOrEqual(20);
+      expect(primaryColumnGap).toBeLessThanOrEqual(32);
+      expect(secondaryColumnGap).toBeGreaterThanOrEqual(20);
+      expect(secondaryColumnGap).toBeLessThanOrEqual(32);
 
       const memberSession = await waitForDevSession(request, 'dev.bailey@geschenk.test');
       memberPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
