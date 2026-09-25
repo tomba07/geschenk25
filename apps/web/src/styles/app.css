@@ -2483,7 +2483,7 @@ select:focus {
 .detail-section h2,
 .assignment-panel-heading h3 {
   margin: 0;
-  color: #050505;
+  color: var(--color-text);
   font-size: 22px;
   line-height: 1.15;
   font-weight: 800;
@@ -3027,11 +3027,12 @@ select:focus {
 }
 
 .assignments-section .assignment-result-card {
+  min-height: 120px;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  padding: 6px 0 18px;
+  padding: 4px 0 14px;
 }
 
 .assignment-empty-card {
@@ -3185,12 +3186,12 @@ select:focus {
 
 .assignment-result-gift {
   position: absolute;
-  right: 26px;
-  bottom: -24px;
-  width: 136px;
-  height: 136px;
+  right: 18px;
+  bottom: -18px;
+  width: 112px;
+  height: 112px;
   color: #1559b7;
-  opacity: 0.11;
+  opacity: 0.09;
   transform: rotate(-8deg);
 }
 
@@ -3207,17 +3208,16 @@ select:focus {
 
 .assignment-ideas-block {
   display: grid;
-  gap: 16px;
+  gap: 0;
   border-top: 1px solid #cfe0f6;
-  padding-top: 18px;
+  padding-top: 16px;
 }
 
 .assignment-panel-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid var(--border);
   padding-bottom: 14px;
 }
 
@@ -3232,6 +3232,28 @@ select:focus {
   color: var(--color-text-muted);
   font-size: 15px;
   line-height: 1.35;
+}
+
+.assignment-idea-list {
+  border-top: 1px solid #cfe0f6;
+}
+
+.assignments-section .assignment-idea-list .idea-native-card {
+  min-height: 72px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  background: transparent;
+  padding-block: 12px;
+}
+
+.assignments-section .assignment-idea-list .idea-card-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.assignments-section .assignment-idea-list .idea-card-icon .detail-inline-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .assignment-inline-message-button {
@@ -4973,9 +4995,9 @@ hr {
     box-shadow: none;
   }
 
-  .assignment-result-card {
-    min-height: 154px;
-    padding: 28px 32px;
+  .assignments-section .assignment-result-card {
+    min-height: 132px;
+    padding: 8px 0 18px;
   }
 
   .assignment-empty-card,
@@ -4985,26 +5007,26 @@ hr {
   }
 
   .assignment-person-row {
-    grid-template-columns: 80px minmax(0, 1fr);
-    gap: 24px;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 20px;
     max-width: 540px;
   }
 
   .assignment-person-row .small-avatar {
-    width: 80px;
-    height: 80px;
-    font-size: 30px;
+    width: 68px;
+    height: 68px;
+    font-size: 26px;
   }
 
   .assignment-person-copy strong {
-    font-size: 28px;
+    font-size: 26px;
   }
 
   .assignment-result-gift {
-    right: 42px;
-    bottom: -30px;
-    width: 166px;
-    height: 166px;
+    right: 28px;
+    bottom: -20px;
+    width: 124px;
+    height: 124px;
   }
 
   .empty-card,
@@ -5206,8 +5228,8 @@ hr {
     align-self: start;
   }
 
-  .assignment-result-card {
-    min-height: 188px;
+  .assignments-section .assignment-result-card {
+    min-height: 140px;
   }
 
   .assignment-chat-panel,
@@ -5381,7 +5403,7 @@ hr {
 @media (max-width: 430px) {
   .assignment-panel-heading {
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 
   .assignment-inline-message-button {
@@ -5418,8 +5440,9 @@ hr {
     font-size: 26px;
   }
 
-  .assignment-result-card {
-    padding: 18px;
+  .assignments-section .assignment-result-card {
+    min-height: 104px;
+    padding: 2px 0 14px;
   }
 
   .assignment-result-gift {
