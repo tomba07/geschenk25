@@ -2457,9 +2457,20 @@ select:focus {
   margin: 0;
 }
 
+.assignments-section {
+  grid-area: assignment;
+}
+
+.assignment-chat-panel {
+  grid-area: messages;
+}
+
+.ideas-section {
+  grid-area: ideas;
+}
+
 .detail-section h2,
-.assignment-chat-panel h3,
-.assigned-ideas-panel h3 {
+.assignment-panel-heading h3 {
   margin: 0;
   color: #050505;
   font-size: 22px;
@@ -2472,6 +2483,11 @@ select:focus {
   margin: 0 auto;
   padding: 14px 0 42px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "assignment"
+    "messages"
+    "ideas";
   gap: 22px;
 }
 
@@ -3080,7 +3096,48 @@ select:focus {
 .assignment-chat-panel {
   display: grid;
   gap: 16px;
-  padding-top: 22px;
+}
+
+.assignment-ideas-block {
+  display: grid;
+  gap: 16px;
+}
+
+.assignment-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+
+.assignment-panel-heading div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.assignment-panel-heading p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.assignment-inline-message-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+
+.assignment-inline-message-button .button-inline-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .assignment-chat-panel-header {
@@ -4666,15 +4723,9 @@ hr {
   }
 
   .detail-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "main";
     align-items: start;
     gap: 24px;
     padding-top: 16px;
-  }
-
-  .detail-main {
-    grid-area: main;
   }
 
   .assignments-section,
@@ -4734,8 +4785,7 @@ hr {
   }
 
   .detail-section h2,
-  .assignment-chat-panel h3,
-  .assigned-ideas-panel h3 {
+  .assignment-panel-heading h3 {
     font-size: 24px;
   }
 
@@ -4911,6 +4961,50 @@ hr {
 
   .dev-gift-section {
     grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1040px) {
+  .detail-layout {
+    width: min(100% - 72px, 1280px);
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    grid-template-areas:
+      "assignment ideas"
+      "assignment messages";
+    gap: 28px;
+  }
+
+  .assignments-section {
+    align-self: start;
+  }
+
+  .assignment-result-card {
+    min-height: 188px;
+  }
+
+  .assignment-chat-panel,
+  .ideas-section {
+    align-self: start;
+  }
+
+  .assignment-chat-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-chat-card {
+    min-height: 0;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .assignment-chat-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .gift-ideas-empty-card {
+    min-height: 250px;
   }
 }
 

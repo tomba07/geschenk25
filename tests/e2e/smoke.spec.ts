@@ -34,7 +34,7 @@ test.describe('Geschenk smoke tests', () => {
 
     await expect(page.getByRole('button', { name: 'Back to groups' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Open group details/ })).toContainText('Dev Gift Exchange');
-    await expect(page.getByRole('heading', { name: 'Name Draw' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Assignment' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'My Gift Ideas' })).toBeVisible();
   });
 

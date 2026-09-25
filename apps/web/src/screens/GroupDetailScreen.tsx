@@ -567,190 +567,206 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       </header>
 
       <div className="detail-layout">
-        <div className="detail-main">
-          <section className="detail-section assignments-section">
-            <h2>Name Draw</h2>
-            {assignment ? (
-              <>
-                <article className="native-card assignment-result-card">
-                  <div className="assignment-person-row">
-                    <div className="small-avatar">
-                      {assignment.receiver_image_url ? <img src={assignment.receiver_image_url} alt="" /> : <span>{assignment.receiver_username.charAt(0).toUpperCase()}</span>}
-                    </div>
-                    <div className="assignment-person-copy">
-                      <span>You are buying for</span>
-                      <strong>@{assignment.receiver_username}</strong>
-                      {assignmentCreatedDate && (
-                        <small>
-                          <Calendar className="detail-inline-icon" aria-hidden="true" />
-                          Names drawn on {assignmentCreatedDate}
-                        </small>
-                      )}
-                    </div>
+        <section className="detail-section assignments-section detail-panel">
+          <h2>Assignment</h2>
+          {assignment ? (
+            <>
+              <article className="native-card assignment-result-card">
+                <div className="assignment-person-row">
+                  <div className="small-avatar">
+                    {assignment.receiver_image_url ? <img src={assignment.receiver_image_url} alt="" /> : <span>{assignment.receiver_username.charAt(0).toUpperCase()}</span>}
                   </div>
-                  <span className="assignment-result-gift" aria-hidden="true">
-                    <Gift className="detail-inline-icon" />
-                  </span>
-                </article>
-                {assignmentChats.length > 0 && (
-                  <div className="assignment-chat-panel">
-                    <div className="assignment-chat-panel-header">
-                      <h3>Messages</h3>
-                      {assignmentUnreadMessageCount > 0 && (
-                        <span className="unread-count-badge" aria-label={`${assignmentUnreadMessageCount} unread messages`}>
-                          {assignmentUnreadMessageCount > 9 ? '9+' : assignmentUnreadMessageCount}
-                        </span>
-                      )}
-                    </div>
-                    <div className="assignment-chat-card-list">
-                      {assignmentChats.map((chat) => (
-                        <button
-                          className="assignment-chat-card"
-                          type="button"
-                          key={`${chat.role}-${chat.assignment_id}`}
-                          onClick={() => openAssignmentChat(chat)}
-                        >
-                          <span className={`assignment-chat-icon ${chat.role}`}>
-                            {chat.role === 'giver' ? (
-                              <Mail className="detail-inline-icon" aria-hidden="true" />
-                            ) : (
-                              <VenetianMask className="detail-inline-icon" aria-hidden="true" />
-                            )}
-                          </span>
-                          <span className="assignment-chat-card-copy">
-                            <strong>{chat.role === 'giver' ? `Message ${chat.title}` : chat.title}</strong>
-                            <small>{chat.subtitle}</small>
-                          </span>
-                          <span className="assignment-chat-card-trailing">
-                            {chat.unread_count > 0 && (
-                              <span className="unread-count-badge" aria-label={`${chat.unread_count} unread messages`}>
-                                {chat.unread_count > 9 ? '9+' : chat.unread_count}
-                              </span>
-                            )}
-                            <span className="assignment-chat-card-action">
-                              <ChevronRight className="detail-inline-icon" aria-hidden="true" />
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="assignment-person-copy">
+                    <span>You are buying for</span>
+                    <strong>@{assignment.receiver_username}</strong>
+                    {assignmentCreatedDate && (
+                      <small>
+                        <Calendar className="detail-inline-icon" aria-hidden="true" />
+                        Names drawn on {assignmentCreatedDate}
+                      </small>
+                    )}
                   </div>
-                )}
-                <div className="assigned-ideas-panel">
-                  <h3>Gift Ideas for @{assignment.receiver_username}</h3>
-                  {assignedPersonGiftIdeas.length === 0 ? (
-                    <p className="empty-inline">No gift ideas shared for this person yet.</p>
-                  ) : (
-                    <div className="native-list idea-list">
-                      {assignedPersonGiftIdeas.map((idea) => (
-                        <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
-                          <span className="idea-card-icon bulb">
-                            <Lightbulb className="detail-inline-icon" aria-hidden="true" />
-                          </span>
-                          <div className="idea-card-content">
-                            <strong>{idea.idea}</strong>
-                            {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
-                            <small>from @{idea.created_by.username}</small>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
+                </div>
+                <span className="assignment-result-gift" aria-hidden="true">
+                  <Gift className="detail-inline-icon" />
+                </span>
+              </article>
+              <div className="assignment-ideas-block">
+                <div className="assignment-panel-heading">
+                  <div>
+                    <h3>Their gift ideas</h3>
+                    <p>A little inspiration from the group.</p>
+                  </div>
+                  {assignmentChats.find((chat) => chat.role === 'giver') && (
+                    <button
+                      className="link-button assignment-inline-message-button"
+                      type="button"
+                      onClick={() => {
+                        const chat = assignmentChats.find((candidate) => candidate.role === 'giver');
+                        if (chat) openAssignmentChat(chat);
+                      }}
+                    >
+                      Message them
+                      <ChevronRight className="button-inline-icon" aria-hidden="true" />
+                    </button>
                   )}
                 </div>
-              </>
-            ) : (
-              <article className="native-card empty-card assignment-empty-card">
-                <span className="empty-card-icon svg-icon gift-empty-icon">
-                  <Gift className="detail-inline-icon" aria-hidden="true" />
-                </span>
-                <div className="assignment-state-copy">
-                  <h3>
-                    {members.length < 3
-                      ? 'Add more members'
-                      : isOwner
-                        ? 'Ready to draw names'
-                        : 'Waiting for names'}
-                  </h3>
-                  <p>
-                    {members.length < 3
-                      ? 'Secret Santa needs at least three members.'
-                      : isOwner
-                        ? 'Draw names when the member list looks right.'
-                        : 'The group owner can draw names when everything is ready.'}
-                  </p>
-                </div>
-                {isOwner && members.length < 3 && !assignmentsLocked && (
-                  <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
-                    + Add
-                  </button>
+                {assignedPersonGiftIdeas.length === 0 ? (
+                  <p className="empty-inline">No gift ideas shared for this person yet.</p>
+                ) : (
+                  <div className="native-list idea-list assignment-idea-list">
+                    {assignedPersonGiftIdeas.map((idea) => (
+                      <article className="native-card idea-native-card assigned-idea-card" key={idea.id}>
+                        <span className="idea-card-icon bulb">
+                          <Lightbulb className="detail-inline-icon" aria-hidden="true" />
+                        </span>
+                        <div className="idea-card-content">
+                          <strong>{idea.idea}</strong>
+                          {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
+                          <small>from @{idea.created_by.username}</small>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 )}
-                {canDrawAssignments && (
-                  <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
-                )}
-              </article>
-            )}
-          </section>
+              </div>
+            </>
+          ) : (
+            <article className="native-card empty-card assignment-empty-card">
+              <span className="empty-card-icon svg-icon gift-empty-icon">
+                <Gift className="detail-inline-icon" aria-hidden="true" />
+              </span>
+              <div className="assignment-state-copy">
+                <h3>
+                  {members.length < 3
+                    ? 'Add more members'
+                    : isOwner
+                      ? 'Ready to draw names'
+                      : 'Waiting for names'}
+                </h3>
+                <p>
+                  {members.length < 3
+                    ? 'Secret Santa needs at least three members.'
+                    : isOwner
+                      ? 'Draw names when the member list looks right.'
+                      : 'The group owner can draw names when everything is ready.'}
+                </p>
+              </div>
+              {isOwner && members.length < 3 && !assignmentsLocked && (
+                <button className="primary-button compact" type="button" onClick={() => setInviteOpen(true)} disabled={busy}>
+                  + Add
+                </button>
+              )}
+              {canDrawAssignments && (
+                <button className="primary-button compact" type="button" onClick={handleAssign} disabled={busy || drawing}>Draw Names</button>
+              )}
+            </article>
+          )}
+        </section>
 
-          <section className="detail-section ideas-section">
-            <div className="native-section-header">
-              <h2>My Gift Ideas</h2>
-              {giftIdeas.length > 0 && (
-                <button className="primary-button compact pill-action" type="button" onClick={openGiftIdeaModal}>+ Add Idea</button>
+        {assignmentChats.length > 0 && (
+          <section className="detail-section assignment-chat-panel detail-panel">
+            <div className="assignment-chat-panel-header">
+              <h2>Messages</h2>
+              {assignmentUnreadMessageCount > 0 && (
+                <span className="unread-count-badge" aria-label={`${assignmentUnreadMessageCount} unread messages`}>
+                  {assignmentUnreadMessageCount > 9 ? '9+' : assignmentUnreadMessageCount}
+                </span>
               )}
             </div>
-            {giftIdeas.length === 0 ? (
-              <article className="native-card empty-card gift-ideas-empty-card">
-                <span className="empty-card-icon svg-icon idea-empty-icon">
-                  <Lightbulb className="detail-inline-icon" aria-hidden="true" />
-                </span>
-                <div className="assignment-state-copy">
-                  <h3>No gift ideas yet</h3>
-                  <p>Add ideas for your group members.</p>
-                </div>
-                <button className="secondary-button empty-card-action" type="button" onClick={openGiftIdeaModal}>
-                  <Plus className="button-inline-icon" aria-hidden="true" />
-                  Add Idea
-                </button>
-              </article>
-            ) : (
-              <div className="native-list idea-list">
-                {giftIdeas.map((idea) => (
-                  <article className="native-card idea-native-card" key={idea.id}>
-                    <span className="idea-card-icon gift">
-                      <Gift className="detail-inline-icon" aria-hidden="true" />
+            <div className="assignment-chat-card-list">
+              {assignmentChats.map((chat) => (
+                <button
+                  className="assignment-chat-card"
+                  type="button"
+                  key={`${chat.role}-${chat.assignment_id}`}
+                  onClick={() => openAssignmentChat(chat)}
+                >
+                  <span className={`assignment-chat-icon ${chat.role}`}>
+                    {chat.role === 'giver' ? (
+                      <Mail className="detail-inline-icon" aria-hidden="true" />
+                    ) : (
+                      <VenetianMask className="detail-inline-icon" aria-hidden="true" />
+                    )}
+                  </span>
+                  <span className="assignment-chat-card-copy">
+                    <strong>{chat.role === 'giver' ? `Message ${chat.title}` : chat.title}</strong>
+                    <small>{chat.subtitle}</small>
+                  </span>
+                  <span className="assignment-chat-card-trailing">
+                    {chat.unread_count > 0 && (
+                      <span className="unread-count-badge" aria-label={`${chat.unread_count} unread messages`}>
+                        {chat.unread_count > 9 ? '9+' : chat.unread_count}
+                      </span>
+                    )}
+                    <span className="assignment-chat-card-action">
+                      <ChevronRight className="detail-inline-icon" aria-hidden="true" />
                     </span>
-                    <div className="idea-card-content">
-                      <strong>{idea.idea}</strong>
-                      {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
-                      <small>for @{idea.for_user.username}</small>
-                    </div>
-                    <div className="idea-card-actions">
-                      <button
-                        className="gift-idea-action-button"
-                        type="button"
-                        onClick={() => handleEditGiftIdea(idea)}
-                        aria-label="Edit gift idea"
-                        title="Edit gift idea"
-                      >
-                        <Pencil className="gift-idea-action-icon" aria-hidden="true" />
-                      </button>
-                      <button
-                        className="gift-idea-action-button danger"
-                        type="button"
-                        onClick={() => handleDeleteGiftIdea(idea.id)}
-                        aria-label="Delete gift idea"
-                        title="Delete gift idea"
-                      >
-                        <Trash2 className="gift-idea-action-icon" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
+                  </span>
+                </button>
+              ))}
+            </div>
           </section>
-        </div>
+        )}
 
+        <section className="detail-section ideas-section detail-panel">
+          <div className="native-section-header">
+            <h2>My Gift Ideas</h2>
+            {giftIdeas.length > 0 && (
+              <button className="primary-button compact pill-action" type="button" onClick={openGiftIdeaModal}>+ Add Idea</button>
+            )}
+          </div>
+          {giftIdeas.length === 0 ? (
+            <article className="native-card empty-card gift-ideas-empty-card">
+              <span className="empty-card-icon svg-icon idea-empty-icon">
+                <Lightbulb className="detail-inline-icon" aria-hidden="true" />
+              </span>
+              <div className="assignment-state-copy">
+                <h3>No gift ideas yet</h3>
+                <p>Add ideas for your group members.</p>
+              </div>
+              <button className="secondary-button empty-card-action" type="button" onClick={openGiftIdeaModal}>
+                <Plus className="button-inline-icon" aria-hidden="true" />
+                Add Idea
+              </button>
+            </article>
+          ) : (
+            <div className="native-list idea-list">
+              {giftIdeas.map((idea) => (
+                <article className="native-card idea-native-card" key={idea.id}>
+                  <span className="idea-card-icon gift">
+                    <Gift className="detail-inline-icon" aria-hidden="true" />
+                  </span>
+                  <div className="idea-card-content">
+                    <strong>{idea.idea}</strong>
+                    {idea.link && <a href={idea.link} target="_blank" rel="noreferrer">{idea.link}</a>}
+                    <small>for @{idea.for_user.username}</small>
+                  </div>
+                  <div className="idea-card-actions">
+                    <button
+                      className="gift-idea-action-button"
+                      type="button"
+                      onClick={() => handleEditGiftIdea(idea)}
+                      aria-label="Edit gift idea"
+                      title="Edit gift idea"
+                    >
+                      <Pencil className="gift-idea-action-icon" aria-hidden="true" />
+                    </button>
+                    <button
+                      className="gift-idea-action-button danger"
+                      type="button"
+                      onClick={() => handleDeleteGiftIdea(idea.id)}
+                      aria-label="Delete gift idea"
+                      title="Delete gift idea"
+                    >
+                      <Trash2 className="gift-idea-action-icon" aria-hidden="true" />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {activeAssignmentChat && (
