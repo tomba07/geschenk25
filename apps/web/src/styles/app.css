@@ -2513,6 +2513,7 @@ select:focus {
 }
 
 .detail-skeleton-card {
+  align-content: start;
   overflow: hidden;
 }
 
@@ -2575,6 +2576,46 @@ select:focus {
 .skeleton-row {
   height: 64px;
   border-radius: 8px;
+}
+
+.skeleton-button {
+  display: block;
+  width: 104px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, #d9e7f7 0%, #f2f7fd 45%, #d9e7f7 90%);
+  background-size: 220% 100%;
+  animation: shimmer 1.25s ease-in-out infinite;
+}
+
+.skeleton-person-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 8px 0 18px;
+}
+
+.skeleton-person-row .skeleton-stack {
+  gap: 10px;
+}
+
+.skeleton-panel-subsection {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid #cfe0f6;
+  padding-top: 18px;
+}
+
+.skeleton-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.skeleton-panel-header .skeleton-line {
+  min-width: 0;
 }
 
 @keyframes shimmer {

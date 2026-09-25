@@ -534,16 +534,35 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
           <span className="detail-action-spacer" />
         </header>
         <div className="detail-layout detail-loading-layout">
-          <div className="detail-main">
-            <section className="detail-section assignments-section detail-skeleton-card">
+          <section className="detail-section assignments-section detail-panel detail-skeleton-card">
+            <span className="skeleton-line heading" />
+            <div className="skeleton-person-row">
+              <span className="skeleton-avatar" />
+              <span className="skeleton-stack">
+                <span className="skeleton-line short" />
+                <span className="skeleton-line wide" />
+                <span className="skeleton-line" />
+              </span>
+            </div>
+            <div className="skeleton-panel-subsection">
               <span className="skeleton-line heading" />
-              <span className="skeleton-block" />
-            </section>
-            <section className="detail-section ideas-section detail-skeleton-card">
+              <span className="skeleton-line" />
+              <span className="skeleton-row" />
+            </div>
+          </section>
+          <section className="detail-section ideas-section detail-panel detail-skeleton-card">
+            <div className="skeleton-panel-header">
               <span className="skeleton-line heading" />
-              <span className="skeleton-block" />
-            </section>
-          </div>
+              <span className="skeleton-button" />
+            </div>
+            <span className="skeleton-row" />
+            <span className="skeleton-row" />
+          </section>
+          <section className="detail-section assignment-chat-panel detail-panel detail-skeleton-card">
+            <span className="skeleton-line heading" />
+            <span className="skeleton-row" />
+            <span className="skeleton-row" />
+          </section>
         </div>
       </section>
     );
