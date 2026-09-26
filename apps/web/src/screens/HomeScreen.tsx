@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronRight, CircleHelp, Clock3, Plus } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleHelp, Clock3, Plus, Users } from 'lucide-react';
 import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
@@ -158,7 +158,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
           </section>
         ) : groups.length === 0 ? (
           <div className="overview-empty-state">
-            <div className="empty-icon">G</div>
+            <div className="empty-icon" aria-hidden="true"><Users size={32} strokeWidth={1.75} /></div>
             <h2>No groups yet</h2>
             <p>Create your first group to start organizing your Secret Santa exchange.</p>
             <button className="primary-button" type="button" onClick={openCreateModal}>
