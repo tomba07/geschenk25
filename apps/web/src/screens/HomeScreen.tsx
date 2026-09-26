@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronRight, CircleHelp, Clock3, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleHelp, Clock3, Plus } from 'lucide-react';
 import { Friend, apiClient } from '../lib/api';
 import { groupService, GroupServiceError } from '../services/groupService';
 import { getErrorMessage } from '../utils/errors';
@@ -215,9 +215,6 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                         : 'The draw status could not be loaded.'}
                   </p>
                 </div>
-                <span className="overview-featured-decoration" aria-hidden="true">
-                  <Sparkles />
-                </span>
                 <span className="overview-featured-action">
                   {featuredGroupStatus === 'drawn' ? 'Explore group' : 'Open group'}
                   <ArrowRight className="button-inline-icon" aria-hidden="true" />

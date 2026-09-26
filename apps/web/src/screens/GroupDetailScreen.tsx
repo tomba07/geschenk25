@@ -729,6 +729,17 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                       <strong>@{member.username}</strong>
                       <small>{memberLabels.join(' / ')}</small>
                     </div>
+                    {isOwner && !assignmentsLocked && member.id !== group.created_by && member.id !== userId && (
+                      <button
+                        className="link-button danger-text member-remove-button"
+                        type="button"
+                        aria-label={`Remove @${member.username} from group`}
+                        disabled={busy}
+                        onClick={() => handleRemoveMember(member.id, member.username)}
+                      >
+                        Remove
+                      </button>
+                    )}
                   </article>
                 );
               })}
@@ -1285,44 +1296,6 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     </div>
                   </article>
                 )}
-              </div>
-            </section>
-
-            <section className="details-members-section">
-              <div className="native-section-header">
-                <h3>Members</h3>
-                {isOwner && !assignmentsLocked && (
-                  <button
-                    className="secondary-button details-add-member-button"
-                    type="button"
-                    onClick={() => {
-                      setDetailsOpen(false);
-                      setInviteOpen(true);
-                    }}
-                  >
-                    <Plus className="button-inline-icon" aria-hidden="true" />
-                    Add member
-                  </button>
-                )}
-              </div>
-              <div className="native-list details-member-list">
-                {members.map((member) => (
-                  <article className="native-card member-native-card" key={member.id}>
-                    <div className="small-avatar">{member.image_url ? <img src={member.image_url} alt="" /> : <span>{member.username.charAt(0).toUpperCase()}</span>}</div>
-                    <div className="member-native-text">
-                      <strong>@{member.username}</strong>
-                    </div>
-                    {member.id === group.created_by ? (
-                      <span className="owner-badge">Owner</span>
-                    ) : isOwner && !assignmentsLocked && member.id !== userId ? (
-                      <button className="link-button danger-text member-remove-button" type="button" onClick={() => handleRemoveMember(member.id, member.username)}>
-                        Remove
-                      </button>
-                    ) : (
-                      <span className="member-remove-spacer" aria-hidden="true" />
-                    )}
-                  </article>
-                ))}
               </div>
             </section>
 

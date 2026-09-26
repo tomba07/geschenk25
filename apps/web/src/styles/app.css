@@ -2130,57 +2130,9 @@ select:focus {
   white-space: nowrap;
 }
 
-.details-members-section {
-  display: grid;
-  gap: 18px;
-  border-top: 0;
-  padding-top: 32px;
-}
-
-.details-members-section h3 {
-  margin: 0;
-  color: #08245a;
-  font-size: 22px;
-  line-height: 1.15;
-}
-
-.details-add-member-button {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--primary);
-  font-weight: 800;
-}
-
-.details-member-list {
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: var(--card-radius);
-  background: var(--card-bg);
-}
-
-.details-member-list .member-native-card {
-  min-height: 82px;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 14px 24px;
-}
-
-.details-member-list .member-native-card + .member-native-card {
-  border-top: 1px solid var(--border);
-}
-
-.member-remove-button,
-.member-remove-spacer {
-  justify-self: end;
-  min-width: 70px;
-  text-align: right;
-}
-
 .member-remove-button {
+  justify-self: end;
+  min-height: 44px;
   font-weight: 800;
 }
 
@@ -2221,7 +2173,7 @@ select:focus {
   background: #fff1ef;
 }
 
-.modal-panel:has(.details-members-section) {
+.modal-panel.group-details-dialog {
   width: min(100%, 960px);
 }
 
@@ -3138,7 +3090,7 @@ select:focus {
 .pending-member-row {
   min-height: 72px;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 12px 0;
@@ -3297,12 +3249,12 @@ select:focus {
 .assignment-result-gift {
   position: absolute;
   right: 18px;
-  bottom: -18px;
-  width: 112px;
-  height: 112px;
+  top: 50%;
+  width: 96px;
+  height: 96px;
   color: #1559b7;
   opacity: 0.09;
-  transform: rotate(-8deg);
+  transform: translateY(-50%) rotate(-8deg);
 }
 
 .assignment-result-gift .detail-inline-icon {
@@ -4487,21 +4439,6 @@ select:focus {
   line-height: 1.2;
 }
 
-.overview-featured-decoration {
-  position: absolute;
-  right: 22px;
-  bottom: 54px;
-  color: #1559b7;
-  opacity: 0.07;
-  transform: rotate(-8deg);
-}
-
-.overview-featured-decoration svg {
-  width: 150px;
-  height: 150px;
-  stroke-width: 1.25;
-}
-
 .overview-featured-action {
   position: relative;
   z-index: 2;
@@ -5282,11 +5219,6 @@ hr {
     padding-inline: 20px;
   }
 
-  .overview-featured-decoration {
-    right: 58px;
-    bottom: 34px;
-  }
-
   .overview-featured-skeleton {
     grid-template-columns: 64px minmax(0, 1fr);
     grid-template-areas: none;
@@ -5417,9 +5349,8 @@ hr {
 
   .assignment-result-gift {
     right: 28px;
-    bottom: -20px;
-    width: 124px;
-    height: 124px;
+    width: 104px;
+    height: 104px;
   }
 
   .empty-card,
@@ -5782,12 +5713,6 @@ hr {
     min-height: 74px;
   }
 
-  .details-member-list .member-native-card {
-    grid-template-columns: 48px minmax(0, 1fr) auto;
-    min-height: 76px;
-    padding: 12px 14px;
-  }
-
   .group-details-footer {
     align-items: stretch;
     flex-direction: column-reverse;
@@ -5899,10 +5824,6 @@ hr {
 
   .overview-featured-copy > strong {
     font-size: 18px;
-  }
-
-  .overview-featured-decoration {
-    display: none;
   }
 
   .overview-featured-skeleton {
