@@ -39,7 +39,10 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
   const [groupName, setGroupName] = useState('');
   const [groupImage, setGroupImage] = useState<string | null>(null);
   const [selectedFriendIds, setSelectedFriendIds] = useState<number[]>([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
+  const normalizedFriendSearch = friendSearchQuery.trim().replace(/^@/, '').toLowerCase();
+  const filteredFriends = friends.filter((friend) => friend.username.toLowerCase().includes(normalizedFriendSearch));
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -80,6 +83,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
     setGroupName('');
     setGroupImage(null);
     setSelectedFriendIds([]);
+    setFriendSearchQuery('');
     setModalVisible(false);
   };
 
@@ -100,6 +104,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
 
   const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
+    if (createStep === 'friends') return;
     if (!groupName.trim()) {
       showErrorToast('Please enter a group name');
       return;
@@ -275,13 +280,29 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
                   <span>Step 1 of 2</span>
                   <p>Select friends to add to this group.</p>
                 </div>
+                {friends.length > 0 && (
+                  <label className="friend-picker-search">
+                    <span>Search friends</span>
+                    <input
+                      type="search"
+                      value={friendSearchQuery}
+                      onChange={(event) => setFriendSearchQuery(event.target.value)}
+                      placeholder="Search by username"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                    />
+                  </label>
+                )}
                 {friends.length === 0 ? (
                   <div className="empty-inline create-empty-friends">
                     No friends yet. You can create the group now and add friends later.
                   </div>
                 ) : (
                   <div className="create-friend-list">
-                    {friends.map((friend) => {
+                    {filteredFriends.length === 0 && (
+                      <p className="empty-inline" role="status">No friends match that search.</p>
+                    )}
+                    {filteredFriends.map((friend) => {
                       const selected = selectedFriendIds.includes(friend.id);
                       return (
                         <button
