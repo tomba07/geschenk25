@@ -74,7 +74,7 @@ export async function getCurrentPushSubscription() {
   try {
     const registration = await navigator.serviceWorker.getRegistration();
     if (!registration) return null;
-    return registration.pushManager.getSubscription();
+    return await registration.pushManager.getSubscription();
   } catch {
     return null;
   }

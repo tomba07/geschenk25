@@ -27,6 +27,9 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [emailNotificationsBusy, setEmailNotificationsBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [pushChecking, setPushChecking] = useState(true);
+  const [pushConfigured, setPushConfigured] = useState<boolean | null>(null);
+  const [pushError, setPushError] = useState('');
   const [pushTestBusy, setPushTestBusy] = useState(false);
   const [pushAvailability, setPushAvailability] = useState(() => getPushNotificationAvailability());
   const devPushTestVisible = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SCREEN === 'true';
@@ -45,13 +48,20 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     Promise.all([
       getCurrentPushSubscription(),
       apiClient.getNotificationPreferences(),
-    ]).then(([subscription, preferencesResponse]) => {
+      apiClient.getNotificationConfig(),
+    ]).then(([subscription, preferencesResponse, configResponse]) => {
       if (cancelled) return;
       setPushAvailability(getPushNotificationAvailability());
       setPushEnabled(Boolean(subscription));
+      setPushConfigured(configResponse.data ? Boolean(configResponse.data.enabled && configResponse.data.publicKey) : null);
+      setPushChecking(false);
       if (preferencesResponse.data) {
         setEmailNotificationsEnabled(preferencesResponse.data.email_enabled);
       }
+    }).catch(() => {
+      if (cancelled) return;
+      setPushChecking(false);
+      setPushError('Could not check notification settings. Try again or reload the page.');
     });
 
     return () => {
@@ -106,12 +116,15 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   };
 
   const handleTogglePushNotifications = async () => {
+    if (pushChecking || pushBusy) return;
     setPushBusy(true);
+    setPushError('');
     try {
       const result = pushEnabled ? await disablePushNotifications() : await enablePushNotifications();
 
       if (result.error) {
         setPushAvailability(getPushNotificationAvailability());
+        setPushError(result.error);
         showErrorToast(result.error);
         return;
       }
@@ -120,7 +133,10 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       setPushEnabled(!pushEnabled);
       showSuccessToast(pushEnabled ? 'Push notifications disabled' : 'Push notifications enabled');
     } catch (error) {
-      showErrorToast(error instanceof Error ? error.message : 'Failed to update push notifications');
+      const message = error instanceof Error ? error.message : 'Failed to update push notifications';
+      setPushAvailability(getPushNotificationAvailability());
+      setPushError(message);
+      showErrorToast(message);
     } finally {
       setPushBusy(false);
     }
@@ -174,7 +190,10 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const hasChanges = editingImage !== (imageUrl || null) || normalizedUsernameInput !== currentUsername;
   const initial = (normalizedUsernameInput || username || 'U').charAt(0).toUpperCase();
-  const pushControlsVisible = pushAvailability.canPrompt || pushEnabled;
+  const pushControlsVisible = pushEnabled || (pushAvailability.canPrompt && pushConfigured !== false);
+  const pushMessage = pushError || (!pushAvailability.canPrompt ? pushAvailability.message
+    : pushConfigured === false ? 'Push notifications are not configured yet.'
+    : 'Notifications on this device.');
 
   return (
     <section className="screen profile-screen">
@@ -284,7 +303,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
               </span>
               <div>
                 <strong>Push notifications</strong>
-                <small>Notifications on this device.</small>
+                <small id="push-notification-help" aria-live="polite">{pushChecking ? 'Checking push availability…' : pushMessage}</small>
               </div>
               {pushControlsVisible ? (
                 <button
@@ -292,8 +311,10 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
                   type="button"
                   role="switch"
                   aria-checked={pushEnabled}
+                  aria-label="Push notifications"
+                  aria-describedby="push-notification-help"
                   onClick={handleTogglePushNotifications}
-                  disabled={pushBusy}
+                  disabled={pushBusy || pushChecking}
                 >
                   <span />
                 </button>

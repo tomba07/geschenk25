@@ -5552,8 +5552,12 @@ hr {
 }
 
 @media (min-width: 1040px) {
+  .detail-topbar,
   .detail-layout {
     width: min(100% - 72px, 1280px);
+  }
+
+  .detail-layout {
     grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
     gap: 28px;
   }
