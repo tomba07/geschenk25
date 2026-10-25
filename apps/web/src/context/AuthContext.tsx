@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient } from '../lib/api';
 import { getErrorMessage } from '../utils/errors';
+import { showInfoToast } from '../utils/toast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -24,6 +25,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'geschenk.auth_token';
 const USER_KEY = 'geschenk.auth_user';
+
+function cacheUser(user: object) {
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch {
+    // Profile caching must not turn successful authentication into a failure.
+  }
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -54,8 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const clearAuth = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch {
+      // Browser storage may be unavailable; still clear the active session.
+    }
     apiClient.setToken(null);
     setIsAuthenticated(false);
     setUserId(null);
@@ -80,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.getMe();
       if (response.data) {
         const user = response.data.user;
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        cacheUser(user);
         setUserState(user);
       } else {
         clearAuth();
@@ -94,8 +107,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const storeSession = (token: string, user: { id: number; email?: string | null; username?: string | null; image_url?: string | null; profile_complete?: boolean }) => {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      } catch {
+        // Storage can be blocked entirely.
+      }
+      showInfoToast('Signed in for this tab. Your browser could not save the session; reloading may require signing in again.');
+    }
     apiClient.setToken(token);
     setUserState(user);
   };
@@ -165,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (response.data) {
         const { user } = response.data;
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        cacheUser(user);
         setUserState(user);
       }
       return { error: null };
@@ -182,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (response.data) {
         const { user } = response.data;
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        cacheUser(user);
         setUserState(user);
       }
       return { error: null };
@@ -200,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data) {
         const { user } = response.data;
         setImageUrl(user.image_url || null);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        cacheUser(user);
       }
       return { error: null };
     } catch (error) {

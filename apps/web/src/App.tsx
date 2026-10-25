@@ -69,7 +69,11 @@ function routePath(route: Route): string {
 }
 
 function hasStoredAuth() {
-  return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
+  try {
+    return Boolean(localStorage.getItem('geschenk.auth_token') && localStorage.getItem('geschenk.auth_user'));
+  } catch {
+    return false;
+  }
 }
 
 const PENDING_FRIEND_USERNAME_KEY = 'geschenk.pending_friend_username';

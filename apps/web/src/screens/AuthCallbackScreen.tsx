@@ -51,7 +51,7 @@ export default function AuthCallbackScreen({ token, onDone, onFailed }: AuthCall
       <div className="auth-card auth-callback-card">
         <div className="auth-form-panel">
           <div className="auth-form-heading">
-            <h2>{error ? 'Link expired' : 'Signing you in'}</h2>
+            <h2>{error ? 'Could not sign in' : 'Signing you in'}</h2>
             <p>{error || 'One moment while we verify your sign-in link.'}</p>
           </div>
           {error ? (
