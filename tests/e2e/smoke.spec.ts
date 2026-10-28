@@ -8,6 +8,344 @@ const DEV_ACCOUNT = {
 };
 
 test.describe('Geschenk smoke tests', () => {
+  test('archives personally after a draw and restores without changing assignments', async ({ page, request }) => {
+    const owner = await waitForDevSession(request);
+    const member = await waitForDevSession(request, 'dev.bailey@geschenk.test');
+    const third = await waitForDevSession(request, 'dev.casey@geschenk.test');
+    const outsider = await waitForDevSession(request, 'dev.elliot@geschenk.test');
+    const ownerHeaders = { Authorization: `Bearer ${owner.token}` };
+    const memberHeaders = { Authorization: `Bearer ${member.token}` };
+    const name = `Archive test ${Date.now()}`;
+    const created = await request.post(`${API_URL}/api/groups`, { headers: ownerHeaders, data: { name, member_ids: [member.user.id, third.user.id] } });
+    expect(created.ok()).toBeTruthy();
+    const { group } = await created.json();
+    const url = `${API_URL}/api/groups/${group.id}`;
+    try {
+      expect((await request.post(`${url}/assign`, { headers: ownerHeaders })).ok()).toBeTruthy();
+      const assignments = await (await request.get(`${url}/assignments`, { headers: ownerHeaders })).json();
+      await installSession(page, member);
+      await page.goto('/');
+      await page.getByRole('button', { name: new RegExp(name) }).first().click();
+      await page.getByRole('button', { name: 'Open group details' }).click();
+      await expect(page.getByRole('button', { name: 'Leave Group', exact: true })).toHaveCount(0);
+      await expect(page.getByText(/Contact the organizer/)).toBeVisible();
+      await page.getByRole('button', { name: 'Archive group', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Your gift exchanges' })).toBeVisible();
+      await expect(page.getByRole('button', { name: new RegExp(name) })).toHaveCount(0);
+      await page.reload();
+      await page.getByRole('button', { name: /^Archived/ }).click();
+      await page.getByRole('button', { name: new RegExp(name) }).first().click();
+      await expect(page.getByRole('heading', { name: 'Assignment', exact: true })).toBeVisible();
+      const memberDetail = await (await request.get(url, { headers: memberHeaders })).json();
+      const ownerDetail = await (await request.get(url, { headers: ownerHeaders })).json();
+      expect(memberDetail.group.is_archived).toBe(true);
+      expect(ownerDetail.group.is_archived).toBe(false);
+      expect(await (await request.get(`${url}/assignments`, { headers: ownerHeaders })).json()).toEqual(assignments);
+      expect((await request.patch(`${url}/archive`, { headers: { Authorization: `Bearer ${outsider.token}` }, data: { archived: true } })).status()).toBe(404);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.getByRole('button', { name: 'Open group details' }).click();
+      await page.getByRole('button', { name: 'Restore group', exact: true }).click();
+      await expect(page.getByRole('button', { name: new RegExp(name) }).first()).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+      expect((await request.patch(`${url}/archive`, { headers: ownerHeaders, data: { archived: true } })).ok()).toBeTruthy();
+      expect((await (await request.get(url, { headers: ownerHeaders })).json()).group.is_archived).toBe(true);
+    } finally {
+      await request.delete(url, { headers: ownerHeaders });
+    }
+  });
+
+  test('allows leaving before a draw and rejects archive access after leaving', async ({ request, page }) => {
+    const owner = await waitForDevSession(request);
+    const member = await waitForDevSession(request, 'dev.bailey@geschenk.test');
+    const headers = { Authorization: `Bearer ${owner.token}` };
+    const memberHeaders = { Authorization: `Bearer ${member.token}` };
+    const created = await request.post(`${API_URL}/api/groups`, { headers, data: { name: `Leave test ${Date.now()}`, member_ids: [member.user.id] } });
+    expect(created.ok()).toBeTruthy();
+    const { group } = await created.json();
+    const url = `${API_URL}/api/groups/${group.id}`;
+    try {
+      await installSession(page, member);
+      await page.goto('/');
+      await page.getByRole('button', { name: new RegExp(group.name) }).first().click();
+      await page.getByRole('button', { name: 'Open group details' }).click();
+      await expect(page.getByRole('button', { name: 'Leave Group', exact: true })).toBeVisible();
+      expect((await request.patch(`${url}/archive`, { headers: memberHeaders, data: { archived: true } })).ok()).toBeTruthy();
+      expect((await request.post(`${url}/leave`, { headers: memberHeaders })).ok()).toBeTruthy();
+      expect((await request.get(url, { headers: memberHeaders })).status()).toBe(404);
+      expect((await request.patch(`${url}/archive`, { headers: memberHeaders, data: { archived: false } })).status()).toBe(404);
+      const listing = await (await request.get(`${API_URL}/api/groups`, { headers: memberHeaders })).json();
+      expect(listing.groups.some((item: { id: number }) => item.id === group.id)).toBe(false);
+      expect((await request.post(`${url}/leave`, { headers })).status()).toBe(400);
+    } finally { await request.delete(url, { headers }); }
+  });
+
+  test('validates archive requests and makes repeated archive and restore safe', async ({ request }) => {
+    const owner = await waitForDevSession(request);
+    const headers = { Authorization: `Bearer ${owner.token}` };
+    const created = await request.post(`${API_URL}/api/groups`, { headers, data: { name: `Archive validation ${Date.now()}` } });
+    expect(created.ok()).toBeTruthy();
+    const { group } = await created.json();
+    const url = `${API_URL}/api/groups/${group.id}`;
+    try {
+      expect((await request.patch(`${url}/archive`, { data: { archived: true } })).status()).toBe(401);
+      for (const data of [{}, { archived: 'true' }, { archived: null }, { archived: 1 }]) {
+        expect((await request.patch(`${url}/archive`, { headers, data })).status()).toBe(400);
+      }
+      expect((await request.patch(`${API_URL}/api/groups/invalid/archive`, { headers, data: { archived: true } })).status()).toBe(400);
+      for (const archived of [true, true, false, false]) {
+        expect((await request.patch(`${url}/archive`, { headers, data: { archived } })).ok()).toBeTruthy();
+        const detail = await (await request.get(url, { headers })).json();
+        expect(detail.group.is_archived).toBe(archived);
+        expect(detail.group.members.map((item: { id: number }) => item.id)).toEqual([owner.user.id]);
+      }
+    } finally { await request.delete(url, { headers }); }
+  });
+
+  test('organizer can reset, remove a participant and redraw while archive preserves messages and ideas', async ({ request }) => {
+    const owner = await waitForDevSession(request);
+    const member = await waitForDevSession(request, 'dev.bailey@geschenk.test');
+    const third = await waitForDevSession(request, 'dev.casey@geschenk.test');
+    const fourth = await waitForDevSession(request, 'dev.drew@geschenk.test');
+    const headers = { Authorization: `Bearer ${owner.token}` };
+    const memberHeaders = { Authorization: `Bearer ${member.token}` };
+    const created = await request.post(`${API_URL}/api/groups`, { headers, data: { name: `Withdrawal ${Date.now()}`, member_ids: [member.user.id, third.user.id, fourth.user.id] } });
+    expect(created.ok()).toBeTruthy();
+    const { group } = await created.json();
+    const url = `${API_URL}/api/groups/${group.id}`;
+    try {
+      expect((await request.post(`${url}/assign`, { headers })).ok()).toBeTruthy();
+      expect((await request.post(`${url}/gift-ideas`, { headers: memberHeaders, data: { for_user_id: member.user.id, idea: 'A book' } })).ok()).toBeTruthy();
+      const ideas = await (await request.get(`${url}/gift-ideas`, { headers: memberHeaders })).json();
+      const { chats } = await (await request.get(`${url}/assignment-chats`, { headers: memberHeaders })).json();
+      const chatUrl = `${url}/assignment-chats/${chats[0].assignment_id}/messages`;
+      expect((await request.post(chatUrl, { headers: memberHeaders, data: { body: 'Still participating' } })).ok()).toBeTruthy();
+      const messages = await (await request.get(chatUrl, { headers: memberHeaders })).json();
+      expect((await request.patch(`${url}/archive`, { headers: memberHeaders, data: { archived: true } })).ok()).toBeTruthy();
+      expect(await (await request.get(`${url}/gift-ideas`, { headers: memberHeaders })).json()).toEqual(ideas);
+      expect(await (await request.get(chatUrl, { headers: memberHeaders })).json()).toEqual(messages);
+      expect((await request.post(`${url}/leave`, { headers: memberHeaders })).status()).toBe(400);
+      expect((await request.delete(`${url}/members/${member.user.id}`, { headers })).status()).toBe(400);
+      expect((await request.delete(`${url}/assignments`, { headers: memberHeaders })).status()).toBe(403);
+      expect((await request.delete(`${url}/assignments`, { headers })).ok()).toBeTruthy();
+      expect((await request.delete(`${url}/members/${member.user.id}`, { headers })).ok()).toBeTruthy();
+      expect((await request.post(`${url}/assign`, { headers })).ok()).toBeTruthy();
+      const { assignments } = await (await request.get(`${url}/assignments`, { headers })).json();
+      expect(assignments).toHaveLength(3);
+      for (const assignment of assignments) {
+        expect(assignment.giver_id).not.toBe(member.user.id);
+        expect(assignment.receiver_id).not.toBe(member.user.id);
+        expect(assignment.giver_id).not.toBe(assignment.receiver_id);
+      }
+      expect((await request.get(chatUrl, { headers: memberHeaders })).ok()).toBe(false);
+    } finally { await request.delete(url, { headers }); }
+  });
+
+  test('creates a group with friends selected across searches', async ({ page, request }) => {
+    const session = await signInAsDevUser(page, request);
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const name = `Search selection ${Date.now()}`;
+    let groupId: number | undefined;
+    try {
+      await page.getByRole('button', { name: 'New Group', exact: true }).first().click();
+      const search = page.getByRole('searchbox', { name: 'Search friends' });
+      await search.fill('  @DEV_BAILEY  ');
+      await expect(page.locator('.create-friend-option')).toHaveCount(1);
+      await page.locator('.create-friend-option').click();
+      await search.fill('no-such-friend');
+      await expect(page.getByRole('status')).toContainText('No friends match');
+      await search.fill('casey');
+      await page.locator('.create-friend-option').click();
+      await search.fill('');
+      await expect(page.getByRole('checkbox', { name: 'Add @dev_bailey', exact: true })).toBeChecked();
+      await expect(page.getByRole('checkbox', { name: 'Add @dev_casey', exact: true })).toBeChecked();
+      await search.press('Enter');
+      await expect(page.getByRole('searchbox', { name: 'Search friends' })).toBeVisible();
+      await page.getByRole('button', { name: 'Continue', exact: true }).click();
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
+      await expect(page.getByRole('checkbox', { name: 'Add @dev_bailey', exact: true })).toBeChecked();
+      await page.getByRole('button', { name: 'Continue', exact: true }).click();
+      await page.getByLabel('Group Name', { exact: true }).fill(name);
+      const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/groups') && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Create Group', exact: true }).click();
+      const response = await responsePromise;
+      expect(response.ok()).toBeTruthy();
+      groupId = (await response.json()).group.id;
+      await expect(page.getByRole('heading', { name: 'Members (3)' })).toBeVisible();
+      const detail = await (await request.get(`${API_URL}/api/groups/${groupId}`, { headers })).json();
+      expect(detail.group.members.map((member: { username: string }) => member.username).sort()).toEqual(['dev_alex', 'dev_bailey', 'dev_casey']);
+    } finally {
+      if (groupId) await request.delete(`${API_URL}/api/groups/${groupId}`, { headers });
+    }
+  });
+
+  test('exchange invite previews, login, pending privacy and organizer approval', async ({ page, request, browser }) => {
+    const owner = await waitForDevSession(request);
+    const guest = await waitForDevSession(request, 'dev.elliot@geschenk.test');
+    const ownerHeaders = { Authorization: `Bearer ${owner.token}` };
+    const guestHeaders = { Authorization: `Bearer ${guest.token}` };
+    const created = await request.post(`${API_URL}/api/groups`, { headers: ownerHeaders, data: { name: `Invite flow ${Date.now()}` } });
+    expect(created.ok()).toBeTruthy();
+    const { group } = await created.json(); const url = `${API_URL}/api/groups/${group.id}`;
+    const ownerPage = await browser.newPage();
+    try {
+      const { invite_token: token } = await (await request.get(`${url}/invite-link`, { headers: ownerHeaders })).json();
+      const preview = await (await request.get(`${API_URL}/api/groups/invite/${token}`)).json();
+      expect(Object.keys(preview.invite).sort()).toEqual(['closed', 'id', 'name', 'organizer']);
+      await page.goto(`/invite/${token}`);
+      await expect(page.getByRole('heading', { name: `Join ${group.name}` })).toBeVisible();
+      await page.getByRole('button', { name: 'Sign in to request to join' }).click();
+      await page.getByLabel('Email', { exact: true }).fill('dev.elliot@geschenk.test');
+      await page.getByLabel('Password', { exact: true }).fill(DEV_ACCOUNT.password);
+      await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+      await page.getByRole('button', { name: 'Request to join', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Awaiting organizer approval');
+      expect((await request.get(url, { headers: guestHeaders })).status()).toBe(404);
+      const duplicate = await request.post(`${API_URL}/api/groups/join/${token}`, { headers: guestHeaders });
+      expect((await duplicate.json()).status).toBe('pending');
+      expect((await request.get(`${url}/join-requests`, { headers: guestHeaders })).status()).toBe(403);
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers: guestHeaders, data: { action: 'approve' } })).status()).toBe(403);
+      await installSession(ownerPage, owner);
+      await ownerPage.goto(`/groups/${group.id}`);
+      await expect(ownerPage.getByRole('heading', { name: 'Join requests (1)' })).toBeVisible();
+      await ownerPage.getByRole('button', { name: 'Approve @dev_elliot' }).click();
+      await expect(ownerPage.getByRole('heading', { name: 'Members (2)' })).toBeVisible();
+      expect((await request.get(url, { headers: guestHeaders })).ok()).toBeTruthy();
+      await page.reload();
+      await page.getByRole('button', { name: 'Request to join', exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/groups/${group.id}$`));
+      await ownerPage.setViewportSize({ width: 390, height: 844 });
+      await ownerPage.getByRole('button', { name: 'Invite people', exact: true }).click();
+      await expect(ownerPage.getByLabel('Exchange invite link')).toHaveValue(new RegExp(`/invite/${token}$`));
+      expect(await ownerPage.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    } finally { await ownerPage.close(); await request.delete(url, { headers: ownerHeaders }); }
+  });
+
+  test('exchange invites enforce rejection cooldown, revocation and draw cutoff', async ({ request }) => {
+    const owner = await waitForDevSession(request);
+    const guest = await waitForDevSession(request, 'dev.elliot@geschenk.test');
+    const second = await waitForDevSession(request, 'dev.bailey@geschenk.test');
+    const third = await waitForDevSession(request, 'dev.casey@geschenk.test');
+    const headers = { Authorization: `Bearer ${owner.token}` };
+    const guestHeaders = { Authorization: `Bearer ${guest.token}` };
+    const created = await request.post(`${API_URL}/api/groups`, { headers, data: { name: `Invite rules ${Date.now()}`, member_ids: [second.user.id, third.user.id] } });
+    const { group } = await created.json(); const url = `${API_URL}/api/groups/${group.id}`;
+    try {
+      const { invite_token: oldToken } = await (await request.get(`${url}/invite-link`, { headers })).json();
+      expect((await request.post(`${API_URL}/api/groups/join/${oldToken}`)).status()).toBe(401);
+      expect((await request.patch(`${url}/invite-link`, { headers: guestHeaders, data: { action: 'disable' } })).status()).toBe(403);
+      expect((await request.post(`${API_URL}/api/groups/join/${oldToken}`, { headers: guestHeaders })).ok()).toBeTruthy();
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers, data: { action: 'block' } })).ok()).toBeTruthy();
+      const blocked = await request.post(`${API_URL}/api/groups/join/${oldToken}`, { headers: guestHeaders });
+      expect(blocked.status()).toBe(403);
+      expect(blocked.headers()['retry-after']).toBeUndefined();
+      const requests = await (await request.get(`${url}/join-requests`, { headers })).json();
+      expect(requests.requests).toContainEqual({ user_id: guest.user.id, username: guest.user.username, blocked: true });
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers: guestHeaders, data: { action: 'unblock' } })).status()).toBe(403);
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers, data: { action: 'unblock' } })).ok()).toBeTruthy();
+      expect((await request.post(`${API_URL}/api/groups/join/${oldToken}`, { headers: guestHeaders })).ok()).toBeTruthy();
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers, data: { action: 'reject' } })).ok()).toBeTruthy();
+      const declinedRetry = await request.post(`${API_URL}/api/groups/join/${oldToken}`, { headers: guestHeaders });
+      expect(declinedRetry.status()).toBe(429);
+      const wait = Number(declinedRetry.headers()['retry-after']);
+      expect(wait).toBeGreaterThan(0);
+      expect(wait).toBeLessThanOrEqual(10);
+      expect((await declinedRetry.json()).retry_after_seconds).toBe(wait);
+      const reset = await request.patch(`${url}/invite-link`, { headers, data: { action: 'reset' } });
+      const { invite_token: token } = await reset.json(); expect(token).not.toBe(oldToken);
+      expect((await request.get(`${API_URL}/api/groups/invite/${oldToken}`)).status()).toBe(404);
+      expect((await request.post(`${API_URL}/api/groups/join/${oldToken}`, { headers: guestHeaders })).status()).toBe(404);
+      expect((await request.post(`${API_URL}/api/groups/join/${token}`, { headers: guestHeaders })).status()).toBe(429);
+      await request.patch(`${url}/invite-link`, { headers, data: { action: 'disable' } });
+      expect((await request.get(`${API_URL}/api/groups/invite/${token}`)).status()).toBe(404);
+      expect((await request.post(`${API_URL}/api/groups/join/${token}`, { headers: guestHeaders })).status()).toBe(404);
+      await request.patch(`${url}/invite-link`, { headers, data: { action: 'enable' } });
+      expect((await request.post(`${url}/assign`, { headers })).ok()).toBeTruthy();
+      expect((await (await request.get(`${API_URL}/api/groups/invite/${token}`)).json()).invite.closed).toBe(true);
+      expect((await request.post(`${API_URL}/api/groups/join/${token}`, { headers: guestHeaders })).status()).toBe(409);
+      expect((await request.patch(`${url}/join-requests/${guest.user.id}`, { headers, data: { action: 'approve' } })).status()).toBe(409);
+    } finally { await request.delete(url, { headers }); }
+  });
+
+  test('limits concurrent join requests to ten per account', async ({ request }) => {
+    const owner = await waitForDevSession(request);
+    const guest = await waitForDevSession(request, 'dev.elliot@geschenk.test');
+    const headers = { Authorization: `Bearer ${owner.token}` };
+    const guestHeaders = { Authorization: `Bearer ${guest.token}` };
+    const groups: { id: number; token: string }[] = [];
+    try {
+      for (let index = 0; index < 11; index++) {
+        const created = await request.post(`${API_URL}/api/groups`, { headers, data: { name: `Request limit ${Date.now()}-${index}` } });
+        expect(created.ok()).toBeTruthy();
+        const { group } = await created.json();
+        groups.push({ id: group.id, token: '' });
+        const link = await request.get(`${API_URL}/api/groups/${group.id}/invite-link`, { headers });
+        groups[index].token = (await link.json()).invite_token;
+      }
+      const responses = await Promise.all(groups.map(group => request.post(`${API_URL}/api/groups/join/${group.token}`, { headers: guestHeaders })));
+      expect(responses.filter(response => response.status() === 200)).toHaveLength(10);
+      expect(responses.filter(response => response.status() === 429)).toHaveLength(1);
+      const acceptedIndex = responses.findIndex(response => response.status() === 200);
+      const repeated = await request.post(`${API_URL}/api/groups/join/${groups[acceptedIndex].token}`, { headers: guestHeaders });
+      expect((await repeated.json()).status).toBe('pending');
+    } finally {
+      for (const group of groups) await request.delete(`${API_URL}/api/groups/${group.id}`, { headers });
+    }
+  });
+
+  test('keeps create-group search and actions fixed while friends scroll', async ({ page, request }) => {
+    await signInAsDevUser(page, request);
+    await page.route('**/api/friends', route => route.fulfill({ json: { friends: Array.from({ length: 40 }, (_, index) => ({ id: index + 10000, username: `scroll_friend_${index}` })) } }));
+    await page.getByRole('button', { name: 'New Group', exact: true }).first().click();
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 390, height: 500 }]) {
+      await page.setViewportSize(viewport);
+      const search = page.getByRole('searchbox', { name: 'Search friends' });
+      const next = page.getByRole('button', { name: 'Continue', exact: true });
+      const before = await next.boundingBox();
+      const list = page.locator('.create-friend-list');
+      await expect(list).toHaveCSS('overflow-y', 'auto');
+      expect(await list.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+      await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      await expect(search).toBeInViewport();
+      await expect(next).toBeInViewport();
+      expect((await next.boundingBox())!.y).toBe(before!.y);
+      expect(await page.locator('.create-friends-dialog').evaluate(element => element.scrollTop)).toBe(0);
+    }
+    await page.getByRole('searchbox', { name: 'Search friends' }).fill('not-a-match');
+    await expect(page.getByRole('status')).toContainText('No friends match');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByLabel('Group Name', { exact: true })).toBeVisible();
+  });
+
+  test('skips friend selection with no friends and offers the exchange link after creation', async ({ page, request }) => {
+    const session = await signInAsDevUser(page, request);
+    const headers = { Authorization: `Bearer ${session.token}` };
+    await page.route('**/api/friends', route => route.fulfill({ json: { friends: [] } }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    let groupId: number | undefined;
+    try {
+      await page.getByRole('button', { name: 'Create new group', exact: true }).first().click();
+      await expect(page.getByLabel('Group Name', { exact: true })).toBeVisible();
+      await expect(page.getByRole('searchbox', { name: 'Search friends' })).toHaveCount(0);
+      await expect(page.getByText('Step 2 of 2', { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.getByRole('button', { name: 'Create new group', exact: true }).first().click();
+      await page.getByLabel('Group Name', { exact: true }).fill(`No-friends exchange ${Date.now()}`);
+      const created = page.waitForResponse(response => response.url().endsWith('/api/groups') && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Create Group', exact: true }).click();
+      const response = await created;
+      expect(response.ok()).toBeTruthy();
+      groupId = (await response.json()).group.id;
+      await expect(page.getByRole('heading', { name: 'Invite people', exact: true })).toBeVisible();
+      await expect(page.getByLabel('Exchange invite link')).toHaveValue(/\/invite\/[a-f0-9]+$/);
+      const detail = await (await request.get(`${API_URL}/api/groups/${groupId}`, { headers })).json();
+      expect(detail.group.members).toHaveLength(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    } finally {
+      if (groupId) await request.delete(`${API_URL}/api/groups/${groupId}`, { headers });
+    }
+  });
+
   test('shows the public landing page and password login form', async ({ page }) => {
     await page.goto('/');
 

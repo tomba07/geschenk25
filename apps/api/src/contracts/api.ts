@@ -45,6 +45,7 @@ export interface GroupOwnerDto {
 }
 
 export interface GroupDto {
+  is_archived?: boolean;
   id: number;
   name: string;
   description?: string | null;

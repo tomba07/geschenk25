@@ -299,7 +299,7 @@ export default function FriendsScreen() {
           <section className="friends-section">
             <header className="friends-section-header">
               <h2>Invite a friend</h2>
-              <p>Share a one-time link to connect with someone.</p>
+              <p>Share your reusable friend link to connect with someone.</p>
             </header>
             <div className="friends-invite-card">
               {inviteLink ? (

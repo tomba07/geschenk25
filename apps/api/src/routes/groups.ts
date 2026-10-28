@@ -1,3 +1,4 @@
+import { rejectionRetrySeconds, formatRetryWait } from '../utils/joinRequestCooldown';
 import express, { Request, Response } from 'express';
 import crypto from 'crypto';
 import pool from '../db';
@@ -113,104 +114,101 @@ async function getAssignmentChat(groupId: number, assignmentId: number, userId: 
 // Public route: Get group info from invite token (no auth required)
 router.get('/invite/:token', async (req: Request, res: Response) => {
   try {
-    const token = req.params.token;
-
-    const result = await pool.query(
-      `SELECT g.id, g.name, g.description, g.image_url,
-              (1 + COALESCE((SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND (status IS NULL OR status = 'active')), 0)) as member_count,
-              EXISTS(SELECT 1 FROM assignments WHERE group_id = g.id) as assignments_created
-       FROM groups g
-       WHERE g.invite_token = $1`,
-      [token]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid invite link' });
-    }
-
-    const group = result.rows[0];
-    res.json({
-      group: {
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        image_url: group.image_url,
-        member_count: parseInt(group.member_count, 10),
-        assignments_created: group.assignments_created,
-      },
-    });
-  } catch (error: any) {
-    console.error('Error fetching group from invite token:', error);
-    res.status(500).json({ error: 'Failed to fetch group info' });
-  }
+    const result = await pool.query(`SELECT g.id, g.name, u.username AS organizer,
+      EXISTS(SELECT 1 FROM assignments WHERE group_id = g.id) AS closed
+      FROM groups g JOIN users u ON u.id = g.created_by
+      WHERE g.invite_token = $1 AND g.invites_enabled`, [req.params.token]);
+    if (!result.rows.length) return res.status(404).json({ error: 'This invitation is unavailable. Ask the organizer for a new link.' });
+    res.json({ invite: result.rows[0] });
+  } catch { res.status(500).json({ error: 'Could not load invitation' }); }
 });
 
-// All routes below require authentication
 router.use(authenticateToken);
 
-// Join group via invite token
+// A link permits requesting access, never direct membership.
 router.post('/join/:token', async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const userId = req.userId!;
-    const token = req.params.token;
-
-    // Find group by invite token
-    const groupResult = await pool.query(
-      'SELECT id, name, created_by FROM groups WHERE invite_token = $1',
-      [token]
-    );
-
-    if (groupResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid invite link' });
-    }
-
-    const group = groupResult.rows[0];
-    const groupId = group.id;
-
-    // Check if user is already an active member
-    const memberCheck = await pool.query(
-      'SELECT id, status FROM group_members WHERE group_id = $1 AND user_id = $2',
-      [groupId, userId]
-    );
-
-    if (memberCheck.rows.length > 0) {
-      const member = memberCheck.rows[0];
-      if (member.status !== 'left') {
-        return res.json({ message: 'You are already a member of this group', group_id: groupId });
+    // Serialize requests per account so parallel submissions cannot bypass limits.
+    await client.query('SELECT pg_advisory_xact_lock(27125, $1)', [userId]);
+    const result = await client.query('SELECT * FROM groups WHERE invite_token = $1 AND invites_enabled FOR UPDATE', [req.params.token]);
+    const group = result.rows[0];
+    if (!group) return res.status(404).json({ error: 'This invitation is unavailable.' });
+    const member = await client.query("SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2 AND (status IS NULL OR status = 'active')", [group.id, userId]);
+    if (group.created_by === userId || member.rowCount) return res.json({ status: 'member', group_id: group.id });
+    if ((await client.query('SELECT 1 FROM assignments WHERE group_id = $1', [group.id])).rowCount) return res.status(409).json({ error: 'Names have been drawn. Invitations are closed.' });
+    const existing = await client.query(`SELECT *, clock_timestamp() AS database_now FROM group_join_requests WHERE group_id = $1 AND user_id = $2`, [group.id, userId]);
+    if (existing.rows[0]?.status === 'pending') return res.json({ status: 'pending' });
+    const previous = existing.rows[0];
+    if (previous?.rejection_count >= 5) return res.status(403).json({ error: 'Requests for this exchange are blocked. The organizer must unblock you before you can request again.' });
+    if (previous?.status === 'rejected' && previous.reviewed_at) {
+      const retryAfterSeconds = rejectionRetrySeconds(previous.rejection_count, new Date(previous.reviewed_at), new Date(previous.database_now).getTime());
+      if (retryAfterSeconds > 0) {
+        res.setHeader('Retry-After', String(retryAfterSeconds));
+        return res.status(429).json({
+          error: `This request was declined. Try again in ${formatRetryWait(retryAfterSeconds)}. Repeated declines increase the wait; the fifth blocks further requests.`,
+          retry_after_seconds: retryAfterSeconds,
+        });
       }
-
-      if (await groupHasAssignments(groupId)) {
-        return res.status(400).json({ error: assignmentLockError() });
-      }
-
-      // If user has left, reactivate them
-      await pool.query(
-        "UPDATE group_members SET status = 'active' WHERE id = $1",
-        [member.id]
-      );
-      return res.json({ message: 'Successfully rejoined group', group_id: groupId });
     }
+    const limits = await client.query(`SELECT COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+      COUNT(*) FILTER (WHERE requested_at > NOW() - INTERVAL '24 hours') AS recent
+      FROM group_join_requests WHERE user_id = $1`, [userId]);
+    if (Number(limits.rows[0].pending) >= 10 || Number(limits.rows[0].recent) >= 10) return res.status(429).json({ error: 'You have reached the join-request limit. Try again later.' });
+    await client.query(`INSERT INTO group_join_requests (group_id, user_id, status) VALUES ($1, $2, 'pending')
+      ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'pending', requested_at = NOW(), reviewed_at = NULL`, [group.id, userId]);
+    await client.query('COMMIT');
+    res.json({ status: 'pending' });
+  } catch { res.status(500).json({ error: 'Could not request to join' }); }
+  finally { await client.query('ROLLBACK'); client.release(); }
+});
 
-    // Check if user is the owner
-    if (group.created_by === userId) {
-      return res.json({ message: 'You are the owner of this group', group_id: groupId });
-    }
+router.get('/:id/join-requests', async (req: AuthRequest, res: Response) => {
+  try {
+    const owner = await pool.query('SELECT 1 FROM groups WHERE id = $1 AND created_by = $2', [req.params.id, req.userId]);
+    if (!owner.rowCount) return res.status(403).json({ error: 'Only the organizer can review requests' });
+    const result = await pool.query(`SELECT r.user_id, u.username, (r.rejection_count >= 5) AS blocked FROM group_join_requests r JOIN users u ON u.id = r.user_id
+      WHERE r.group_id = $1 AND (r.status = 'pending' OR r.rejection_count >= 5) ORDER BY r.requested_at`, [req.params.id]);
+    res.json({ requests: result.rows });
+  } catch { res.status(500).json({ error: 'Could not load requests' }); }
+});
 
-    if (await groupHasAssignments(groupId)) {
-      return res.status(400).json({ error: assignmentLockError() });
-    }
+router.patch('/:id/join-requests/:userId', async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
+  try {
+    if (!['approve', 'reject', 'block', 'unblock'].includes(req.body.action)) return res.status(400).json({ error: 'Choose approve, reject, block or unblock' });
+    await client.query('BEGIN');
+    const result = await client.query('SELECT created_by FROM groups WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (result.rows[0]?.created_by !== req.userId) return res.status(403).json({ error: 'Only the organizer can review requests' });
+    if (req.body.action === 'approve' && (await client.query('SELECT 1 FROM assignments WHERE group_id = $1', [req.params.id])).rowCount) return res.status(409).json({ error: 'Names have been drawn. Reset the draw before adding people.' });
+    const updated = await client.query(`UPDATE group_join_requests SET
+      status = CASE WHEN $3 = 'approve' THEN 'approved' ELSE 'rejected' END,
+      reviewed_at = CASE WHEN $3 = 'unblock' THEN NULL ELSE NOW() END,
+      rejection_count = CASE WHEN $3 = 'block' THEN 5 WHEN $3 = 'reject' THEN LEAST(rejection_count + 1, 5) ELSE 0 END
+      WHERE group_id = $1 AND user_id = $2
+        AND (($3 = 'unblock' AND rejection_count >= 5) OR ($3 <> 'unblock' AND status = 'pending' AND rejection_count < 5))
+      RETURNING user_id`, [req.params.id, req.params.userId, req.body.action]);
+    if (!updated.rowCount) return res.status(404).json({ error: 'Request is no longer pending' });
+    if (req.body.action === 'approve') await client.query(`INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active')
+      ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'`, [req.params.id, req.params.userId]);
+    await client.query('COMMIT');
+    res.json({ message: ({ approve: 'Member added', reject: 'Request declined', block: 'Requests blocked', unblock: 'Requests unblocked' })[req.body.action] });
+  } catch { res.status(500).json({ error: 'Could not review request' }); }
+  finally { await client.query('ROLLBACK'); client.release(); }
+});
 
-    // Add user to group (or reactivate if they were left)
-    await pool.query(
-      "INSERT INTO group_members (group_id, user_id, status) VALUES ($1, $2, 'active') ON CONFLICT (group_id, user_id) DO UPDATE SET status = 'active'",
-      [groupId, userId]
-    );
-
-    res.json({ message: 'Successfully joined group', group_id: groupId });
-  } catch (error: any) {
-    console.error('Error joining group via invite token:', error);
-    res.status(500).json({ error: 'Failed to join group' });
-  }
+router.patch('/:id/invite-link', async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['reset', 'disable', 'enable'].includes(req.body.action)) return res.status(400).json({ error: 'Invalid action' });
+    const result = await pool.query(`UPDATE groups SET invites_enabled = $3,
+      invite_token = CASE WHEN $4 OR invite_token IS NULL THEN $5 ELSE invite_token END
+      WHERE id = $1 AND created_by = $2 RETURNING invite_token, invites_enabled`,
+      [req.params.id, req.userId, req.body.action !== 'disable', req.body.action === 'reset', generateInviteToken()]);
+    if (!result.rowCount) return res.status(403).json({ error: 'Only the organizer can manage invitations' });
+    res.json(result.rows[0]);
+  } catch { res.status(500).json({ error: 'Could not update invitation' }); }
 });
 
 // Get user's groups (both created and joined)
@@ -228,6 +226,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                  JOIN users receiver ON receiver.id = current_assignment.receiver_id
                 WHERE current_assignment.group_id = g.id AND current_assignment.giver_id = $1
                 LIMIT 1) as assignment_receiver_username,
+              EXISTS(SELECT 1 FROM group_archives ga WHERE ga.group_id = g.id AND ga.user_id = $1) as is_archived,
               ${unreadMessagesSql('g')} as unread_message_count
        FROM groups g
        LEFT JOIN group_members gm ON g.id = gm.group_id AND (gm.status IS NULL OR gm.status = 'active')
@@ -250,6 +249,29 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Archive visibility is personal and does not alter membership or assignments.
+router.patch('/:id/archive', async (req: AuthRequest, res: Response) => {
+  try {
+    const groupId = Number(req.params.id);
+    const userId = req.userId!;
+    if (!Number.isSafeInteger(groupId) || groupId <= 0 || typeof req.body.archived !== 'boolean') {
+      return res.status(400).json({ error: 'A valid group and archive state are required' });
+    }
+    if (!(await userCanAccessGroup(groupId, userId))) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    if (req.body.archived) {
+      await pool.query('INSERT INTO group_archives (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [groupId, userId]);
+    } else {
+      await pool.query('DELETE FROM group_archives WHERE group_id = $1 AND user_id = $2', [groupId, userId]);
+    }
+    res.json({ message: req.body.archived ? 'Group archived for you' : 'Group restored' });
+  } catch (error) {
+    console.error('Error archiving group:', error);
+    res.status(500).json({ error: 'Failed to update group archive' });
+  }
+});
+
 // Get single group (with members)
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
@@ -259,6 +281,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     // Check if user has access to this group (owner or active member, not left)
     const accessCheck = await pool.query(
       `SELECT g.id, g.name, g.description, g.image_url, g.created_at, g.created_by,
+              EXISTS(SELECT 1 FROM group_archives ga WHERE ga.group_id = g.id AND ga.user_id = $1) as is_archived,
               ${unreadMessagesSql('g')} as unread_message_count
        FROM groups g
        LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $1 AND (gm.status IS NULL OR gm.status = 'active')
@@ -465,7 +488,7 @@ router.get('/:id/invite-link', async (req: AuthRequest, res: Response) => {
 
     // Check if group exists and user is the owner
     const groupCheck = await pool.query(
-      'SELECT id, created_by, invite_token FROM groups WHERE id = $1',
+      'SELECT id, created_by, invite_token, invites_enabled FROM groups WHERE id = $1',
       [groupId]
     );
 
@@ -508,7 +531,7 @@ router.get('/:id/invite-link', async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.json({ invite_token: inviteToken });
+    res.json({ invite_token: inviteToken, invites_enabled: groupCheck.rows[0].invites_enabled });
   } catch (error: any) {
     console.error('Error getting invite link:', error);
     res.status(500).json({ error: 'Failed to get invite link' });
@@ -559,6 +582,8 @@ router.post('/:id/invite', async (req: AuthRequest, res: Response) => {
     if (groupCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Group not found' });
     }
+
+    if (groupCheck.rows[0].created_by !== userId) return res.status(403).json({ error: 'Only the organizer can add people' });
 
     if (await groupHasAssignments(groupId)) {
       return res.status(400).json({ error: assignmentLockError() });
@@ -713,13 +738,15 @@ router.delete('/:id/members/:userId', async (req: AuthRequest, res: Response) =>
 
 // Assign Secret Santa pairs (owner only)
 router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const userId = req.userId!;
     const groupId = parseInt(req.params.id);
 
     // Check if user is owner
-    const groupCheck = await pool.query(
-      'SELECT created_by, name FROM groups WHERE id = $1',
+    const groupCheck = await client.query(
+      'SELECT created_by, name FROM groups WHERE id = $1 FOR UPDATE',
       [groupId]
     );
 
@@ -736,7 +763,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
     }
 
     // Get all active members (including owner, excluding left members)
-    const membersResult = await pool.query(
+    const membersResult = await client.query(
       `SELECT DISTINCT u.id, u.username
        FROM users u
        WHERE (u.id = $1 AND u.id IN (SELECT created_by FROM groups WHERE id = $2))
@@ -808,15 +835,17 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
     }
 
     // Delete existing assignments for this group
-    await pool.query('DELETE FROM assignments WHERE group_id = $1', [groupId]);
+    await client.query('DELETE FROM assignments WHERE group_id = $1', [groupId]);
 
     // Create new assignments
     for (const [giverId, receiverId] of pairs.entries()) {
-      await pool.query(
+      await client.query(
         'INSERT INTO assignments (group_id, giver_id, receiver_id) VALUES ($1, $2, $3)',
         [groupId, giverId, receiverId]
       );
     }
+
+    await client.query('COMMIT');
 
     members.forEach((member: any) => {
       sendNotificationToUser(member.id, {
@@ -833,7 +862,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error creating assignments:', error);
     res.status(500).json({ error: 'Failed to create assignments' });
-  }
+  } finally { await client.query('ROLLBACK'); client.release(); }
 });
 
 // Get current user's assignment for a group

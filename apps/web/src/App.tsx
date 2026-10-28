@@ -1,3 +1,4 @@
+import ExchangeInviteScreen from './screens/ExchangeInviteScreen';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { apiClient } from './lib/api';
@@ -25,6 +26,7 @@ import {
 } from './utils/pushNotifications';
 
 type Route =
+  | { name: 'group-invite'; token: string }
   | { name: 'home' }
   | { name: 'login'; friendInvite?: boolean }
   | { name: 'signup' }
@@ -33,11 +35,13 @@ type Route =
   | { name: 'profile' }
   | { name: 'friends' }
   | { name: 'dev' }
-  | { name: 'group'; groupId: string }
+  | { name: 'group'; groupId: string; openInvite?: boolean }
   | { name: 'friend-invite'; username: string };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
+  const exchangeInviteMatch = path.match(/^\/invite\/([^/]+)$/);
+  if (exchangeInviteMatch) return { name: 'group-invite', token: decodeURIComponent(exchangeInviteMatch[1]) };
   const groupMatch = path.match(/^\/groups\/([^/]+)$/);
   if (groupMatch) return { name: 'group', groupId: groupMatch[1] };
 
@@ -56,6 +60,7 @@ function parseRoute(): Route {
 }
 
 function routePath(route: Route): string {
+  if (route.name === 'group-invite') return `/invite/${encodeURIComponent(route.token)}`;
   if (route.name === 'group') return `/groups/${route.groupId}`;
   if (route.name === 'friend-invite') return `/plsbemyfriend/${encodeURIComponent(route.username)}`;
   if (route.name === 'signup') return '/signup';
@@ -198,10 +203,21 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'friend-invite', 'auth-callback', 'reset-password'].includes(route.name)) {
+    if (!isLoading && !isAuthenticated && !['home', 'login', 'signup', 'group-invite', 'friend-invite', 'auth-callback', 'reset-password'].includes(route.name)) {
       navigate({ name: 'login' }, true);
     }
   }, [isAuthenticated, isLoading, route.name]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !profileComplete || !['home', 'login', 'signup'].includes(route.name)) return;
+    try {
+      const token = localStorage.getItem('geschenk.pending_exchange_invite');
+      if (token) {
+        localStorage.removeItem('geschenk.pending_exchange_invite');
+        navigate({ name: 'group-invite', token }, true);
+      }
+    } catch { /* Storage may be unavailable. */ }
+  }, [isAuthenticated, profileComplete, route.name]);
 
   useEffect(() => {
     if (isAuthenticated && profileComplete && pendingFriendUsername) {
@@ -365,6 +381,10 @@ function AppContent() {
       return <LoadingScreen route={route} />;
     }
 
+    if (route.name === 'group-invite') {
+      return <ExchangeInviteScreen token={route.token} onSignup={() => navigate({ name: 'signup' })} onOpen={(id) => navigate({ name: 'group', groupId: String(id) })} />;
+    }
+
     if (route.name === 'friend-invite') {
       return (
         <InviteLandingScreen
@@ -417,7 +437,7 @@ function AppContent() {
     if (route.name === 'group') {
       return (
         <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
-          <GroupDetailScreen groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />
+          <GroupDetailScreen openInvite={route.openInvite} groupId={route.groupId} onBack={() => navigate({ name: 'home' })} />
         </AppShell>
       );
     }
@@ -450,7 +470,7 @@ function AppContent() {
       <AppShell active="groups" onNavigateGroups={() => navigate({ name: 'home' })} onNavigateFriends={() => navigate({ name: 'friends' })} onNavigateProfile={() => navigate({ name: 'profile' })} onNavigateDev={() => navigate({ name: 'dev' })}>
         <HomeScreen
           key={refreshHomeKey}
-          onGroupPress={(groupId) => navigate({ name: 'group', groupId })}
+          onGroupPress={(groupId, openInvite) => navigate({ name: 'group', groupId, openInvite })}
           onNavigateToProfile={() => navigate({ name: 'profile' })}
         />
       </AppShell>

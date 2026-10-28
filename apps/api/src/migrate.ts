@@ -205,6 +205,28 @@ export async function runMigrations() {
       )
     `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_archives (
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      archived_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (group_id, user_id)
+    )
+  `);
+
+  await pool.query(`ALTER TABLE groups ADD COLUMN IF NOT EXISTS invites_enabled BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS group_join_requests (
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    PRIMARY KEY (group_id, user_id)
+  )`);
+
+  await pool.query(`ALTER TABLE group_join_requests ADD COLUMN IF NOT EXISTS rejection_count INTEGER NOT NULL DEFAULT 0 CHECK (rejection_count >= 0)`);
+  await pool.query(`UPDATE group_join_requests SET rejection_count = 1 WHERE status = 'rejected' AND rejection_count = 0`);
+
   // Add image_url column if it doesn't exist (for existing databases)
   await pool.query(`
       DO $$ 

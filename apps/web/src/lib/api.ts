@@ -25,7 +25,6 @@ import type {
   GroupsResponse,
   InviteLinkResponse,
   JoinFriendResponse,
-  JoinGroupResponse,
   MessageResponse,
   NotificationConfigResponse,
   NotificationPreferencesResponse,
@@ -269,6 +268,13 @@ class ApiClient {
     return this.request<GroupsResponse>('/api/groups');
   }
 
+  async setGroupArchived(id: number, archived: boolean) {
+    return this.request<MessageResponse>(`/api/groups/${id}/archive`, {
+      method: 'PATCH',
+      body: JSON.stringify({ archived }),
+    });
+  }
+
   async getGroup(id: number) {
     return this.request<GroupResponse>(`/api/groups/${id}`);
   }
@@ -385,23 +391,29 @@ class ApiClient {
     });
   }
 
+  async getExchangeInvite(token: string) {
+    return this.request<{ invite: { id: number; name: string; organizer: string; closed: boolean } }>(`/api/groups/invite/${encodeURIComponent(token)}`, { requireAuth: false });
+  }
+
+  async requestExchangeJoin(token: string) {
+    return this.request<{ status: 'member' | 'pending'; group_id?: number }>(`/api/groups/join/${encodeURIComponent(token)}`, { method: 'POST' });
+  }
+
+  async getJoinRequests(id: number) {
+    return this.request<{ requests: { user_id: number; username: string; blocked: boolean }[] }>(`/api/groups/${id}/join-requests`);
+  }
+
+  async reviewJoinRequest(id: number, userId: number, action: 'approve' | 'reject' | 'block' | 'unblock') {
+    return this.request<MessageResponse>(`/api/groups/${id}/join-requests/${userId}`, { method: 'PATCH', body: JSON.stringify({ action }) });
+  }
+
+  async manageExchangeInvite(id: number, action: 'reset' | 'enable' | 'disable') {
+    return this.request<{ invite_token: string; invites_enabled: boolean }>(`/api/groups/${id}/invite-link`, { method: 'PATCH', body: JSON.stringify({ action }) });
+  }
+
   // Invite link endpoints
   async getInviteLink(groupId: number) {
-    return this.request<InviteLinkResponse>(`/api/groups/${groupId}/invite-link`);
-  }
-
-  async joinGroupByToken(token: string) {
-    return this.request<JoinGroupResponse>(`/api/groups/join/${token}`, {
-      method: 'POST',
-    });
-  }
-
-  async getGroupByInviteToken(token: string) {
-    // Public endpoint, no auth required
-    return this.request<GroupResponse>(
-      `/api/groups/invite/${token}`,
-      { requireAuth: false }
-    );
+    return this.request<InviteLinkResponse & { invites_enabled: boolean }>(`/api/groups/${groupId}/invite-link`);
   }
 
   async leaveGroup(groupId: number) {

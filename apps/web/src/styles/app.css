@@ -1666,6 +1666,25 @@ select:focus {
   gap: 10px;
 }
 
+.modal-panel.create-friends-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: min(760px, calc(100dvh - 40px));
+  overflow: hidden;
+}
+
+.create-friends-dialog > * {
+  flex: 0 0 auto;
+}
+
+.create-friends-dialog .create-friend-list {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 3px;
+}
+
 .create-friend-option {
   min-height: 58px;
   display: grid;
@@ -4323,6 +4342,10 @@ select:focus {
   width: min(100% - 40px, var(--layout-overview-max));
   margin: 0 auto;
   padding: 10px 0 36px;
+}
+
+.overview-group-views {
+  margin-bottom: 24px;
 }
 
 .overview-groups-section,

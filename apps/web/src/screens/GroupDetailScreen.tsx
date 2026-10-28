@@ -63,12 +63,13 @@ function getDrawExclusionValidationMessage(members: GroupMember[], exclusions: D
 }
 
 interface GroupDetailScreenProps {
+  openInvite?: boolean;
   groupId: string;
   onBack: () => void;
 }
 
-export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreenProps) {
-  const { userId, username } = useAuth();
+export default function GroupDetailScreen({ groupId, onBack, openInvite = false }: GroupDetailScreenProps) {
+  const { userId } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [assignmentChats, setAssignmentChats] = useState<AssignmentChat[]>([]);
@@ -81,7 +82,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [busy, setBusy] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(openInvite);
   const [giftIdeaOpen, setGiftIdeaOpen] = useState(false);
   const [giftIdeasDialog, setGiftIdeasDialog] = useState<GiftIdeasDialog>(null);
   const [drawOpen, setDrawOpen] = useState(false);
@@ -100,6 +101,8 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   const [assignmentChatText, setAssignmentChatText] = useState('');
   const [assignmentChatLoading, setAssignmentChatLoading] = useState(false);
   const [assignmentChatSending, setAssignmentChatSending] = useState(false);
+  const [joinRequests, setJoinRequests] = useState<{ user_id: number; username: string; blocked: boolean }[]>([]);
+  const [invitesEnabled, setInvitesEnabled] = useState(true);
   const [exclusionGiverId, setExclusionGiverId] = useState<number | ''>('');
   const [exclusionReceiverId, setExclusionReceiverId] = useState<number | ''>('');
 
@@ -114,6 +117,11 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
       }
 
       setGroup(groupData);
+      if (groupData.created_by === userId) {
+        const response = await apiClient.getJoinRequests(Number(groupId));
+        if (response.error) showErrorToast(response.error);
+        setJoinRequests(response.data?.requests || []);
+      }
       const [assignmentData, ideas, chats] = await Promise.all([
         groupService.getAssignment(groupId),
         groupService.getGiftIdeas(groupId),
@@ -144,8 +152,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     setSelectedFriendIds([]);
     setFriendSearchQuery('');
     async function loadInviteData() {
-      if (username) {
-        setInviteLink(`${window.location.origin}/plsbemyfriend/${encodeURIComponent(username)}`);
+      setInviteLink('');
+      const linkResponse = await apiClient.getInviteLink(Number(groupId));
+      if (cancelled) return;
+      if (linkResponse.error) showErrorToast(linkResponse.error);
+      if (linkResponse.data) {
+        setInviteLink(`${window.location.origin}/invite/${linkResponse.data.invite_token}`);
+        setInvitesEnabled(linkResponse.data.invites_enabled);
       }
 
       const friendsResponse = await apiClient.getFriends();
@@ -162,7 +175,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
     return () => {
       cancelled = true;
     };
-  }, [inviteOpen, username]);
+  }, [inviteOpen, groupId]);
 
   const refreshAssignmentChatMessages = useCallback(async (chat: AssignmentChat, showLoading = false) => {
     if (showLoading) setAssignmentChatLoading(true);
@@ -408,7 +421,7 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
   };
 
   const handleDeleteAssignments = () => {
-    confirmDestructive('Reset Draw', 'This will remove all assignments for this group.', 'Reset', async () => {
+    confirmDestructive('Reset Draw', 'This removes everyone’s assignments and messages. To withdraw a member, reset the draw, remove them, then draw again. Everyone may receive a different recipient.', 'Reset', async () => {
       setBusy(true);
       try {
         await groupService.deleteAssignments(groupId);
@@ -420,6 +433,40 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         setBusy(false);
       }
     });
+  };
+
+  const manageInvite = async (action: 'reset' | 'enable' | 'disable') => {
+    setBusy(true);
+    try {
+      const response = await apiClient.manageExchangeInvite(Number(groupId), action);
+      if (response.error) { showErrorToast(response.error); return; }
+      setInviteLink(`${window.location.origin}/invite/${response.data!.invite_token}`);
+      setInvitesEnabled(response.data!.invites_enabled);
+      showSuccessToast('Invitation updated');
+    } finally { setBusy(false); }
+  };
+  const reviewRequest = async (id: number, action: 'approve' | 'reject' | 'block' | 'unblock') => {
+    setBusy(true);
+    try {
+      const response = await apiClient.reviewJoinRequest(Number(groupId), id, action);
+      if (response.error) { showErrorToast(response.error); return; }
+      await loadGroup();
+    } finally { setBusy(false); }
+  };
+
+  const handleArchive = async () => {
+    if (!group || busy) return;
+    setBusy(true);
+    try {
+      const response = await apiClient.setGroupArchived(Number(groupId), !group.is_archived);
+      if (response.error) throw new Error(response.error);
+      showSuccessToast(group.is_archived ? 'Group restored' : 'Group archived for you');
+      onBack();
+    } catch (error) {
+      showErrorToast(getErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleLeaveOrDelete = () => {
@@ -714,6 +761,22 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
             <div className="pending-members-heading">
               <h2>Members <span>({members.length})</span></h2>
               <p>These are the people currently in this group.</p>
+              {isOwner && !assignmentsLocked && <button className="secondary-button" type="button" onClick={() => setInviteOpen(true)}>Invite people</button>}
+              {isOwner && joinRequests.length > 0 && <section aria-label="Join requests">
+                <h3>Join requests ({joinRequests.filter(request => !request.blocked).length})</h3>
+                <p>Only approved people join the exchange. Pending requests are not included in the draw.</p>
+                {joinRequests.map(request => <div className="button-row" key={request.user_id}>
+                  <strong>@{request.username}</strong>
+                  {request.blocked ? <>
+                    <span>Requests blocked</span>
+                    <button className="secondary-button" disabled={busy} onClick={() => reviewRequest(request.user_id, 'unblock')}>Unblock @{request.username}</button>
+                  </> : <>
+                    <button className="secondary-button" disabled={busy || assignmentsLocked} onClick={() => reviewRequest(request.user_id, 'approve')}>Approve @{request.username}</button>
+                    <button className="secondary-button" disabled={busy} onClick={() => reviewRequest(request.user_id, 'reject')}>Decline @{request.username}</button>
+                    <button className="secondary-button" disabled={busy} onClick={() => confirmDestructive('Block requests', `Block @${request.username} from requesting this exchange until you unblock them?`, 'Block', () => reviewRequest(request.user_id, 'block'))}>Block requests from @{request.username}</button>
+                  </>}
+                </div>)}
+              </section>}
             </div>
             <div className="pending-members-list">
               {members.map((member) => {
@@ -998,14 +1061,28 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
         <div className="modal-backdrop">
           <div className="modal-panel invite-modal-panel">
             <header>
-              <h2>Add People</h2>
+              <h2>Invite people</h2>
               <button type="button" className="icon-button" onClick={closeInviteModal} aria-label="Close">×</button>
             </header>
 
+            <section className="invite-link-panel">
+              <h3>Invite to this exchange</h3>
+              <p>Share this link yourself. People request to join, and you approve them here. The app does not send invitation emails. Invitations close when names are drawn.</p>
+              {invitesEnabled && inviteLink ? <>
+                <div className="copy-field"><input aria-label="Exchange invite link" value={inviteLink} readOnly />
+                  <button className="secondary-button" type="button" onClick={handleCopyInviteLink}>{inviteCopied ? 'Copied' : 'Copy'}</button></div>
+                <button className="secondary-button" type="button" onClick={handleShareInviteLink}>Share link</button>
+              </> : <p>Invitation link disabled or unavailable.</p>}
+              <div className="button-row">
+                <button className="secondary-button" type="button" disabled={busy} onClick={() => manageInvite(invitesEnabled ? 'disable' : 'enable')}>{invitesEnabled ? 'Disable link' : 'Enable link'}</button>
+                <button className="secondary-button" type="button" disabled={busy} onClick={() => confirmDestructive('Replace invitation link', 'The old link will stop working. Existing requests remain for you to review.', 'Replace', () => manageInvite('reset'))}>Replace link</button>
+              </div>
+            </section>
+
             <section className="friend-picker-panel">
               <div>
-                <h3>Add friends to this group</h3>
-                <p>Select one or more friends. People already in the group are shown as added.</p>
+                <h3>Or add existing friends</h3>
+                <p>Optional shortcut: add existing friends directly. People already in the group are shown as added.</p>
               </div>
 
               <label className="friend-picker-search">
@@ -1048,33 +1125,13 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                 })}
                 {filteredFriends.length === 0 && (
                   <p className="empty-inline">
-                    {friends.length === 0 ? 'No friends yet. Share your friend link first.' : 'No friends match that search.'}
+                    {friends.length === 0 ? 'No friends yet. Share the exchange link above.' : 'No friends match that search.'}
                   </p>
                 )}
               </div>
             </section>
 
-            <details className="invite-link-panel">
-              <summary>Need to add someone as a friend first?</summary>
-              <div className="invite-link-panel-body">
-                <p>Share your friend link. Once they add you, they can be added to groups directly.</p>
-                {inviteLink ? (
-                  <>
-                    <div className="copy-field">
-                      <input value={inviteLink} readOnly />
-                      <button className="primary-button compact" type="button" onClick={handleCopyInviteLink}>
-                        {inviteCopied ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                    <button className="secondary-button" type="button" onClick={handleShareInviteLink}>
-                      Share Link
-                    </button>
-                  </>
-                ) : (
-                  <p className="form-error">Finish your profile before sharing a friend link.</p>
-                )}
-              </div>
-            </details>
+
 
             <div className="button-row invite-modal-footer">
               <span>
@@ -1299,6 +1356,14 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
               </div>
             </section>
 
+            <section className="details-summary-section">
+              <h3>Archive for me</h3>
+              <p>Archiving hides this group from your active list. You remain in the exchange, keep your assignment, and can still access gift ideas and messages from Archived.</p>
+              <button className="secondary-button" type="button" disabled={busy} onClick={handleArchive}>
+                {group.is_archived ? 'Restore group' : 'Archive group'}
+              </button>
+              {assignment && <p>Can’t participate? {isOwner ? 'Reset the draw, remove the withdrawing member, then draw again. Everyone’s assignment may change.' : 'Contact the organizer. They need to reset the draw, remove you, and draw again. Archiving does not withdraw you.'}</p>}
+            </section>
             <div className="group-details-footer">
               <div className="group-details-danger-actions">
                 {isOwner && assignment && (
@@ -1306,9 +1371,9 @@ export default function GroupDetailScreen({ groupId, onBack }: GroupDetailScreen
                     Reset Draw
                   </button>
                 )}
-                <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
+                {(isOwner || !assignmentsLocked) && <button className="danger-button" type="button" onClick={handleLeaveOrDelete}>
                   {isOwner ? 'Delete Group' : 'Leave Group'}
-                </button>
+                </button>}
               </div>
               <div className="button-row end">
                 <button className="secondary-button" type="button" onClick={closeDetails}>
