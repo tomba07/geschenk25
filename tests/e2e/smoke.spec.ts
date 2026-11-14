@@ -214,7 +214,7 @@ test.describe('Geschenk smoke tests', () => {
       await page.getByRole('button', { name: 'Request to join', exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`/groups/${group.id}$`));
       await ownerPage.setViewportSize({ width: 390, height: 844 });
-      await ownerPage.getByRole('button', { name: 'Invite people', exact: true }).click();
+      await ownerPage.getByRole('button', { name: 'Add people', exact: true }).click();
       await expect(ownerPage.getByLabel('Exchange invite link')).toHaveValue(new RegExp(`/invite/${token}$`));
       expect(await ownerPage.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     } finally { await ownerPage.close(); await request.delete(url, { headers: ownerHeaders }); }
@@ -336,7 +336,7 @@ test.describe('Geschenk smoke tests', () => {
       const response = await created;
       expect(response.ok()).toBeTruthy();
       groupId = (await response.json()).group.id;
-      await expect(page.getByRole('heading', { name: 'Invite people', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Add people', exact: true })).toBeVisible();
       await expect(page.getByLabel('Exchange invite link')).toHaveValue(/\/invite\/[a-f0-9]+$/);
       const detail = await (await request.get(`${API_URL}/api/groups/${groupId}`, { headers })).json();
       expect(detail.group.members).toHaveLength(1);

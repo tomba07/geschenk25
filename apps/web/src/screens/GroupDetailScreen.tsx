@@ -686,7 +686,7 @@ export default function GroupDetailScreen({ groupId, onBack, openInvite = false 
                         if (chat) openAssignmentChat(chat);
                       }}
                     >
-                      Message them
+                      Message @{assignment.receiver_username}
                       <ChevronRight className="button-inline-icon" aria-hidden="true" />
                     </button>
                   )}
@@ -761,7 +761,7 @@ export default function GroupDetailScreen({ groupId, onBack, openInvite = false 
             <div className="pending-members-heading">
               <h2>Members <span>({members.length})</span></h2>
               <p>These are the people currently in this group.</p>
-              {isOwner && !assignmentsLocked && <button className="secondary-button" type="button" onClick={() => setInviteOpen(true)}>Invite people</button>}
+              {isOwner && !assignmentsLocked && <button className="secondary-button" type="button" onClick={() => setInviteOpen(true)}>Add people</button>}
               {isOwner && joinRequests.length > 0 && <section aria-label="Join requests">
                 <h3>Join requests ({joinRequests.filter(request => !request.blocked).length})</h3>
                 <p>Only approved people join the exchange. Pending requests are not included in the draw.</p>
@@ -1061,7 +1061,7 @@ export default function GroupDetailScreen({ groupId, onBack, openInvite = false 
         <div className="modal-backdrop">
           <div className="modal-panel invite-modal-panel">
             <header>
-              <h2>Invite people</h2>
+              <h2>Add people</h2>
               <button type="button" className="icon-button" onClick={closeInviteModal} aria-label="Close">×</button>
             </header>
 

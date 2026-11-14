@@ -285,7 +285,7 @@ export default function HomeScreen({ onGroupPress, onNavigateToProfile }: HomeSc
               <>
                 <div className="create-step-copy">
                   <span>Step 1 of 2</span>
-                  <p>Optionally add existing friends, or continue and invite people with an exchange link.</p>
+                  <p>Optionally add existing friends, or continue and add people with an exchange link.</p>
                 </div>
                 {friends.length > 0 && (
                   <label className="friend-picker-search">

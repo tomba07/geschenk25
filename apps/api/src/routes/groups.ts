@@ -66,7 +66,7 @@ function mapAssignmentChat(row: any, userId: number) {
     role,
     title: role === 'giver' ? `@${row.receiver_username}` : 'Your Secret Santa',
     subtitle: role === 'giver'
-      ? 'Message them as their Secret Santa.'
+      ? 'Message as Secret Santa'
       : 'Ask a question without knowing who they are.',
     receiver_id: role === 'giver' ? row.receiver_id : undefined,
     receiver_username: role === 'giver' ? row.receiver_username : undefined,
