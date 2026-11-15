@@ -15,22 +15,15 @@ interface NotificationPayload {
 
 interface QueuedEmailNotificationInput {
   userId: number;
-  groupId: number;
-  assignmentId: number;
-  type: 'assignment_chat_message';
+  groupId?: number;
+  assignmentId?: number;
+  type: 'assignment_chat_message' | 'routine_update';
   payload: NotificationPayload;
-  delayMinutes?: number;
 }
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const emailFrom = process.env.EMAIL_FROM;
 const emailDeliveryDisabled = process.env.DISABLE_EMAIL_DELIVERY === 'true';
-const emailBatchingDisabled = process.env.DISABLE_EMAIL_BATCHING === 'true';
-const defaultEmailBatchDelayMinutes = parsePositiveNumber(process.env.EMAIL_BATCH_DELAY_MINUTES, 10);
-const maxEmailBatchWaitMinutes = Math.max(
-  defaultEmailBatchDelayMinutes,
-  parsePositiveNumber(process.env.EMAIL_BATCH_MAX_WAIT_MINUTES, 30)
-);
 const pendingEmailProcessorLockKey = 25001987;
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -56,9 +49,11 @@ export function getPushNotificationConfig() {
   };
 }
 
-export async function sendNotificationToUser(userId: number, payload: NotificationPayload) {
+export async function sendNotificationToUser(userId: number, payload: NotificationPayload, options: { immediateEmail?: boolean } = {}) {
   const results = await Promise.allSettled([
-    sendEmailNotification(userId, payload),
+    options.immediateEmail
+      ? sendEmailNotification(userId, payload)
+      : queueEmailNotification({ userId, type: 'routine_update', payload }),
     sendPushNotificationToUser(userId, payload),
   ]);
 
@@ -71,16 +66,6 @@ export async function sendNotificationToUser(userId: number, payload: Notificati
 }
 
 export async function queueEmailNotification(input: QueuedEmailNotificationInput) {
-  if (emailBatchingDisabled) {
-    await sendEmailNotification(input.userId, input.payload);
-    return;
-  }
-
-  const delayMinutes = Number.isFinite(input.delayMinutes)
-    ? input.delayMinutes!
-    : defaultEmailBatchDelayMinutes;
-  const clampedDelayMinutes = Math.max(0, delayMinutes);
-
   await pool.query(
     `INSERT INTO pending_email_notifications (
        user_id,
@@ -96,7 +81,7 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
        email_action_label,
        send_after
      )
-     VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP + ($11 || ' minutes')::interval)
+     VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP + INTERVAL '12 hours')
      ON CONFLICT (
        user_id,
        type,
@@ -113,15 +98,11 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
        email_text = EXCLUDED.email_text,
        email_action_label = EXCLUDED.email_action_label,
        last_event_at = CURRENT_TIMESTAMP,
-       send_after = LEAST(
-         pending_email_notifications.first_event_at + ($12 || ' minutes')::interval,
-         EXCLUDED.send_after
-       ),
        updated_at = CURRENT_TIMESTAMP`,
     [
       input.userId,
-      input.groupId,
-      input.assignmentId,
+      input.groupId ?? null,
+      input.assignmentId ?? null,
       input.type,
       input.payload.title,
       input.payload.body,
@@ -129,8 +110,6 @@ export async function queueEmailNotification(input: QueuedEmailNotificationInput
       input.payload.emailSubject || input.payload.title,
       input.payload.emailText || input.payload.body,
       input.payload.emailActionLabel || null,
-      clampedDelayMinutes,
-      maxEmailBatchWaitMinutes,
     ]
   );
 }
@@ -147,7 +126,6 @@ export async function cancelPendingAssignmentChatEmail(userId: number, assignmen
 }
 
 export async function processPendingEmailNotifications(limit = 25) {
-  if (emailBatchingDisabled) return;
 
   const client = await pool.connect();
   let lockAcquired = false;
@@ -161,39 +139,49 @@ export async function processPendingEmailNotifications(limit = 25) {
     if (!lockAcquired) return;
 
     const dueResult = await client.query(
-      `SELECT pen.id,
-              pen.user_id,
-              pen.count,
-              pen.type,
-              pen.title,
-              pen.body,
-              pen.url,
-              pen.email_subject,
-              pen.email_text,
-              pen.email_action_label,
-              g.name as group_name
+      `SELECT pen.user_id
        FROM pending_email_notifications pen
-       JOIN groups g ON g.id = pen.group_id
-       WHERE pen.sent_at IS NULL AND pen.send_after <= CURRENT_TIMESTAMP
-       ORDER BY pen.send_after ASC
+       LEFT JOIN email_digest_deliveries d ON d.user_id = pen.user_id
+       WHERE pen.sent_at IS NULL
+         AND pen.send_after <= CURRENT_TIMESTAMP
+         AND (d.last_sent_at IS NULL OR d.last_sent_at <= CURRENT_TIMESTAMP - INTERVAL '12 hours')
+       GROUP BY pen.user_id
+       ORDER BY MIN(pen.send_after)
        LIMIT $1`,
       [limit]
     );
 
-    for (const row of dueResult.rows) {
-      const count = Number(row.count) || 1;
-      const payload = buildQueuedEmailPayload(row, count);
-
+    for (const recipient of dueResult.rows) {
       try {
-        await sendEmailNotification(row.user_id, payload);
-        await client.query(
-          `UPDATE pending_email_notifications
-           SET sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-           WHERE id = $1 AND sent_at IS NULL`,
-          [row.id]
+        await client.query('BEGIN');
+        // Lock the snapshot so new messages cannot be silently marked as sent.
+        const pending = await client.query(
+          `SELECT pen.*, g.name AS group_name
+           FROM pending_email_notifications pen
+           LEFT JOIN groups g ON g.id = pen.group_id
+           WHERE pen.user_id = $1 AND pen.sent_at IS NULL
+           ORDER BY pen.id FOR UPDATE OF pen`,
+          [recipient.user_id]
         );
+        if (pending.rows.length) {
+          const payload = buildDigestPayload(pending.rows);
+          const key = `digest-${recipient.user_id}-${crypto.createHash('sha256').update(JSON.stringify(pending.rows.map(row => [row.id, row.count]))).digest('hex')}`;
+          await sendEmailNotification(recipient.user_id, payload, key);
+          await client.query(
+            `UPDATE pending_email_notifications SET sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ANY($1::int[])`,
+            [pending.rows.map(row => row.id)]
+          );
+          await client.query(
+            `INSERT INTO email_digest_deliveries (user_id, last_sent_at) VALUES ($1, CURRENT_TIMESTAMP)
+             ON CONFLICT (user_id) DO UPDATE SET last_sent_at = EXCLUDED.last_sent_at`,
+            [recipient.user_id]
+          );
+        }
+        await client.query('COMMIT');
       } catch (error) {
-        console.error(`Failed to process pending email notification ${row.id}:`, error);
+        await client.query('ROLLBACK');
+        console.error(`Failed to process email digest for user ${recipient.user_id}:`, error);
       }
     }
   } finally {
@@ -208,7 +196,6 @@ export async function processPendingEmailNotifications(limit = 25) {
 }
 
 export function startPendingEmailNotificationProcessor() {
-  if (emailBatchingDisabled) return undefined;
 
   const intervalMs = Number(process.env.EMAIL_BATCH_PROCESS_INTERVAL_MS || '60000');
   const run = () => {
@@ -224,7 +211,7 @@ export function startPendingEmailNotificationProcessor() {
   return () => clearInterval(interval);
 }
 
-async function sendEmailNotification(userId: number, payload: NotificationPayload) {
+async function sendEmailNotification(userId: number, payload: NotificationPayload, idempotencyKey?: string) {
   if (emailDeliveryDisabled || !resendApiKey || !emailFrom) {
     return;
   }
@@ -254,7 +241,9 @@ async function sendEmailNotification(userId: number, payload: NotificationPayloa
     headers: {
       Authorization: `Bearer ${resendApiKey}`,
       'Content-Type': 'application/json',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
+    signal: AbortSignal.timeout(15000),
     body: JSON.stringify({
       from: emailFrom,
       to: email,
@@ -315,10 +304,20 @@ function buildAssignmentChatEmailPayload(row: any, count: number): NotificationP
   };
 }
 
-function parsePositiveNumber(value: string | undefined, fallback: number) {
-  if (!value) return fallback;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+export function buildDigestPayload(rows: any[]): NotificationPayload {
+  const updates = rows.map(row => buildQueuedEmailPayload(row, Number(row.count) || 1));
+  return {
+    title: 'Your Geschenk updates',
+    body: 'Here is what happened since your last update.',
+    emailSubject: 'Your Geschenk updates',
+    emailText: updates.map(update => `${update.emailText || update.body}${update.url ? `\n${getEventUrl(update.url)}` : ''}`).join('\n\n'),
+    emailHtml: updates.map(update => {
+      const url = getEventUrl(update.url);
+      return `<p><strong>${escapeHtml(update.title)}</strong><br>${escapeHtml(update.emailText || update.body)}${url ? `<br><a href="${escapeHtml(url)}">Open update</a>` : ''}</p>`;
+    }).join(''),
+    url: '/',
+    emailActionLabel: 'Open Geschenk',
+  };
 }
 
 function isDeliverableNotificationEmail(email: string) {

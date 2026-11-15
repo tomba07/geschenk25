@@ -283,7 +283,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
               </span>
               <div>
                 <strong>Email notifications</strong>
-                <small>Friend requests, group additions, and draw results.</small>
+                <small>Friend and group updates and unread messages, at most twice a day. Draw results arrive immediately.</small>
               </div>
               <button
                 className={`toggle-switch ${emailNotificationsEnabled ? 'on' : ''}`}

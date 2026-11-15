@@ -72,13 +72,24 @@ The live API is available behind Caddy at `https://geschenk.mteschke.com/api/*`.
 
 ### Notification Email Batching
 
-Secret Santa chat emails are batched by default so quick message bursts do not send one email per message.
+Routine notifications (friend requests, friend acceptances, friend additions, group additions,
+and unread Secret Santa messages) are combined across groups into one digest per recipient.
+The first queued event starts a 12-hour window; later events do not extend it. Delivery is
+limited to once every 12 hours per recipient, and empty digests are never sent. Reading a
+chat removes its pending reminder. Push notifications remain immediate.
 
-Useful production knobs:
+Name-draw announcements, login links, and password resets are sent immediately, outside
+the digest limit. Notification email preferences and unsubscribe links still apply to digests.
+The old delay/max-wait and disable-batching settings are no longer used.
 
 ```env
-EMAIL_BATCH_DELAY_MINUTES=10
-EMAIL_BATCH_MAX_WAIT_MINUTES=30
 EMAIL_BATCH_PROCESS_INTERVAL_MS=60000
-DISABLE_EMAIL_BATCHING=false
+```
+
+Digest integration tests use a dedicated local PostgreSQL database whose name ends in
+`_email_test`. Email HTTP calls are mocked; no real emails are sent:
+
+```sh
+npm run build:api
+DATABASE_URL=postgres://.../geschenk_email_test node --test tests/api/email-digest.test.cjs
 ```

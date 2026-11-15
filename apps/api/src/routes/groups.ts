@@ -855,7 +855,7 @@ router.post('/:id/assign', async (req: AuthRequest, res: Response) => {
         emailSubject: `Names are drawn for "${groupCheck.rows[0].name}"`,
         emailText: `Names are drawn for "${groupCheck.rows[0].name}". Open Geschenk to see who you are buying for.`,
         emailActionLabel: 'View your match',
-      }).catch((error) => console.error('Failed to send assignment notification:', error));
+      }, { immediateEmail: true }).catch((error) => console.error('Failed to send assignment notification:', error));
     });
 
     res.json({ message: 'Assignments created successfully' });

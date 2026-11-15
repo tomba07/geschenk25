@@ -410,6 +410,16 @@ export async function runMigrations() {
       WHERE sent_at IS NULL
     `);
 
+  // Routine updates need no group or assignment. NULL keys remain separate events.
+  await pool.query(`ALTER TABLE pending_email_notifications ALTER COLUMN group_id DROP NOT NULL`);
+  await pool.query(`ALTER TABLE pending_email_notifications ALTER COLUMN assignment_id DROP NOT NULL`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS email_digest_deliveries (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    last_sent_at TIMESTAMPTZ NOT NULL
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_pending_email_due
+    ON pending_email_notifications (send_after, user_id) WHERE sent_at IS NULL`);
+
   await pool.query('DROP TABLE IF EXISTS exclusions');
 
   // Add link column if it doesn't exist (for existing databases)
